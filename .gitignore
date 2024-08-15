@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Pycharm project files
+.idea/
+
+# VirtualEnv
+.venv/
+venv/
+
+# migrations
+reports/migrations
+users/migrations
+documents/migrations
+dictionaries/migrations
+
+documentation/
+static/
+minio
+.env
+.env.db
+docker-compose.yml
+nginx
+Dockerfile
+db.sqlite3
+IEF_LOG.log
+
+# tamplates
+templates/*.html
+templates/*.xlsx
+uploads/*.pdf

@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  pgdb:
+    image: postgres:14.4-alpine
+    container_name: local_pgdb
+    ports:
+      - "5424:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+      - ./init_scripts:/docker-entrypoint-initdb.d
+    env_file:
+      - .env.db
+  minio:
+    build: ./minio
+    volumes:
+      - ~/minio/data:/data
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - RUN_MIGRATIONS=true
+    volumes:
+      - static:/app/static
+      - templates:/app/templates
+      - ./dictionaries/migrations:/app/dictionaries/migrations
+      - ./documents/migrations:/app/documents/migrations
+      - ./users/migrations:/app/users/migrations
+    env_file:
+      - .env
+    depends_on:
+      - pgdb
+
+volumes:
+  static:
+  templates:
+  postgres_data:
