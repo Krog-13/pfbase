@@ -1,13 +1,13 @@
+from dictionaries.models import Category, Indicator, \
+    IndicatorParameter, ElementIndicatorValue, ABCDictionary, Element
 from django.contrib import admin
 from django import forms
-from dictionaries.models import CategoryDictionary, DictionaryIndicator, \
-    IndicatorParameter, DictionaryIndicatorValue, ABCDictionary, Element
 
 
-@admin.register(CategoryDictionary)
-class CategoryDictionaryAdmin(admin.ModelAdmin):
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
     """
-    Категории справочников в админ панели
+    Category in admin panel
     """
     list_display = ('short_name', 'parent', 'id')
     search_fields = ('short_name', 'parent__short_name', 'id')
@@ -15,7 +15,7 @@ class CategoryDictionaryAdmin(admin.ModelAdmin):
 
 class DictionaryAdminForm(forms.ModelForm):
     """
-    Форма для отчетов в админ панели
+    Form for dictionaries in admin panel
     """
     full_name = forms.CharField(max_length=256, label='Полное наименование', required=True)
     part_name = forms.CharField(max_length=256, label='Краткое наименование', required=False)
@@ -24,38 +24,23 @@ class DictionaryAdminForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         # Check if the instance exists (editing an object)
-        if self.instance.naming:
-            self.fields['full_name'].initial = self.instance.naming.get("full_name", "")
-            self.fields['part_name'].initial = self.instance.naming.get("short_name", "")
-
-    class Meta:
-        model = Element
-        fields = '__all__'
-
-
-@admin.register(Element)
-class DictionaryAdmin(admin.ModelAdmin):
-    """
-    Справочники в админ панели
-    """
-    fields = ("short_name", "code", "abc_dictionary", "parent")
-    list_display = ('short_name', 'code', 'id')
-    search_fields = ('id', 'code',
-                     'category_dictionary__short_name',)
+        if self.instance.dct_name:
+            self.fields['full_name'].initial = self.instance.dct_name.get("full_name", "")
+            self.fields['part_name'].initial = self.instance.dct_name.get("short_name", "")
 
 
 @admin.register(ABCDictionary)
-class DictionaryAdmin(admin.ModelAdmin):
+class ABCDictionaryAdmin(admin.ModelAdmin):
     """
     Dictionary in admin panel
     """
     form = DictionaryAdminForm
-    fields = (("full_name", "part_name"), "description", "organizations", "abc_code", "category_dictionary", "author")
-    list_display = ('get_short_name', 'author', 'abc_code', 'id')
-    search_fields = ('id', 'category_dictionary__short_name')
+    fields = (("full_name", "part_name"), "description", "code", "category", "author")
+    list_display = ('get_short_name', 'author', 'code', 'id')
+    search_fields = ('id', 'category__short_name')
 
     def get_short_name(self, obj):
-        return obj.naming["short_name"]
+        return obj.dct_name["short_name"]
 
     def save_model(self, request, obj, form, change):
         full_name = form.cleaned_data.get("full_name")
@@ -65,31 +50,45 @@ class DictionaryAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
-@admin.register(DictionaryIndicator)
-class DictionaryIndicatorAdmin(admin.ModelAdmin):
+@admin.register(Indicator)
+class IndicatorAdmin(admin.ModelAdmin):
     """
-    Показатели в админ панели
+    Indicators in admin panel
     """
-    fields = ("dictionary", ("short_name", "type_value"), "type_reference", "parameters")
-    list_display = ('short_name', 'type_value', 'dictionary', 'id')
-    search_fields = ('short_name', 'id')
+    fields = ("abc_dictionary", ("short_name", "type_value"), ("code", "index_sort"), "active", "reference", "parameters")
+    list_display = ('get_short_name', 'type_value', 'abc_dictionary', 'index_sort')
+
+    def get_short_name(self, obj):
+        return obj.short_name.get("ru", obj.code)
+
+
+@admin.register(Element)
+class ElementAdmin(admin.ModelAdmin):
+    """
+    Elements in admin panel
+    """
+    fields = ("short_name", "abc_dictionary", "parent")
+    list_display = ('get_short_name', 'abc_dictionary', 'id')
+    search_fields = ('id',)
+
+    def get_short_name(self, obj):
+        return obj.short_name.get("ru")
 
 
 @admin.register(IndicatorParameter)
 class IndicatorParameterAdmin(admin.ModelAdmin):
     """
-    Параметры в админ панели
+    Parameters in admin panel
     """
-    list_display = ('short_name', 'id')
-    search_fields = ('short_name', 'id')
+    list_display = ('short_name', 'active', 'id')
+    search_fields = ('short_name', 'active', 'id')
 
 
-@admin.register(DictionaryIndicatorValue)
-class DictionaryIndicatorValueAdmin(admin.ModelAdmin):
+@admin.register(ElementIndicatorValue)
+class ElementIndicatorValueAdmin(admin.ModelAdmin):
     """
-    Значения показателей в админ панели
+    Element-indicator values in admin panel
     """
-    # form = OrderForm
-    list_display = ("indicator_value", "element", "indicator")
-    search_fields = ("indicator_value", "id",
-                     'dictionary__short_name')
+    fields = (("value_str", "value_int"), "index_sort", "element", "indicator")
+    list_display = ("value_int", "value_str", "element", "indicator")
+    search_fields = ("value_int", "id")

@@ -1,17 +1,16 @@
 import os
 from django.db import models
 from django.utils.text import slugify
-from IEF.base_model import CategoryBase, IndicatorBase, DefaultParameterBase, IndicatorValueBase, SoftDelete
+from IEF.base_model import CategoryBase, IndicatorBase, ParameterBase, IndicatorValueBase, SoftDelete
 from users.models import Organization, User
 
 
-class CategoryReport(CategoryBase):
+class Category(CategoryBase):
     """
     Категории отчетов
     """
-
     class Meta:
-        db_table = '"rpt\".\"category_report"'
+        db_table = '"rpt\".\"category"'
         verbose_name = 'Категорию отчета'
         verbose_name_plural = 'Категории отчетов'
 
@@ -56,23 +55,20 @@ def generate_filename_instruction(instance, filename=None, is_link=False):
 
 class ABCReport(models.Model):
     """Abstract Report"""
-    naming = models.JSONField(
-        max_length=255, verbose_name='Наименование', null=True, blank=True)
+    rpt_name = models.JSONField(verbose_name='Наименование')
     description = models.TextField(
         null=True, blank=True, verbose_name='Описание')
-    abc_code = models.CharField(max_length=128, verbose_name='Код', null=True, blank=True)
+    code = models.CharField(max_length=128, verbose_name='Код', unique=True)
     organizations = models.ManyToManyField(
         to=Organization, blank=True, verbose_name='Организация')
-    category_report = models.ForeignKey(
-        CategoryReport, null=True, blank=True, on_delete=models.SET_NULL, verbose_name='Категория документа')
     author = models.ForeignKey(
         to=User, on_delete=models.CASCADE, verbose_name='Автор')
 
     def __str__(self):
-        return self.naming["short_name"]
+        return self.rpt_name.get("ru", self.code)
 
     class Meta:
-        db_table = '"rpt\".\"abc_reports"'
+        db_table = '"rpt\".\"abc_report"'
         verbose_name = 'Отчёт'
         verbose_name_plural = 'Отчёты'
 
@@ -82,76 +78,28 @@ class ABCReport(models.Model):
         super().save(*args, **kwargs)
 
 
-class JournalReport(SoftDelete):
+class IndicatorParameter(ParameterBase):
     """
-    Отчеты
-    """
-    _PERIODS = [("day", "ежедневный"), ("month", "ежемесячный"), ("quarter", "квартальный"),
-                ("year", "годовой")]
-    period = models.CharField(
-        max_length=128, choices=_PERIODS, verbose_name='Период')
-    period_value = models.CharField(verbose_name="Значание периода", null=True, blank=True)
-    short_name = models.CharField(
-        max_length=128, unique=True, verbose_name='Наименование')
-    code = models.CharField(max_length=128, verbose_name='Код', null=True, blank=True)
-    rpt_number = models.CharField(max_length=216, verbose_name='Номер отчета', null=True, blank=True)
-    date_time = models.DateTimeField(verbose_name="Дата создания", null=True)
-    created_at = models.DateTimeField(auto_now_add=True, blank=True)
-    author = models.ForeignKey(
-        to=User, on_delete=models.CASCADE, verbose_name='Автор')
-    abc_report = models.ForeignKey(to=ABCReport, null=True, blank=True, on_delete=models.SET_NULL,
-                                     verbose_name='Отчет')
-    parent = models.ForeignKey("self", null=True, blank=True, related_name="children", on_delete=models.SET_NULL,
-                               verbose_name='Родительский элемент')
-
-    def __str__(self):
-        return self.short_name
-
-    class Meta:
-        db_table = '"rpt\".\"journal"'
-        verbose_name = 'Журнал Отчета'
-        verbose_name_plural = 'Журнал Отчетов'
-
-
-class HistoryReportJournal(models.Model):
-    """History of Report"""
-    journal_status = models.CharField(max_length=128, verbose_name='Статус')
-    status_comment = models.TextField(max_length=312, null=True, blank=True, verbose_name='Комментарий')
-    created_at = models.DateTimeField(auto_now_add=True, blank=True)
-    journal_stamp = models.JSONField(verbose_name='Слепок', null=True, blank=True)
-    author = models.ForeignKey(
-        to=User, on_delete=models.CASCADE, verbose_name='Автор')
-    journal_report = models.ForeignKey(to=JournalReport, null=True, blank=True, on_delete=models.SET_NULL,
-                                         verbose_name='Журнал отчетов', related_name="history_status")
-
-    class Meta:
-        db_table = '"rpt\".\"history_report_journal"'
-        verbose_name = 'История Журнала'
-        verbose_name_plural = 'Истории Журнала'
-
-
-class DefaultParameter(DefaultParameterBase):
-    """
-    Параметры для показателя
+    Default parameters for indicators
     """
     class Meta:
-        db_table = '"rpt\".\"default_parameter"'
+        db_table = '"rpt\".\"indicator_parameter"'
         verbose_name = 'Параметр'
         verbose_name_plural = 'Параметры'
 
 
-class ReportIndicator(IndicatorBase):
+class Indicator(IndicatorBase):
     """
-    Показатели
+    Indicator for reports
     """
-    idc_code = models.CharField(max_length=128, verbose_name='Код', null=True, blank=True)
-    custom_rule = models.JSONField(max_length=255, verbose_name='Правило', null=True, blank=True)
-    report = models.ForeignKey(
-        to=ABCReport, on_delete=models.CASCADE, verbose_name='Отчет', null=True,
-        related_name='report_indicators')
-    reference = models.PositiveIntegerField(null=True, blank=True, verbose_name="Foreign Key")
+    custom_rule = models.JSONField(verbose_name='Правило', null=True, blank=True)
+    abc_report = models.ForeignKey(
+        to=ABCReport, on_delete=models.CASCADE, verbose_name='Отчет',
+        related_name='indicator')
+    reference = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name="Внешний ключ")
     parameters = models.ManyToManyField(
-        DefaultParameter, blank=True, verbose_name='Параметры')
+        IndicatorParameter, blank=True, verbose_name='Параметры')
 
     class Meta:
         db_table = '"rpt\".\"indicator"'
@@ -159,21 +107,80 @@ class ReportIndicator(IndicatorBase):
         verbose_name_plural = 'Показатели'
 
 
-class IndicatorValue(IndicatorValueBase):
+class Report(SoftDelete):
     """
-    Значения показателей
+    Report
     """
-    journal_report = models.ForeignKey(
-        to=JournalReport, on_delete=models.CASCADE, verbose_name='Журнал отчета',
-        related_name="journal_rpt")
-    indicator = models.ForeignKey(
-        to=ReportIndicator, on_delete=models.CASCADE, verbose_name='Показатель',
-        related_name="indicator_rpt")
+    _PERIODS = [("day", "ежедневный"), ("month", "ежемесячный"), ("quarter", "квартальный"),
+                ("year", "годовой")]
+    period = models.CharField(
+        max_length=128, choices=_PERIODS, verbose_name='Период')
+    period_value = models.CharField(verbose_name="Значание периода", null=True, blank=True)
+    short_name = models.JSONField(verbose_name='Краткое наименование')
+    full_name = models.JSONField(verbose_name='Полное наименование')
+    code = models.CharField(
+        max_length=128, verbose_name='Код', unique=True)
+    created_at = models.DateTimeField(auto_now_add=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True)
+    author = models.ForeignKey(
+        to=User, on_delete=models.CASCADE, verbose_name='Автор')
+    abc_report = models.ForeignKey(to=ABCReport, null=True, blank=True, on_delete=models.SET_NULL,
+                                     verbose_name='Отчет')
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, related_name="children", on_delete=models.CASCADE,
+        verbose_name='Родительский элемент')
+
+    def __str__(self):
+        return self.short_name.get("ru", self.code)
 
     class Meta:
-        db_table = '"rpt\".\"indicator_values"'
+        db_table = '"rpt\".\"report"'
+        verbose_name = 'Отчета'
+        verbose_name_plural = 'Отчеты'
+
+
+class ReportIndicatorValue(IndicatorValueBase):
+    """
+    Record-Indicator Value
+    """
+    value_text = models.TextField(
+        null=True, blank=True, verbose_name='Текст')
+    value_datetime = models.DateTimeField(
+        null=True, blank=True, verbose_name='Дата и время')
+    value_reference = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name='Внешний ключ')
+    record_report = models.ForeignKey(
+        to=Report, on_delete=models.CASCADE, verbose_name='Запись отчета',
+        related_name="report_value")
+    indicator = models.ForeignKey(
+        to=Indicator, on_delete=models.CASCADE, verbose_name='Показатель',
+        related_name="indicator_value")
+
+    class Meta:
+        db_table = '"rpt\".\"indicator_value"'
         verbose_name = 'Значение показателя'
         verbose_name_plural = 'Значения показателей'
 
     def __str__(self):
-        return self.indicator_value if self.indicator_value else self.indicator.short_name
+        return self.record_report
+
+
+class ReportJournal(models.Model):
+    """History of Report"""
+    status = models.CharField(
+        max_length=128, verbose_name='Статус')
+    status_comment = models.TextField(
+        max_length=312, null=True, blank=True, verbose_name='Комментарий')
+    created_at = models.DateTimeField(auto_now_add=True, blank=True)
+    sign_stamp = models.TextField(verbose_name='Ключ верификации', null=True, blank=True)
+    stamp = models.JSONField(verbose_name='Слепок', null=True, blank=True)
+    author = models.ForeignKey(
+        to=User, on_delete=models.CASCADE, verbose_name='Автор')
+    report = models.ForeignKey(
+        to=Report, null=True, blank=True, on_delete=models.SET_NULL,
+        verbose_name='Журнал отчетов', related_name="history_status")
+
+    class Meta:
+        db_table = '"rpt\".\"report_journal"'
+        verbose_name = 'История Журнала'
+        verbose_name_plural = 'Истории Журнала'

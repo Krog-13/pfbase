@@ -3,7 +3,7 @@ from django.db import connection
 
 
 class Command(BaseCommand):
-    help = 'Создать схемы rpt и dcm'
+    help = 'Создать схемы dct|dcm|rpt'
 
     def handle(self, *args, **kwargs):
         with connection.cursor() as cursor:

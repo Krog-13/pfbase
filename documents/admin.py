@@ -1,30 +1,22 @@
+from .models import Category, IndicatorParameter, RecordIndicatorValue,\
+    ABCDocument, Record, Indicator, RecordHistory
+from dictionaries.models import ABCDictionary
 from django.contrib import admin
 from django import forms
-from .models import CategoryDocument, IndicatorParameter, FieldValue,\
-    ABCDocument, JournalDocument, DocumentField, HistoryJournal
-from dictionaries.models import ABCDictionary
 
 
-@admin.register(HistoryJournal)
-class HistoryJournalAdmin(admin.ModelAdmin):
-    """
-    Категорий документов в админ панели
-    """
-    list_display = ('journal_status', 'author')
-
-
-@admin.register(CategoryDocument)
+@admin.register(Category)
 class CategoryDocumentAdmin(admin.ModelAdmin):
     """
-    Категорий документов в админ панели
+    Categories in the admin panel
     """
     list_display = ('short_name', 'parent', 'id')
     search_fields = ('short_name', 'parent__short_name', 'id')
 
 
-class DocumentAdminForm(forms.ModelForm):
+class ABCDocumentAdminForm(forms.ModelForm):
     """
-    Форма для отчетов в админ панели
+    Form for ABCDocument
     """
     full_name = forms.CharField(max_length=256, label='Полное наименование', required=True)
     part_name = forms.CharField(max_length=256, label='Краткое наименование', required=False)
@@ -33,18 +25,56 @@ class DocumentAdminForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         # Check if the instance exists (editing an object)
-        if self.instance.naming:
-            self.fields['full_name'].initial = self.instance.naming.get("full_name", "")
-            self.fields['part_name'].initial = self.instance.naming.get("short_name", "")
+        if self.instance.dcm_name:
+            self.fields['full_name'].initial = self.instance.dcm_name.get("full_name", "")
+            self.fields['part_name'].initial = self.instance.dcm_name.get("short_name", "")
 
     class Meta:
         model = ABCDocument
         fields = '__all__'
 
 
+@admin.register(ABCDocument)
+class ABCDocumentAdmin(admin.ModelAdmin):
+    """
+    Abstract Documents in the admin panel
+    """
+    form = ABCDocumentAdminForm
+    fields = (("full_name", "part_name"), "description", "code", "category", "author")
+    list_display = ("get_short_name", "code", "id")
+    search_fields = ('get_short_name', 'id')
+
+    def get_short_name(self, obj):
+        return obj.dcm_name["short_name"]
+
+    def save_model(self, request, obj, form, change):
+        full_name = form.cleaned_data.get("full_name")
+        part_name = form.cleaned_data.get("part_name")
+        obj.full_name = full_name
+        obj.part_name = part_name
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(RecordHistory)
+class RecordHistoryAdmin(admin.ModelAdmin):
+    """
+    Record History
+    """
+    list_display = ('status', 'status_comment', 'author')
+
+
+@admin.register(IndicatorParameter)
+class DefaultParameterAdmin(admin.ModelAdmin):
+    """
+    Parameters in admin panel
+    """
+    list_display = ('short_name', 'active', 'id')
+    search_fields = ('short_name', 'active', 'id')
+
+
 class IndicatorForm(forms.ModelForm):
     """
-    References
+    Foreign Key
     """
     model_doc = ABCDocument.objects.all()
     model_dict = ABCDictionary.objects.all()
@@ -62,59 +92,20 @@ class IndicatorForm(forms.ModelForm):
                 self.fields['dict_fk'].initial = self.instance.reference
 
 
-@admin.register(JournalDocument)
-class JournalAdmin(admin.ModelAdmin):
+@admin.register(Indicator)
+class IndicatorAdmin(admin.ModelAdmin):
     """
-    Справочники в админ панели
-    """
-    fields = ("short_name", "code", "doc_number", "date_time",
-              "author", "abc_document", "parent")
-    list_display = ('short_name', 'author', 'abc_document', 'id')
-    search_fields = ('id', 'code', 'category_dictionary__short_name',)
-    list_filter = ("author",)
-
-
-@admin.register(ABCDocument)
-class DocumentAdmin(admin.ModelAdmin):
-    """
-    Документы в админ панели
-    """
-    form = DocumentAdminForm
-    fields = (("full_name", "part_name"), "description", "organizations", "abc_code", "category_document", "author")
-    list_display = ("get_short_name", "abc_code", "id")
-    search_fields = ('get_short_name', 'category_document__short_name', 'id')
-
-    def get_short_name(self, obj):
-        return obj.naming["short_name"]
-
-    def save_model(self, request, obj, form, change):
-        full_name = form.cleaned_data.get("full_name")
-        part_name = form.cleaned_data.get("part_name")
-        obj.full_name = full_name
-        obj.part_name = part_name
-        super().save_model(request, obj, form, change)
-
-
-@admin.register(IndicatorParameter)
-class DefaultParameterAdmin(admin.ModelAdmin):
-    """
-    Параметры в админ панели
-    """
-    list_display = ('short_name', 'id')
-    search_fields = ('short_name', 'id')
-
-
-@admin.register(DocumentField)
-class FieldAdmin(admin.ModelAdmin):
-    """
-    Поля в админ панели
+    Indicator in the admin panel
     """
     form = IndicatorForm
     exclude = ['reference']
-    fields = ("document", ("short_name", "type_value"), "parameters", "idc_code", ("doc_fk", "dict_fk"), "custom_rule")
-    list_display = ("short_name", "document", "idc_code", "id")
+    fields = ("abc_document", ("short_name", "type_value"), "parameters", "code", ("doc_fk", "dict_fk"), "custom_rule")
+    list_display = ("get_short_name", "abc_document", "index_sort", "code", "id")
     search_fields = ('short_name', 'id')
-    list_filter = ("document",)
+    list_filter = ("abc_document",)
+
+    def get_short_name(self, obj):
+        return obj.short_name.get("ru", obj.code)
 
     def save_model(self, request, obj, form, change):
         document = form.cleaned_data.get("doc_fk")
@@ -126,11 +117,28 @@ class FieldAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
-@admin.register(FieldValue)
-class FieldValueAdmin(admin.ModelAdmin):
+@admin.register(Record)
+class RecordAdmin(admin.ModelAdmin):
     """
-    Значения полей в админ панели
+    Records in the admin panel
     """
-    list_display = ("indicator_value", "journal_document", "indicator")
+    fields = ("short_name",
+              "author", "abc_document", "parent")
+    list_display = ('get_short_name', 'author', 'abc_document', 'id')
+    list_filter = ("author",)
+
+    def get_short_name(self, obj):
+        return obj.short_name.get("ru")
+
+
+@admin.register(RecordIndicatorValue)
+class RecordIndicatorValueAdmin(admin.ModelAdmin):
+    """
+    Record-Indicator Value in the admin panel
+    """
+    fields = (("value_int", "value_str", "value_text"), "value_datetime", "value_reference",
+              "index_sort", "record", "indicator")
+    list_display = ("value_int", "value_str", "value_text", "value_datetime",
+                    "value_reference", "record", "indicator", "index_sort")
     search_fields = (
         'field_value', 'output_document__document__short_name', 'id')

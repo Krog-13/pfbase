@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework import status
-from .models import FieldValue, JournalDocument, DocumentField, HistoryJournal, ABCDocument
+from .models import RecordIndicatorValue, Record, RecordHistory, ABCDocument, Indicator
 from django.db import IntegrityError, transaction
 import logging.config
 import re
@@ -45,7 +45,7 @@ def journal_create(journal_data, user, files_meta=None):
         return Response({"Error msg": f"Code not found - {journal['abc_code']}"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        elm = JournalDocument.objects.create(
+        elm = Record.objects.create(
             short_name="Random Name",
             date_time=timezone.now(),
             abc_document=abc_document,
@@ -58,20 +58,20 @@ def journal_create(journal_data, user, files_meta=None):
     for item in indicators:
         pk = item.get("code")
         try:
-            indicator = DocumentField.objects.get(idc_code=pk)
-        except DocumentField.DoesNotExist:
+            indicator = RecordIndicatorValue.objects.get(idc_code=pk)
+        except RecordIndicatorValue.DoesNotExist:
             return Response({"Error msg": f"Code not found - {pk}"}, status=status.HTTP_400_BAD_REQUEST)
         if item.get("type") == "file":
             file = files_meta.get(item.get("code"))
             item["value"] = file
         values.append(
-            FieldValue(
+            RecordIndicatorValue(
                 indicator_value=item.get("value"),
                 journal_document_id=elm.id,
                 indicator_id=indicator.id))
-    FieldValue.objects.bulk_create(values)
+    RecordIndicatorValue.objects.bulk_create(values)
     if journal.get("history", True):
-        HistoryJournal.objects.create(
+        RecordHistory.objects.create(
             journal_status="created",
             author=user,
             stage="point",
@@ -115,7 +115,7 @@ def journal_vac_create(journal_data, user):
         return Response({"Error msg": f"Code not found - {journal['abc_code']}"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        elm = JournalDocument.objects.create(
+        elm = Record.objects.create(
             short_name="Random Name",
             date_time=timezone.now(),
             abc_document=abc_document,
@@ -128,17 +128,17 @@ def journal_vac_create(journal_data, user):
     for item in indicators:
         pk = item.get("code")
         try:
-            indicator = DocumentField.objects.get(idc_code=pk)
-        except DocumentField.DoesNotExist:
+            indicator = Indicator.objects.get(idc_code=pk)
+        except Indicator.DoesNotExist:
             return Response({"Error msg": f"Code not found - {pk}"}, status=status.HTTP_400_BAD_REQUEST)
         values.append(
-            FieldValue(
+            RecordIndicatorValue(
                 indicator_value=item.get("value"),
                 journal_document_id=elm.id,
                 indicator_id=indicator.id))
-    FieldValue.objects.bulk_create(values)
+    RecordIndicatorValue.objects.bulk_create(values)
     if journal.get("history", True):
-        HistoryJournal.objects.create(
+        RecordHistory.objects.create(
             journal_status="created",
             author=user,
             stage="point",
@@ -149,8 +149,8 @@ def journal_vac_create(journal_data, user):
 def journal_history_create(journal, author, stamp):
     if stamp:
         try:
-            obj = JournalDocument.everything.get(id=journal.get("journal_document_id"))
-        except JournalDocument.DoesNotExist:
+            obj = Record.everything.get(id=journal.get("journal_document_id"))
+        except Record.DoesNotExist:
             return Response({"Msg": "Journal document does not exist"},
                      status=status.HTTP_400_BAD_REQUEST)
         serializer = JournalDetailSerializer(obj)
@@ -164,12 +164,12 @@ def journal_history_create(journal, author, stamp):
     # approval = DocumentField.objects.get(idc_code=204, indicator_doc__journal_document_id=journal_document_id)
     # averment = DocumentField.objects.get(idc_code=205, indicator_doc__journal_document_id=journal_document_id)
 
-    approval = FieldValue.objects.get(journal_document_id=journal_document_id, indicator__idc_code=204)
-    averment = FieldValue.objects.get(journal_document_id=journal_document_id, indicator__idc_code=205)
-    approval2 = FieldValue.objects.filter(journal_document_id=journal_document_id, indicator__idc_code=206).first()
-    averment2 = FieldValue.objects.filter(journal_document_id=journal_document_id, indicator__idc_code=207).first()
+    approval = RecordIndicatorValue.objects.get(journal_document_id=journal_document_id, indicator__idc_code=204)
+    averment = RecordIndicatorValue.objects.get(journal_document_id=journal_document_id, indicator__idc_code=205)
+    approval2 = RecordIndicatorValue.objects.filter(journal_document_id=journal_document_id, indicator__idc_code=206).first()
+    averment2 = RecordIndicatorValue.objects.filter(journal_document_id=journal_document_id, indicator__idc_code=207).first()
 
-    HistoryJournal.objects.create(
+    RecordHistory.objects.create(
         journal_status=journal.get("journal_status"),
         status_comment=journal.get("status_comment"),
         journal_document_id=journal_document_id,
@@ -204,15 +204,15 @@ def journal_history_create(journal, author, stamp):
         ids = []
 
     users = []
-    queryset = HistoryJournal.objects.filter(stage="point").last()
+    queryset = RecordHistory.objects.filter(stage="point").last()
 
     for user_id in ids:
-        sign = HistoryJournal.objects.filter(author=user_id, journal_document_id=journal_document_id,
+        sign = RecordHistory.objects.filter(author=user_id, journal_document_id=journal_document_id,
                                            signature=True, id__gt=queryset.id).last()
         if sign:
             users.append(sign)
     if len(users) == len(ids) and users:
-            HistoryJournal.objects.create(
+            RecordHistory.objects.create(
                 journal_status=journal_status,
                 status_comment=journal.get("status_comment"),
                 journal_document_id=journal.get("journal_document_id"),
@@ -229,15 +229,15 @@ def indicator_create(journal_id, indicators):
     for item in indicators:
         idc_code = item.get("code")
         try:
-            indicator_id = DocumentField.objects.get(idc_code=idc_code)
-        except DocumentField.DoesNotExist:
+            indicator_id = Indicator.objects.get(idc_code=idc_code)
+        except Indicator.DoesNotExist:
             return Response({"Error msg": f"Code not found - {idc_code}"}, status=status.HTTP_400_BAD_REQUEST)
         values.append(
-            FieldValue(
+            RecordIndicatorValue(
                 indicator_value=item.get("value"),
                 journal_document_id=journal_id,
                 indicator_id=indicator_id.id))
-    FieldValue.objects.bulk_create(values)
+    RecordIndicatorValue.objects.bulk_create(values)
 
     return Response({}, status=status.HTTP_201_CREATED)
 
@@ -249,16 +249,16 @@ def journal_update(journal_data, user, file_meta=None):
     indicators = journal_data.get("indicator")
     objs = []
     try:
-        journal_obj = JournalDocument.objects.get(abc_document__abc_code=journal.get("abc_code"), author=user)
-    except JournalDocument.DoesNotExist:
+        journal_obj = Record.objects.get(abc_document__abc_code=journal.get("abc_code"), author=user)
+    except Record.DoesNotExist:
         return Response({"Msg": "Journal act does not exist"},
                      status=status.HTTP_400_BAD_REQUEST)
     journal_obj.save()
     for item in indicators:
-        _FV = FieldValue.objects.get(id=item.get("id"))
+        _FV = RecordIndicatorValue.objects.get(id=item.get("id"))
         _FV.indicator_value = item.get("value")
         objs.append(_FV)
-    FieldValue.objects.bulk_update(objs, ["indicator_value"])
+    RecordIndicatorValue.objects.bulk_update(objs, ["indicator_value"])
     return Response({"journal_id": journal_obj.id}, status=status.HTTP_200_OK)
 
 
@@ -267,10 +267,10 @@ def indicator_update(journal_id, indicators):
 
     for item in indicators:
         try:
-            indicator_id = DocumentField.objects.get(idc_code=item.get("code"))
-        except DocumentField.DoesNotExist:
+            indicator_id = Indicator.objects.get(idc_code=item.get("code"))
+        except Indicator.DoesNotExist:
             return Response({"Error msg": f"Code not found - {item.get('code')}"}, status=status.HTTP_400_BAD_REQUEST)
-        FieldValue.objects.update_or_create(indicator_id=indicator_id, journal_document_id=journal_id,
+        RecordIndicatorValue.objects.update_or_create(indicator_id=indicator_id, journal_document_id=journal_id,
                                             defaults={"indicator_value": item.get("value"),
                                                       "indicator_id": indicator_id.id,
                                                       "journal_document_id": journal_id})
@@ -279,11 +279,11 @@ def indicator_update(journal_id, indicators):
 
 def upload_file(journal_id, string_path_file, code):
     try:
-        indicator_id = DocumentField.objects.get(idc_code=code)
-    except DocumentField.DoesNotExist:
+        indicator_id = Indicator.objects.get(idc_code=code)
+    except Indicator.DoesNotExist:
         return Response({"Error msg": f"Code not found - {code}"}, status=status.HTTP_400_BAD_REQUEST)
     for file_data in string_path_file.split(";"):
-        FieldValue.objects.create(indicator_value=file_data,
+        RecordIndicatorValue.objects.create(indicator_value=file_data,
                 journal_document_id=journal_id,
                 indicator_id=indicator_id.id)
     return Response({}, status=status.HTTP_201_CREATED)
@@ -291,8 +291,8 @@ def upload_file(journal_id, string_path_file, code):
 
 def update_file(field_id, string_path_file):
     try:
-        field_value = FieldValue.objects.get(id=field_id)
-    except FieldValue.DoesNotExist:
+        field_value = RecordIndicatorValue.objects.get(id=field_id)
+    except RecordIndicatorValue.DoesNotExist:
         return Response({"message": f"File not found by id - {field_id}"}, status=status.HTTP_400_BAD_REQUEST)
     for file_data in string_path_file.split(";"):
         field_value.indicator_value = file_data
@@ -303,7 +303,7 @@ def update_file(field_id, string_path_file):
 @transaction.atomic
 def journal_createOLD(journal, indicators, user, string_path_file, file_order):
     try:
-        elm = JournalDocument.objects.create(
+        elm = Record.objects.create(
             short_name=journal["short_name"],
             doc_number=journal["doc_number"],
             date_time=timezone.now(),
@@ -317,8 +317,8 @@ def journal_createOLD(journal, indicators, user, string_path_file, file_order):
     for item in indicators:
         idc_code = item.get("code")
         try:
-            indicator_id = DocumentField.objects.get(idc_code=idc_code)
-        except DocumentField.DoesNotExist:
+            indicator_id = Indicator.objects.get(idc_code=idc_code)
+        except Indicator.DoesNotExist:
             return Response({"Error msg": f"Code not found - {idc_code}"}, status=status.HTTP_400_BAD_REQUEST)
 
         if item.get("type") == "calc":
@@ -329,7 +329,7 @@ def journal_createOLD(journal, indicators, user, string_path_file, file_order):
             item["value"] = value
         elif item.get("type") == "files":
             for file_data in string_path_file.split(";"):
-                FieldValue.objects.create(indicator_value=file_data,
+                RecordIndicatorValue.objects.create(indicator_value=file_data,
                                           journal_document_id=elm.id,
                                           indicator_id=indicator_id.id)
             # item["value"] = string_path_file
@@ -338,14 +338,14 @@ def journal_createOLD(journal, indicators, user, string_path_file, file_order):
             item["value"] = file_order
 
         values.append(
-            FieldValue(
+            RecordIndicatorValue(
                 indicator_value=item.get("value"),
                 journal_document_id=elm.id,
                 indicator_id=indicator_id.id))
     # values.append(FieldValue(indicator_value=3, journal_document_id=elm.id, indicator_id=6))  # default customer
-    FieldValue.objects.bulk_create(values)
+    RecordIndicatorValue.objects.bulk_create(values)
     if journal.get("history", True):
-        HistoryJournal.objects.create(
+        RecordHistory.objects.create(
             journal_status=journal["doc_status"],
             author=user,
             stage="point",
@@ -355,7 +355,7 @@ def journal_createOLD(journal, indicators, user, string_path_file, file_order):
 
 def calculate_indicator(indicators, indicator_id):
     """Calculation custom formula"""
-    calc_indicator = DocumentField.objects.get(id=indicator_id)
+    calc_indicator = Indicator.objects.get(id=indicator_id)
     custom_rule = calc_indicator.custom_rule
     formula = custom_rule.get("calc")
     for idc in indicators:
@@ -373,7 +373,7 @@ def formula_values(start_range, end_range,  formula_output_report, additional_va
     Получения значения показателей
     """
     try:
-        indicators = FieldValue.objects.filter(indicator__id__range=(
+        indicators = RecordIndicatorValue.objects.filter(indicator__id__range=(
             start_range, end_range), output_document_id=formula_output_report)
     except Exception as e:
         logger.error(f"Formula incorrect, check does it exist indicator id by range {start_range}-{end_range}")
@@ -395,10 +395,10 @@ def get_range(part, formula_output_report):
         additional_indicators = re.findall(r'\d+', part[2])
         try:
             for value_id in additional_indicators:
-                indicator_value = FieldValue.objects.get(
+                indicator_value = RecordIndicatorValue.objects.get(
                     indicator__id=value_id, output_document=formula_output_report).indicator_value
                 additional_values.append(float(indicator_value))
-        except FieldValue.DoesNotExist:
+        except RecordIndicatorValue.DoesNotExist:
             logger.error(f"Formula incorrect")
             return ("Ошибка в формуле показателя")
     return [range_start, range_end, additional_values]
@@ -461,7 +461,7 @@ def calculate_formula(rule, formula_output_report):
                 modified_parts.append(str(sum_value))
             elif part[4]:
                 value_id = int(part[4])
-                indicator_value = FieldValue.objects.get(
+                indicator_value = RecordIndicatorValue.objects.get(
                     indicator__id=value_id, output_document=formula_output_report)
                 modified_parts.append(str(indicator_value))
             elif part[5]:
@@ -482,8 +482,8 @@ def download_file(value_id):
     Download file from minIO
     """
     try:
-        file_name = FieldValue.objects.get(id=value_id).indicator_value
-    except FieldValue.DoesNotExist:
+        file_name = RecordIndicatorValue.objects.get(id=value_id).indicator_value
+    except RecordIndicatorValue.DoesNotExist:
         return Response({"Message": "file not found"}, status=status.HTTP_404_NOT_FOUND)
     file = file_name.split(',')
     if file:

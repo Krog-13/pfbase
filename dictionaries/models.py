@@ -1,12 +1,12 @@
+from IEF.base_model import CategoryBase, IndicatorBase, ParameterBase, IndicatorValueBase
+from users.models import User
 from django.db import models
 import json
-from IEF.base_model import CategoryBase, IndicatorBase, DefaultParameterBase, IndicatorValueBase
-from users.models import Organization, User
 
 
-class CategoryDictionary(CategoryBase):
+class Category(CategoryBase):
     """
-    Категории справочников
+    Category of dictionaries
     """
     class Meta:
         db_table = '"dct\".\"categories"'
@@ -16,23 +16,21 @@ class CategoryDictionary(CategoryBase):
 
 class ABCDictionary(models.Model):
     """
-    Абстракция справочников
+    Abstract Dictionary
     """
-
-    naming = models.JSONField(
-        max_length=255, verbose_name='Наименование', null=True, blank=True)
+    dct_name = models.JSONField(verbose_name='Наименование')
     description = models.TextField(
         null=True, blank=True, verbose_name='Описание')
-    abc_code = models.CharField(max_length=128, verbose_name='Код', null=True, blank=True)
-    organizations = models.ManyToManyField(
-        to=Organization, blank=True, verbose_name='Организация')
-    category_dictionary = models.ForeignKey(
-        CategoryDictionary, null=True, blank=True, on_delete=models.SET_NULL, verbose_name='Категория справочника')
+    code = models.CharField(
+        max_length=128, verbose_name='Код', unique=True)
+    category = models.ForeignKey(
+        Category, null=True, blank=True, on_delete=models.SET_NULL,
+        verbose_name='Категория справочника')
     author = models.ForeignKey(
-        to=User, on_delete=models.CASCADE, verbose_name='Автор')
+        to=User, on_delete=models.SET_NULL, null=True, verbose_name='Автор')
 
     def __str__(self):
-        return self.naming["short_name"]
+        return self.dct_name.get("short_name", self.code)
 
     class Meta:
         db_table = '"dct\".\"abc_dictionary"'
@@ -41,7 +39,53 @@ class ABCDictionary(models.Model):
 
     def save(self, *args, **kwargs):
         if self.full_name or self.part_name:
-            self.naming = {"full_name": self.full_name, "short_name": self.part_name}
+            self.dct_name = {"full_name": self.full_name, "short_name": self.part_name}
+        super().save(*args, **kwargs)
+
+
+class IndicatorParameter(ParameterBase):
+    """
+    Default parameters for indicators
+    """
+    class Meta:
+        db_table = '"dct\".\"idc_parameter"'
+        verbose_name = 'Параметр'
+        verbose_name_plural = 'Параметры'
+
+
+class Indicator(IndicatorBase):
+    """
+    Indicator for dictionaries
+    """
+    abc_dictionary = models.ForeignKey(
+        to=ABCDictionary, on_delete=models.CASCADE, verbose_name='Справочник',
+        related_name='indicator')
+    reference = models.ForeignKey(
+        to=ABCDictionary, on_delete=models.CASCADE, verbose_name='Внешний ключ',
+        null=True, blank=True, related_name='reference')
+    parameters = models.ManyToManyField(
+        IndicatorParameter, blank=True, verbose_name='Параметры')
+
+    def __str__(self):
+        return self.short_name.get("ru", self.code)
+
+    class Meta:
+        db_table = '"dct\".\"indicator"'
+        verbose_name = 'Индикатор'
+        verbose_name_plural = 'Индикаторы'
+
+    def save(self, *args, **kwargs):
+        if not self.pk:  # If the object is being created (not updated)
+            # Get the maximum value of index_sort from existing records
+            max_sort = Indicator.objects.aggregate(models.Max('index_sort'))['index_sort__max']
+
+            # If max_sort is None (meaning there are no records), start at 0
+            if max_sort is None:
+                max_sort = 0
+
+            # Increment by 5
+            self.index_sort = max_sort + 5
+
         super().save(*args, **kwargs)
 
 
@@ -49,15 +93,15 @@ class Element(models.Model):
     """
     Elements
     """
-    short_name = models.CharField(
-        max_length=128, unique=True, verbose_name='Наименование')
-    code = models.CharField(max_length=128, verbose_name='Код')
-    abc_dictionary = models.ForeignKey(to=ABCDictionary, null=True, blank=True, on_delete=models.SET_NULL, verbose_name='Справочник')
-    parent = models.ForeignKey("self", null=True, blank=True, related_name="children", on_delete=models.SET_NULL,
-                               verbose_name='Родительский элемент')
+    short_name = models.JSONField(verbose_name='Краткое наименование')
+    abc_dictionary = models.ForeignKey(
+        to=ABCDictionary, on_delete=models.SET_NULL, null=True, verbose_name='Справочник')
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, related_name="children",
+        on_delete=models.CASCADE, verbose_name='Родительский элемент')
 
     def __str__(self):
-        return self.short_name
+        return self.short_name.get("ru")
 
     class Meta:
         db_table = '"dct\".\"element"'
@@ -65,47 +109,16 @@ class Element(models.Model):
         verbose_name_plural = 'Элементы'
 
 
-class IndicatorParameter(DefaultParameterBase):
+class ElementIndicatorValue(IndicatorValueBase):
     """
-    Параметры показателей
-    """
-
-    class Meta:
-        db_table = '"dct\".\"default_parameter"'
-        verbose_name = 'Параметр'
-        verbose_name_plural = 'Параметры'
-
-
-class DictionaryIndicator(IndicatorBase):
-    """
-    Показатели
-    """
-    idc_code = models.CharField(max_length=128, verbose_name='Код', null=True, blank=True)
-    dictionary = models.ForeignKey(
-        to=ABCDictionary, on_delete=models.CASCADE, verbose_name='Справочник', related_name='dictionary_indicators')
-    type_reference = models.ForeignKey(
-        to=ABCDictionary, on_delete=models.CASCADE, verbose_name='Тип Справочника', null=True, blank=True,
-        related_name='type_reference_indicators')
-    parameters = models.ManyToManyField(
-        IndicatorParameter, blank=True, verbose_name='Параметры')
-
-    def __str__(self):
-        return self.short_name + " " + f"({self.dictionary.naming['short_name']})"
-
-    class Meta:
-        db_table = '"dct\".\"indicator"'
-        verbose_name = 'Показатель'
-        verbose_name_plural = 'Показатели'
-
-
-class DictionaryIndicatorValue(IndicatorValueBase):
-    """
-    Значения показателей
+    Element-Indicator Value
     """
     element = models.ForeignKey(
-        to=Element, on_delete=models.CASCADE, verbose_name='Элемент', related_name="indicator")
+        to=Element, on_delete=models.CASCADE, verbose_name='Элемент',
+        related_name="element_value")
     indicator = models.ForeignKey(
-        to=DictionaryIndicator, on_delete=models.CASCADE, verbose_name='Показатель', related_name="dictionaryindicator")
+        to=Indicator, on_delete=models.CASCADE, verbose_name='Показатель',
+        related_name="indicator_value")
 
     class Meta:
         db_table = '"dct\".\"indicator_value"'
@@ -113,7 +126,15 @@ class DictionaryIndicatorValue(IndicatorValueBase):
         verbose_name_plural = 'Значение показателей'
 
     def __str__(self):
-        return self.indicator_value if self.indicator_value else "None"
+        return self.value_str or str(self.value_int)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            max_sort = ElementIndicatorValue.objects.aggregate(models.Max('index_sort'))['index_sort__max']
+            if max_sort is None:
+                max_sort = 0
+            self.index_sort = max_sort + 5
+        super().save(*args, **kwargs)
 
     @staticmethod
     def json_file_data(filename, file_id):

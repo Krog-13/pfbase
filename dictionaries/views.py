@@ -5,8 +5,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from .serializers import DictionarySerializer, CategoryDictionarySerializer, IndicatorSerializer, \
     IndicatorValueSerializer, ElementSerializer, ElementSerializerSoft
-from .models import CategoryDictionary, DictionaryIndicator, DictionaryIndicatorValue, IndicatorParameter, \
-    ABCDictionary, Element
+from .models import Category, Indicator, ElementIndicatorValue, IndicatorParameter, ABCDictionary, Element
 from .common import element_create
 
 
@@ -85,7 +84,7 @@ class ElementAPIViewOld(ListAPIView):
         except ABCDictionary.DoesNotExist:
             abc_dict = None
         if element:
-            elements_ids = DictionaryIndicatorValue.objects.filter(indicator_value=element)
+            elements_ids = ElementIndicatorValue.objects.filter(indicator_value=element)
             column_values = elements_ids.values_list('element_id', flat=True)
             return queryset.filter(id__in=column_values)
         return queryset.filter(abc_dictionary=abc_dict)
@@ -95,7 +94,7 @@ class CategoryDictionaryAPIView(ListAPIView):
     """
     API для категорий справочников
     """
-    queryset = CategoryDictionary.objects.filter(parent__isnull=True)
+    queryset = Category.objects.filter(parent__isnull=True)
     serializer_class = CategoryDictionarySerializer
     permission_classes = (IsAuthenticated,)
 
@@ -104,7 +103,7 @@ class CategoryDictionaryAPIView(ListAPIView):
         GET запрос для получения категорий справочников
         """
         parent_id = self.request.query_params.get("parent_id")
-        return CategoryDictionary.objects.filter(parent_id=parent_id)
+        return Category.objects.filter(parent_id=parent_id)
 
 
 class DictionaryAPIView(ListAPIView):
@@ -149,10 +148,10 @@ class ElementChildAPIView(ListAPIView):
         reference = self.request.query_params.get('reference_id')
         dictionary = self.request.query_params.get('dictionary_id', 0)
         element = self.request.query_params.get('element_id')
-        indicator_id = DictionaryIndicator.objects.filter(dictionary=reference, type_reference=dictionary).\
+        indicator_id = Indicator.objects.filter(dictionary=reference, type_reference=dictionary).\
             values_list('id', flat=True).first()
         if indicator_id:
-            elements_ids = DictionaryIndicatorValue.objects.filter(indicator_value=element, indicator=indicator_id)
+            elements_ids = ElementIndicatorValue.objects.filter(indicator_value=element, indicator=indicator_id)
             column_values = elements_ids.values_list('element_id', flat=True)
             return queryset.filter(id__in=column_values)
         return queryset.filter(abc_dictionary=reference)
@@ -178,7 +177,7 @@ class ElementListAPIView(ListAPIView):
         except ABCDictionary.DoesNotExist:
             abc_dict = None
         if element:
-            elements_ids = DictionaryIndicatorValue.objects.filter(indicator_value=element)
+            elements_ids = ElementIndicatorValue.objects.filter(indicator_value=element)
             column_values = elements_ids.values_list('element_id', flat=True)
             return queryset.filter(id__in=column_values)
         return queryset.filter(abc_dictionary=abc_dict)
@@ -188,7 +187,7 @@ class DictIndicatorAPIView(ListAPIView):
     """
     API для показателей
     """
-    queryset = DictionaryIndicator.objects.all()
+    queryset = Indicator.objects.all()
     serializer_class = IndicatorSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -212,7 +211,7 @@ class DictIndicatorDetailAPIView(ListAPIView,  CreateAPIView):
     """
     API для показателей
     """
-    queryset = DictionaryIndicator.objects.all()
+    queryset = Indicator.objects.all()
     serializer_class = IndicatorSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -237,7 +236,7 @@ class DictIndicatorValueAPIView(ListAPIView, CreateAPIView, UpdateAPIView):
     """
     API для значений показателей
     """
-    queryset = DictionaryIndicatorValue.objects.all()
+    queryset = ElementIndicatorValue.objects.all()
     serializer_class = IndicatorValueSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -273,7 +272,7 @@ class GetVatView(ListAPIView):
     """
     API для получения НДС
     """
-    queryset = DictionaryIndicatorValue.objects.all()
+    queryset = ElementIndicatorValue.objects.all()
     serializer_class = IndicatorValueSerializer
     permission_classes = (IsAuthenticated,)
 

@@ -1,5 +1,5 @@
 from rest_framework import serializers, fields
-from .models import CategoryDictionary, IndicatorParameter, DictionaryIndicator, DictionaryIndicatorValue, \
+from .models import Category, IndicatorParameter, Indicator, ElementIndicatorValue, \
     ABCDictionary, Element
 
 
@@ -10,7 +10,7 @@ class IndicatorValueSerializer(serializers.ModelSerializer):
     indicator_meta = serializers.SerializerMethodField()
 
     class Meta:
-        model = DictionaryIndicatorValue
+        model = ElementIndicatorValue
         fields = ("indicator_value", "indicator_meta")
 
     def get_indicator_meta(self, obj):
@@ -69,7 +69,7 @@ class CategoryDictionarySerializer(serializers.ModelSerializer):
     dictionaries = serializers.SerializerMethodField()
 
     class Meta:
-        model = CategoryDictionary
+        model = Category
         fields = ("id", "short_name", "description",
                   "index_sort", "parent", "children", "dictionaries")
 
@@ -112,7 +112,7 @@ class IndicatorSerializer(serializers.ModelSerializer):
     #     slug_field="short_name", queryset=DefaultParameter.objects.all(), many=True)
 
     class Meta:
-        model = DictionaryIndicator
+        model = Indicator
         fields = ("id", "short_name", "type_value", "parameters", "dictionary")
 
 

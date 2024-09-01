@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import CategoryDocument,  IndicatorParameter, FieldValue, ABCDocument, JournalDocument, DocumentField, HistoryJournal
+from .models import Category,  IndicatorParameter, RecordIndicatorValue, ABCDocument, Record, \
+    Indicator, RecordHistory
 from dictionaries.models import Element
 from users.models import User
 from users.serializers import UserAVPSerializer
@@ -26,7 +27,7 @@ class IndicatorValueSerializer(serializers.ModelSerializer):
     indicator_value = serializers.SerializerMethodField()
 
     class Meta:
-        model = FieldValue
+        model = RecordIndicatorValue
         fields = ("id", "indicator_value", "indicator_meta")
 
     def get_indicator_meta(self, obj):
@@ -51,7 +52,7 @@ class JournalModelSerializer(serializers.ModelSerializer):
     field_value = IndicatorValueSerializer(many=True, read_only=True)
 
     class Meta:
-        model = JournalDocument
+        model = Record
         # fields = ("author", "created_at", "field_value")
         fields = ("abc_document", "field_value",)
 
@@ -61,7 +62,7 @@ class ParentJournalModelSerializer(serializers.ModelSerializer):
     abc_document = serializers.CharField(source="abc_document.abc_code")
 
     class Meta:
-        model = JournalDocument
+        model = Record
         fields = ("abc_document", "field_value")
 
 
@@ -71,11 +72,11 @@ class JournalModelVacancySerializer(serializers.ModelSerializer):
     count_clicks = serializers.SerializerMethodField()
 
     class Meta:
-        model = JournalDocument
+        model = Record
         fields = ("author", "created_at", "count_clicks", "vacancy", "vacancy_stage")
 
     def get_count_clicks(self, obj):
-        return JournalDocument.objects.filter(parent_id=obj.parent_id).count()
+        return Record.objects.filter(parent_id=obj.parent_id).count()
 
 
 class JournalSerializer(serializers.Serializer):
@@ -99,10 +100,8 @@ class FieldSerializer(serializers.ModelSerializer):
         slug_field="short_name", queryset=IndicatorParameter.objects.all(), many=True)
 
     class Meta:
-        model = DocumentField
+        model = Indicator
         fields = ("id", "short_name", "idc_code", "type_value", "parameters", "reference")
-
-
 
 
 class CategoryDocumentSerializer(serializers.ModelSerializer):
@@ -113,7 +112,7 @@ class CategoryDocumentSerializer(serializers.ModelSerializer):
     document = serializers.SerializerMethodField()
 
     class Meta:
-        model = CategoryDocument
+        model = Category
         fields = ("id", "short_name", "description",
                   "index_sort", "parent", "children", "document")
 
@@ -152,7 +151,7 @@ class JournalHistorySerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
 
     class Meta:
-        model = HistoryJournal
+        model = RecordHistory
         fields = ("status", "status_comment", "created_at", "author")
 
     def get_status(self, obj):
@@ -161,14 +160,14 @@ class JournalHistorySerializer(serializers.ModelSerializer):
 class JournalSerializer2(serializers.ModelSerializer):
     # user = serializers.HiddenField(default=serializers.CurrentUserDefault()) для добавление автора автоматически
     class Meta:
-        model = JournalDocument
+        model = Record
         fields = ("id", "short_name", "code")
 
 
 class JournalSerializerOld(serializers.ModelSerializer):
     # user = serializers.HiddenField(default=serializers.CurrentUserDefault()) для добавление автора автоматически
     class Meta:
-        model = JournalDocument
+        model = Record
         fields = "__all__"
 
     # def create(self, validated_data):
@@ -192,7 +191,7 @@ class JournalDocumentSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
-        model = JournalDocument
+        model = Record
         fields = ("id", "short_name", "code", "abc_document", "parent", "children",
                   "doc_number", "date_time", "status", "author")
 
@@ -221,7 +220,7 @@ class JournalDetailSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
 
     class Meta:
-        model = JournalDocument
+        model = Record
         fields = ("id", "short_name", "code", "abc_document", "parent", "children",
                   "doc_number", "date_time", "status", "indicator_value", "user")
 
@@ -270,7 +269,7 @@ class FieldSerializerOLD(serializers.ModelSerializer):
         slug_field="short_name", queryset=IndicatorParameter.objects.all(), many=True)
 
     class Meta:
-        model = DocumentField
+        model = Indicator
         fields = ("id", "short_name", "type_value", "parameters", "reference")
 
 
@@ -284,7 +283,7 @@ class FieldValueSerializer(serializers.ModelSerializer):
     act_id = serializers.SerializerMethodField()
 
     class Meta:
-        model = FieldValue
+        model = RecordIndicatorValue
         fields = ("journal_document_id", "indicator", "indicator_info", "author", "act_id")
 
     def get_act_id(self, obj):
@@ -312,13 +311,13 @@ class FieldValue2Serializer(serializers.ModelSerializer):
     indicator = serializers.SerializerMethodField()
 
     class Meta:
-        model = FieldValue
+        model = RecordIndicatorValue
         fields = ("indicator",)
 
     def get_indicator(self, obj):
         result = []
         for i in obj:
-            indicator = DocumentField.objects.get(id=i.indicator_id)
+            indicator = Indicator.objects.get(id=i.indicator_id)
             if indicator.type_value == "dct":
                 element = Element.objects.get(id=i.indicator_value)
                 short_name = element.short_name

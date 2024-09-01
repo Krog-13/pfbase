@@ -1,20 +1,22 @@
 from django.urls import path, include
 from rest_framework import routers
 from documents import views
-from .models import CategoryDocument, FieldValue, JournalDocument
 from .views import JournalViewSet
 
 
 router = routers.SimpleRouter()
-# router.register(r'doc/journal', JournalModeViewSet)
+# router.register(r'dcm/journal', JournalModeViewSet)
 
 urlpatterns = [
-    path("doc/journal/", JournalViewSet.as_view({'get': 'list', 'patch': 'update', 'create': 'post'})),
-    path("doc/journal/indicator/", views.DocumentFieldAPIView.as_view()),
-    path("doc/journal/values/", views.DocumentValueAPIView.as_view()),
-    path("doc/journal/vacancy/", views.DocumentVacancyAPIView.as_view()),
-    path("doc/journal/file/", views.DocumentFileAPIView.as_view()),
+    path("dcm/record/", JournalViewSet.as_view({'get': 'list', 'patch': 'update', 'create': 'post'})),
+    path("dcm/journal/indicator/", views.DocumentFieldAPIView.as_view()),
+    path("dcm/journal/values/", views.DocumentValueAPIView.as_view()),
+    path("dcm/journal/vacancy/", views.DocumentVacancyAPIView.as_view()),
+    path("dcm/journal/file/", views.DocumentFileAPIView.as_view()),
 
+
+
+# ================================================================================================
     # path("doc/journal/detail/", views.JournalDetailAPIView.as_view()),
     # path("doc/category/", views.CategoryDocumentAPIView().as_view(), name="doc-cat-list"),
     path("doc/journalDev/<int:pk>/", views.JournalAPIView.as_view()),

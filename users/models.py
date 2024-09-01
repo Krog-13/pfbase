@@ -4,7 +4,7 @@ from django.contrib.auth.models import AbstractUser
 
 class Organization(models.Model):
     """
-    Организации
+    Structures of organization
     """
     short_name = models.CharField(max_length=255, unique=True, verbose_name='Наименование организации')
     identifier = models.CharField(max_length=128, null=True, blank=True, verbose_name='БИН')
@@ -21,25 +21,9 @@ class Organization(models.Model):
 
 class User(AbstractUser):
     """
-    User model
+    Custom User
     """
-    class Status(models.TextChoices):
-        IN_SEARCH = 'S', 'Активно ищу работу'
-        NOT_SEARCH = 'N', 'Не ищу работу'
-        PASS_SEARCH = 'P', 'Рассматриваю предложения'
-
-    username = models.CharField(
-        "username",
-        max_length=150,
-        unique=False,
-    )
-    email = models.EmailField(unique=True, verbose_name='Почта')
     avatar = models.ImageField(upload_to='users/photos', verbose_name='Фото профиля', null=True, blank=True)
-    user_status = models.CharField(max_length=1, choices=Status.choices, default=Status.IN_SEARCH,
-                                   verbose_name='Статус поиска работы')
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
 
     def __str__(self):
-        return self.email
+        return self.username

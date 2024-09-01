@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.renderers import TemplateHTMLRenderer, JSONRenderer
 from rest_framework.viewsets import ViewSet, ModelViewSet
 from rest_framework.views import APIView
-from .models import CategoryDocument, FieldValue, JournalDocument, ABCDocument, DocumentField, HistoryJournal
+from .models import Category, Record, ABCDocument, RecordIndicatorValue, RecordHistory, Indicator
 from .serializers import CategoryDocumentSerializer, DocumentSerializer, FieldSerializer,\
     FieldValueSerializer, JournalDocumentSerializer, JournalHistorySerializer, JournalDetailSerializer, JournalSerializer, JournalSerializer2, JournalModelSerializer, JournalModelVacancySerializer
 from .common import journal_create, journal_history_create, indicator_create, download_file,\
@@ -39,7 +39,7 @@ class DocumentFieldAPIView(ListAPIView):
     """
     API для полей документа
     """
-    queryset = DocumentField.objects.all()
+    queryset = Indicator.objects.all()
     serializer_class = FieldSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -54,7 +54,7 @@ class DocumentFieldAPIView(ListAPIView):
 
 
 class DocumentValueAPIView(ListAPIView, UpdateAPIView):
-    queryset = FieldValue.objects.all()
+    queryset = RecordIndicatorValue.objects.all()
     serializer_class = FieldValueSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -74,7 +74,7 @@ class JournalViewSet(ViewSet):
     """
     ViewSet for Journal
     """
-    queryset = JournalDocument.objects.all()
+    queryset = Record.objects.all()
     serializer_class = JournalSerializer
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -89,21 +89,10 @@ class JournalViewSet(ViewSet):
         journal_code = request.query_params.get("journal_code")
         try:
             queryset = self.queryset.get(author=user, abc_document__abc_code=journal_code)  # use get for one object
-        except JournalDocument.DoesNotExist:
+        except Record.DoesNotExist:
             return Response({"message": "Journal not found"}, status=404)
         self.check_object_permissions(request, queryset)
         serializer = self.get_serializer_class()(queryset, many=False)  # set many=True for list
-        return Response(serializer.data)
-
-    def list(self, request):
-        user = request.user
-        journal_code = request.query_params.get("journal_code")
-        try:
-            queryset = self.queryset.filter(author=user, abc_document__abc_code__in=journal_code.split(','))  # use get for one object
-        except JournalDocument.DoesNotExist:
-            return Response({"message": "Journal not found"}, status=404)
-        self.check_object_permissions(request, queryset)
-        serializer = self.get_serializer_class()(queryset, many=True)  # set many=True for list
         return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
@@ -144,7 +133,7 @@ class JournalViewSet(ViewSet):
 
 
 class DocumentVacancyAPIView(CreateAPIView, UpdateAPIView, ListAPIView):
-    queryset = JournalDocument.objects.all()
+    queryset = Record.objects.all()
     serializer_class = JournalModelVacancySerializer
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
 
@@ -156,7 +145,7 @@ class DocumentVacancyAPIView(CreateAPIView, UpdateAPIView, ListAPIView):
         journal_code = self.request.query_params.get("journal_code")
         try:
             queryset = queryset.filter(author=self.request.user, abc_document__abc_code=journal_code)
-        except JournalDocument.DoesNotExist:
+        except Record.DoesNotExist:
             return Response({"message": "Journal not found"}, status=404)
         return queryset
 
@@ -177,7 +166,7 @@ class CategoryDocumentAPIView(ModelViewSet, UpdateAPIView):
     """
     API для категорий документов
     """
-    queryset = CategoryDocument.objects.all()
+    queryset = Category.objects.all()
     serializer_class = CategoryDocumentSerializer
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
 
@@ -186,21 +175,13 @@ class CategoryDocumentAPIView(ModelViewSet, UpdateAPIView):
         Функция для получения дочерних категорий
         """
         parent_id = self.request.query_params.get("parent_id")
-        return CategoryDocument.objects.filter(id=1)
+        return Category.objects.filter(id=1)
 
     def update(self, request, *args, **kwargs):
         """
         PUT запрос для обновления категории
         """
         return super(CategoryDocumentAPIView, self).update(request, *args, **kwargs)
-
-
-    # def get_queryset(self):
-    #     """
-    #     Функция для получения дочерних категорий
-    #     """
-    #     parent_id = self.request.query_params.get("parent_id")
-    #     return CategoryDocument.objects.get(id=1)
 
 
 class DocumentAPIView(ListAPIView):
@@ -227,7 +208,7 @@ class DocumentAPIView(ListAPIView):
 
 class JournalValueAPIView(CreateAPIView, UpdateAPIView):
     """"""
-    queryset = FieldValue.objects.all()
+    queryset = RecordIndicatorValue.objects.all()
     serializer_class = JournalDetailSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -256,7 +237,7 @@ class JournalValueAPIView(CreateAPIView, UpdateAPIView):
 
 class JournalDetailAPIViewOLD(ListAPIView):
     """"""
-    queryset = JournalDocument.objects.all()
+    queryset = Record.objects.all()
     serializer_class = JournalDetailSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -276,7 +257,7 @@ class JournalDetailAPIViewOLD(ListAPIView):
 
 class DocumentFileAPIView(ListAPIView, CreateAPIView, UpdateAPIView):
     """CRUD file"""
-    queryset = JournalDocument.objects.all()
+    queryset = Record.objects.all()
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -290,7 +271,7 @@ class DocumentFileAPIView(ListAPIView, CreateAPIView, UpdateAPIView):
         field_id = request.data.get('field_value_id')
         try:
             queryset = self.queryset.get(author=request.user, field_value=field_id)  # use get for one object
-        except JournalDocument.DoesNotExist:
+        except Record.DoesNotExist:
             return Response({"message": "Journal not found"}, status=404)
         self.check_object_permissions(request, queryset)
         if uploaded_file:
@@ -304,27 +285,12 @@ class DocumentFileAPIView(ListAPIView, CreateAPIView, UpdateAPIView):
         return Response({"Msg": "File not selected"},
                         status=status.HTTP_204_NO_CONTENT)
 
-    # def create(self, request, *args, **kwargs):
-    #     uploaded_files = request.FILES.getlist('files')
-    #     journal_id = request.data.get('journal_id', {})
-    #     code = request.data.get('code', {})
-    #     if uploaded_files:
-    #         files_naming = save_file_minio(uploaded_files)
-    #         id_files = ';'.join(files_naming)
-    #         try:
-    #             return upload_file(journal_id, id_files, code)
-    #         except Exception:
-    #             return Response({"Msg": "Something wrong please correction your query!"},
-    #                      status=status.HTTP_400_BAD_REQUEST)
-    #     return Response({"Msg": "File not selected"},
-    #                     status=status.HTTP_204_NO_CONTENT)
-
 
 class JournalDocumentFindAPIView(ListAPIView):
     """
     API для поиска документов
     """
-    queryset = JournalDocument.objects.all()
+    queryset = Record.objects.all()
     serializer_class = JournalDocumentSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
@@ -342,7 +308,7 @@ class JournalDocumentStatusAPIView(ListAPIView, CreateAPIView):
     """
     API journal status
     """
-    queryset = JournalDocument.objects.all()
+    queryset = Record.objects.all()
     serializer_class = JournalDocumentSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
@@ -355,7 +321,7 @@ class JournalDocumentStatusAPIView(ListAPIView, CreateAPIView):
         code_date_to = 103
         status = self.request.query_params.get('status')
         queryset = super(JournalDocumentStatusAPIView, self).get_queryset()
-        date_from = FieldValue.objects.filter(journal_document__abc_document__abc_code=801,
+        date_from = RecordIndicatorValue.objects.filter(journal_document__abc_document__abc_code=801,
                                               indicator__idc_code__in=(code_date_from, code_date_to)).values('journal_document_id','indicator_value', 'indicator__idc_code')
         res = get_documents_id(date_from, status)
         if status == "active":
@@ -365,7 +331,7 @@ class JournalDocumentStatusAPIView(ListAPIView, CreateAPIView):
 
 
 class JournalUpdateAPIView(RetrieveUpdateAPIView):
-    queryset = JournalDocument.objects.all()
+    queryset = Record.objects.all()
     serializer_class = JournalSerializer
     # permission_classes = (IsOwnerOrReadOnly,)
     renderer_classes = [TemplateHTMLRenderer, JSONRenderer]
@@ -379,16 +345,12 @@ class JournalUpdateAPIView(RetrieveUpdateAPIView):
         pass
 
     def get_object(self):
-        print("I AM HERE")
         obj = get_object_or_404(self.queryset, pk=self.kwargs["pk"])
         chedkc = self.check_object_permissions(self.request, obj)
         # self.check_permissions(self.request)
-        print(chedkc)
-        print("test")
         return obj
 
     def get(self, request, *args, **kwargs):
-        print("test get")
         self.object = self.get_object()
         data = {"user": self.object, "message": "Hello wo"}
         # return Response({"user": self.object}, template_name='user.html')
@@ -399,7 +361,7 @@ class JournalModeViewSetOld(ViewSet):
     """
     API для журнала
     """
-    queryset = JournalDocument.objects.all()
+    queryset = Record.objects.all()
     serializer_class = JournalSerializer
 
     def get_object(self):
@@ -414,24 +376,24 @@ class JournalModeViewSetOld(ViewSet):
         return Response(serializer.data)
 
     def put(self, request, *args, **kwargs):
-        instance = JournalDocument.objects.get(id=114)
+        instance = Record.objects.get(id=114)
         serializer = JournalSerializer(data=request.data, instance=instance)
         serializer.is_valid()
         serializer.save()
         return Response({"post": serializer.data})
 
+
 class JournalModeViewSet2(ModelViewSet):
     """
     API для журнала
     """
-    queryset = JournalDocument.objects.all()
+    queryset = Record.objects.all()
     serializer_class = JournalSerializer
     # permission_classes = (IsOwnerOrReadOnly, IsAdminReadOnly)
 
     def get_object(self):
         obj = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
         self.check_object_permissions(self.request, obj)
-        print("test get object")
         return obj
 
 
@@ -439,7 +401,7 @@ class JournalModeViewSet2(ModelViewSet):
         user = request.user
         auth = request.auth
         print(user, auth)
-        instance = JournalDocument.objects.get(id=114)
+        instance = Record.objects.get(id=114)
         serializer = JournalSerializer(data=request.data, instance=instance)
         serializer.is_valid()
         serializer.save()
@@ -487,7 +449,7 @@ class JournalModeViewSet2(ModelViewSet):
 
 
 class JournalListAPIView(ListCreateAPIView):
-    queryset = JournalDocument.objects.all()
+    queryset = Record.objects.all()
     serializer_class = JournalSerializer
     permission_classes = (IsOwnerOrReadOnly, IsAdminReadOnly)
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
@@ -531,7 +493,7 @@ class JournalListAPIView(ListCreateAPIView):
     #     return Response(serializer.data)
 
 class JournalUpdate2APIView(UpdateAPIView):
-    queryset = JournalDocument.objects.all()
+    queryset = Record.objects.all()
     serializer_class = JournalSerializer
     permission_classes = (IsOwnerOrReadOnly,)
 
@@ -566,7 +528,7 @@ class JournalAPIView(APIView):
         """
         GET запрос для получения журнала
         """
-        journal = get_object_or_404(JournalDocument, id=pk)
+        journal = get_object_or_404(Record, id=pk)
         serializer = JournalDocumentSerializer(journal)
         return Response(serializer.data)
 
@@ -574,7 +536,7 @@ class JournalAPIView(APIView):
         """
         PUT запрос для обновления журнала
         """
-        journal = get_object_or_404(JournalDocument, id=pk)
+        journal = get_object_or_404(Record, id=pk)
         serializer = JournalSerializer(journal, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -584,7 +546,7 @@ class JournalAPIView(APIView):
 
 class JournalDocumentUpdateAPIView(generics.RetrieveUpdateAPIView):
     """API Update Journal Document"""
-    queryset = JournalDocument.objects.all()
+    queryset = Record.objects.all()
     serializer_class = JournalDocumentSerializer
     permission_classes = (IsOwnerOrReadOnly,)
 
@@ -604,9 +566,9 @@ class JournalDocumentUpdateAPIView(generics.RetrieveUpdateAPIView):
         """
         journal = self.request.query_params.get('journal_id')
         try:
-            obj = JournalDocument.objects.get(id=journal)
+            obj = Record.objects.get(id=journal)
             obj.delete()
-        except JournalDocument.DoesNotExist:
+        except Record.DoesNotExist:
             return Response({"message": f"Jornal by ID - {journal} dose not exist!"}, status=404)
         return Response({"message": "Object deleted successfully"}, status=204)
 
@@ -617,7 +579,7 @@ class JournalDocumentAPIView(ListAPIView, CreateAPIView, UpdateAPIView):
     """
     API для показателей
     """
-    queryset = JournalDocument.objects.all().order_by("id")
+    queryset = Record.objects.all().order_by("id")
     serializer_class = JournalDocumentSerializer
     permission_classes = (IsOwnerOrReadOnly,)
     pagination_class = CustomPagination
@@ -636,7 +598,7 @@ class JournalDocumentAPIView(ListAPIView, CreateAPIView, UpdateAPIView):
         status = self.request.query_params.get('status', '')
         search = self.request.query_params.get('search', '')
         queryset = super(JournalDocumentAPIView, self).get_queryset()
-        date_from = FieldValue.objects.filter(journal_document__abc_document__abc_code=801,
+        date_from = RecordIndicatorValue.objects.filter(journal_document__abc_document__abc_code=801,
                                               indicator__idc_code__in=(code_date_from, code_date_to)).values(
             'journal_document_id', 'indicator_value', 'indicator__idc_code')
         res = get_documents_id(date_from, status)
@@ -701,9 +663,9 @@ class JournalDocumentAPIView(ListAPIView, CreateAPIView, UpdateAPIView):
         """
         journal = self.request.query_params.get('journal_id')
         try:
-            obj = JournalDocument.objects.get(id=journal)
+            obj = Record.objects.get(id=journal)
             obj.soft_delete()
-        except JournalDocument.DoesNotExist:
+        except Record.DoesNotExist:
             return Response({"message": f"Jornal by ID - {journal} dose not exist!"}, status=404)
         return Response({"message": "Object deleted successfully"}, status=204)
 
@@ -711,9 +673,9 @@ class JournalDocumentAPIView(ListAPIView, CreateAPIView, UpdateAPIView):
         """Restore object"""
         journal = self.request.query_params.get('journal_id')
         try:
-            obj = JournalDocument.everything.get(id=journal)
+            obj = Record.everything.get(id=journal)
             obj.restore()
-        except JournalDocument.DoesNotExist:
+        except Record.DoesNotExist:
             return Response({"message": f"Jornal by ID - {journal} dose not exist!"}, status=404)
         return Response({"message": "Object restored successfully"}, status=200)
 
@@ -727,7 +689,7 @@ class JournalHistoryAPIView(ListAPIView, CreateAPIView):
 
     def get(self, request, *args, **kwargs):
         journal_id = self.request.query_params.get('journal_id')
-        indicator_values = HistoryJournal.objects.filter(journal_document_id=journal_id).order_by("-created_at").first()
+        indicator_values = RecordHistory.objects.filter(journal_document_id=journal_id).order_by("-created_at").first()
         serializer = JournalHistorySerializer(indicator_values)
         return Response(serializer.data)
 
@@ -745,7 +707,7 @@ class DocumentFieldAPIViewOLD(ListAPIView):
     """
     API для полей документа
     """
-    queryset = DocumentField.objects.all()
+    queryset = Indicator.objects.all()
     serializer_class = FieldSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -759,7 +721,7 @@ class DocumentFieldAPIViewOLD(ListAPIView):
 
 
 class FieldValueAPIViewOLD(ListAPIView, CreateAPIView, UpdateAPIView):
-    queryset = FieldValue.objects.all()
+    queryset = RecordIndicatorValue.objects.all()
     serializer_class = FieldValueSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -786,7 +748,7 @@ class GetNotificationView(ListAPIView):
     """
     GET запрос для получения уведомлений
     """
-    queryset = FieldValue.objects.all()
+    queryset = RecordIndicatorValue.objects.all()
     serializer_class = FieldValueSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -798,8 +760,8 @@ class GetNotificationView(ListAPIView):
         user_id = self.request.query_params.get("user_id")
         user_code = self.request.query_params.get("user_code", 908)
         message_code = self.request.query_params.get("message_code", 902)
-        users_idc_id = DocumentField.objects.get(idc_code=user_code)
-        message_idc_id = DocumentField.objects.get(idc_code=message_code)
+        users_idc_id = Indicator.objects.get(idc_code=user_code)
+        message_idc_id = Indicator.objects.get(idc_code=message_code)
         value = queryset.filter(indicator_id=users_idc_id).values("indicator_value", "journal_document_id")
         idc_ids = []
         for val in value:

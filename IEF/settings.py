@@ -77,7 +77,6 @@ INSTALLED_APPS = [
     'documents',
     'dictionaries',
     'users',
-    # 'reports',
 ]
 
 MIDDLEWARE = [

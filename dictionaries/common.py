@@ -1,4 +1,4 @@
-from .models import CategoryDictionary, DictionaryIndicator, DictionaryIndicatorValue, IndicatorParameter, Element
+from .models import Category, Indicator, IndicatorParameter, Element, ElementIndicatorValue
 from rest_framework.response import Response
 from django.conf import settings
 from rest_framework import status
@@ -122,14 +122,14 @@ def indicator_value_create_old(new_data):
     values = []
     for item in new_data:
         values.append(
-            DictionaryIndicatorValue(
+            ElementIndicatorValue(
                 indicator_value=item.get("value"),
                 output_dictionary_id=item.get("out_dictionary"),
                 indicator_id=item.get("indicator_id"),
                 primary_id=item.get("primary_id"),
                 idc_row=item.get("row_id"))
         )
-    DictionaryIndicatorValue.objects.bulk_create(values)
+    ElementIndicatorValue.objects.bulk_create(values)
     return Response({}, status=status.HTTP_201_CREATED)
 
 
@@ -142,9 +142,9 @@ def element_create(element, indicator):
     values = []
     for item in indicator:
         values.append(
-            DictionaryIndicatorValue(
+            ElementIndicatorValue(
                 indicator_value=item.get("value"),
                 element_id=elm.id,
                 indicator_id=item.get("indicator_id")))
-    DictionaryIndicatorValue.objects.bulk_create(values)
+    ElementIndicatorValue.objects.bulk_create(values)
     return Response({}, status=status.HTTP_201_CREATED)
