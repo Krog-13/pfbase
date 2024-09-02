@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category,  IndicatorParameter, RecordIndicatorValue, ABCDocument, Record, \
+from .models import IndicatorParameter, RecordIndicatorValue, ABCDocument, Record, \
     Indicator, RecordHistory
 from dictionaries.models import Element
 from users.models import User
@@ -103,33 +103,6 @@ class FieldSerializer(serializers.ModelSerializer):
         model = Indicator
         fields = ("id", "short_name", "idc_code", "type_value", "parameters", "reference")
 
-
-class CategoryDocumentSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор для категорий документов
-    """
-    children = serializers.SerializerMethodField()
-    document = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Category
-        fields = ("id", "short_name", "description",
-                  "index_sort", "parent", "children", "document")
-
-    def get_children(self, obj):
-        """
-        Функция для проверки дочерних категорий
-        """
-        children_qs = obj.children.all()
-        if children_qs.exists():
-            return True
-        return False
-
-    def get_document(self, obj):
-        reports = ABCDocument.objects.filter(category_document=obj.id)
-        if reports.exists():
-            return True
-        return False
 
 
 class DocumentSerializer(serializers.ModelSerializer):

@@ -3,9 +3,9 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from .serializers import DictionarySerializer, CategoryDictionarySerializer, IndicatorSerializer, \
+from .serializers import DictionarySerializer, IndicatorSerializer, \
     IndicatorValueSerializer, ElementSerializer, ElementSerializerSoft
-from .models import Category, Indicator, ElementIndicatorValue, IndicatorParameter, ABCDictionary, Element
+from .models import Indicator, ElementIndicatorValue, ABCDictionary, Element
 from .common import element_create
 
 
@@ -88,22 +88,6 @@ class ElementAPIViewOld(ListAPIView):
             column_values = elements_ids.values_list('element_id', flat=True)
             return queryset.filter(id__in=column_values)
         return queryset.filter(abc_dictionary=abc_dict)
-
-
-class CategoryDictionaryAPIView(ListAPIView):
-    """
-    API для категорий справочников
-    """
-    queryset = Category.objects.filter(parent__isnull=True)
-    serializer_class = CategoryDictionarySerializer
-    permission_classes = (IsAuthenticated,)
-
-    def get_queryset(self):
-        """
-        GET запрос для получения категорий справочников
-        """
-        parent_id = self.request.query_params.get("parent_id")
-        return Category.objects.filter(parent_id=parent_id)
 
 
 class DictionaryAPIView(ListAPIView):

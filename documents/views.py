@@ -9,8 +9,8 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.renderers import TemplateHTMLRenderer, JSONRenderer
 from rest_framework.viewsets import ViewSet, ModelViewSet
 from rest_framework.views import APIView
-from .models import Category, Record, ABCDocument, RecordIndicatorValue, RecordHistory, Indicator
-from .serializers import CategoryDocumentSerializer, DocumentSerializer, FieldSerializer,\
+from .models import Record, ABCDocument, RecordIndicatorValue, RecordHistory, Indicator
+from .serializers import  DocumentSerializer, FieldSerializer,\
     FieldValueSerializer, JournalDocumentSerializer, JournalHistorySerializer, JournalDetailSerializer, JournalSerializer, JournalSerializer2, JournalModelSerializer, JournalModelVacancySerializer
 from .common import journal_create, journal_history_create, indicator_create, download_file,\
     upload_file, save_file_minio, get_documents_id, journal_update, update_file, indicator_update, get_file_object,\
@@ -160,28 +160,6 @@ class DocumentVacancyAPIView(CreateAPIView, UpdateAPIView, ListAPIView):
         rq_data = request.data
         journal_vac_update(rq_data, request.user)
         return Response("Journal created", status=status.HTTP_201_CREATED)
-
-
-class CategoryDocumentAPIView(ModelViewSet, UpdateAPIView):
-    """
-    API для категорий документов
-    """
-    queryset = Category.objects.all()
-    serializer_class = CategoryDocumentSerializer
-    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
-
-    def get_queryset(self):
-        """
-        Функция для получения дочерних категорий
-        """
-        parent_id = self.request.query_params.get("parent_id")
-        return Category.objects.filter(id=1)
-
-    def update(self, request, *args, **kwargs):
-        """
-        PUT запрос для обновления категории
-        """
-        return super(CategoryDocumentAPIView, self).update(request, *args, **kwargs)
 
 
 class DocumentAPIView(ListAPIView):

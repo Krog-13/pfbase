@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework import routers
-from .views import DictionaryAPIView, CategoryDictionaryAPIView, DictIndicatorValueAPIView, DictIndicatorAPIView,\
+from .views import DictionaryAPIView, DictIndicatorValueAPIView, DictIndicatorAPIView,\
     ElementAPIView, ElementListAPIView, GetVatView
 
 
@@ -13,7 +13,6 @@ urlpatterns = [
     path("dct/list/", DictionaryAPIView.as_view()),
     # path("dict/element/child/", ElementChildAPIView.as_view()), # use indicator from frontend
     path("dct/element/list/", ElementListAPIView.as_view()),
-    path("dct/category/", CategoryDictionaryAPIView.as_view()),
     path("dct/indicator/", DictIndicatorAPIView.as_view()),
     path("dct/values/", DictIndicatorValueAPIView.as_view(),
          name="reports-idc-values"),

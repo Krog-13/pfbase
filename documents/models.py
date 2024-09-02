@@ -1,36 +1,24 @@
-from IEF.base_model import CategoryBase, IndicatorBase, ParameterBase, IndicatorValueBase, SoftDelete
+from IEF.base_model import CategoryBase, IndicatorBase, ParameterBase, IndicatorValueBase, SoftDelete, default_map
 from users.models import User
 from django.db import models
 import json
-
-
-class Category(CategoryBase):
-    """
-    Category for documents
-    """
-    class Meta:
-        db_table = '"dcm\".\"categories"'
-        verbose_name = 'Категорию документа'
-        verbose_name_plural = 'Категории документов'
 
 
 class ABCDocument(models.Model):
     """
     Abstraction Documents
     """
-    dcm_name = models.JSONField(verbose_name='Наименование')
-    description = models.TextField(
-        null=True, blank=True, verbose_name='Описание')
+    name = models.JSONField(
+        verbose_name='Наименование', default=default_map)
+    description = models.JSONField(
+        null=True, blank=True, verbose_name='Описание', default=default_map)
     code = models.CharField(
         max_length=128, verbose_name='Код', unique=True)
-    category = models.ForeignKey(
-        Category, null=True, blank=True, on_delete=models.SET_NULL,
-        verbose_name='Категория документа')
     author = models.ForeignKey(
         to=User, on_delete=models.CASCADE, verbose_name='Автор')
 
     def __str__(self):
-        return self.dcm_name.get("short_name", self.code)
+        return self.name.get("ru", self.code)
 
     class Meta:
         db_table = '"dcm\".\"abc_document"'
@@ -39,7 +27,7 @@ class ABCDocument(models.Model):
 
     def save(self, *args, **kwargs):
         if self.full_name or self.part_name:
-            self.dcm_name = {"full_name": self.full_name, "short_name": self.part_name}
+            self.name = {"ru": self.full_name, "kz": self.part_name, "en": self.short_name}
         super().save(*args, **kwargs)
 
 
@@ -65,6 +53,8 @@ class Indicator(IndicatorBase):
         null=True, blank=True, verbose_name='Внешний ключ')
     parameters = models.ManyToManyField(
         IndicatorParameter, blank=True, verbose_name='Параметры')
+    author = models.ForeignKey(to=User, on_delete=models.SET_NULL, null=True, verbose_name='Автор',
+                               related_name="indicator")
 
     class Meta:
         db_table = '"dcm\".\"indicator"'
@@ -72,7 +62,7 @@ class Indicator(IndicatorBase):
         verbose_name_plural = 'Индикаторы'
 
     def __str__(self):
-        return self.short_name.get("ru")
+        return self.name.get("ru")
 
     def save(self, *args, **kwargs):
         if not self.pk:
@@ -87,20 +77,22 @@ class Record(SoftDelete):
     """
     Records
     """
-    short_name = models.JSONField(verbose_name='Краткое наименование')
+    number = models.CharField(verbose_name="Номер", max_length=255)
+    date = models.DateField(verbose_name="Дата")
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True)
-    author = models.ForeignKey(
-        to=User, on_delete=models.CASCADE, verbose_name='Автор')
+    active = models.BooleanField(default=True, verbose_name="Активный")
     abc_document = models.ForeignKey(
         to=ABCDocument, on_delete=models.SET_NULL, null=True,
         verbose_name='Документ')
     parent = models.ForeignKey(
         "self", null=True, blank=True, related_name="children", on_delete=models.CASCADE,
         verbose_name='Родительский элемент')
+    author = models.ForeignKey(
+        to=User, on_delete=models.CASCADE, verbose_name='Автор')
 
     def __str__(self):
-        return self.short_name.get("ru")
+        return self.number
 
     class Meta:
         db_table = '"dcm\".\"record"'
@@ -112,12 +104,6 @@ class RecordIndicatorValue(IndicatorValueBase):
     """
     Record-Indicator Value
     """
-    value_text = models.TextField(
-        null=True, blank=True, verbose_name='Текст')
-    value_datetime = models.DateTimeField(
-        null=True, blank=True, verbose_name='Дата и время')
-    value_reference = models.PositiveIntegerField(
-        null=True, blank=True, verbose_name='Внешний ключ')
     record = models.ForeignKey(
         to=Record, on_delete=models.CASCADE, verbose_name='Запсиь',
         related_name="record_value")
@@ -127,8 +113,8 @@ class RecordIndicatorValue(IndicatorValueBase):
 
     class Meta:
         db_table = '"dcm\".\"indicator_value"'
-        verbose_name = 'Значение поля'
-        verbose_name_plural = 'Значения полей'
+        verbose_name = 'Значение инидкатора'
+        verbose_name_plural = 'Значения индикаторов'
 
     def __str__(self):
         return self.value_str or self.value_text or self.value_datetime or str(self.value_int)

@@ -1,5 +1,5 @@
 from rest_framework import serializers, fields
-from .models import Category, IndicatorParameter, Indicator, ElementIndicatorValue, \
+from .models import Indicator, ElementIndicatorValue, \
     ABCDictionary, Element
 
 
@@ -60,36 +60,6 @@ class ElementSerializerSoft(serializers.ModelSerializer):
             return True
         return False
 
-
-class CategoryDictionarySerializer(serializers.ModelSerializer):
-    """
-    Сериализатор для категорий справочников
-    """
-    children = serializers.SerializerMethodField()
-    dictionaries = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Category
-        fields = ("id", "short_name", "description",
-                  "index_sort", "parent", "children", "dictionaries")
-
-    def get_children(self, obj):
-        """
-        Функция для проверки дочерних категорий
-        """
-        children_qs = obj.children.all()
-        if children_qs.exists():
-            return True
-        return False
-
-    def get_dictionaries(self, obj):
-        """
-        Функция для проверки справочников в категории
-        """
-        dictionaries = ABCDictionary.objects.filter(category_dictionary=obj.id)
-        if dictionaries.exists():
-            return True
-        return False
 
 
 class DictionarySerializer(serializers.ModelSerializer):

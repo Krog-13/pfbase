@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     'documents',
     'dictionaries',
     'users',
+    'IEF',
 ]
 
 MIDDLEWARE = [

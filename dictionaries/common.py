@@ -1,4 +1,4 @@
-from .models import Category, Indicator, IndicatorParameter, Element, ElementIndicatorValue
+from .models import Element, ElementIndicatorValue
 from rest_framework.response import Response
 from django.conf import settings
 from rest_framework import status
