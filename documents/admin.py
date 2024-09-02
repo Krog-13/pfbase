@@ -33,7 +33,7 @@ class ABCDocumentAdmin(admin.ModelAdmin):
     Abstract Documents in the admin panel
     """
     form = ABCDocumentAdminForm
-    fields = (("ru_name", "en_name", "kz_name"), "description", "code", "author")
+    fields = (("ru_name", "en_name", "kz_name"), "description", "code")
     list_display = ("get_name", "code", "id")
     search_fields = ('get_name', 'id')
 
@@ -88,7 +88,7 @@ class IndicatorAdmin(admin.ModelAdmin):
     form = IndicatorForm
     exclude = ['reference']
     fields = ("abc_document", ("name", "type_value", "type_extend"), "code",
-              "active", "author")
+              "active")
     list_display = ("get_name", "abc_document", "index_sort", "code", "id")
     search_fields = ('name', 'id')
     list_filter = ("abc_document",)
@@ -113,8 +113,7 @@ class RecordAdmin(admin.ModelAdmin):
     """
     Records in the admin panel
     """
-    fields = ("number", "date", "active",
-              "author", "abc_document", "parent")
+    fields = ("number", "date", "active", "abc_document", "parent")
     list_display = ('number', 'author', 'abc_document', 'id')
     list_filter = ("author",)
 
@@ -130,8 +129,13 @@ class RecordIndicatorValueAdmin(admin.ModelAdmin):
     Record-Indicator Value in the admin panel
     """
     fields = (("value_int", "value_str", "value_text"), "value_datetime", "value_reference",
-              "index_sort", "record", "indicator", "active", "author")
+              "index_sort", "record", "indicator", "active")
     list_display = ("value_int", "value_str", "value_text", "value_datetime",
                     "value_reference", "record", "indicator", "index_sort")
     search_fields = (
         'field_value', 'output_document__document__short_name', 'id')
+
+    def save_model(self, request, obj, form, change):
+        if not obj.pk:  # If the object is being created for the first time
+            obj.author = request.user
+        super().save_model(request, obj, form, change)

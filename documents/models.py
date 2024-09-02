@@ -26,8 +26,8 @@ class ABCDocument(models.Model):
         verbose_name_plural = 'Документы'
 
     def save(self, *args, **kwargs):
-        if self.full_name or self.part_name:
-            self.name = {"ru": self.full_name, "kz": self.part_name, "en": self.short_name}
+        if self.ru_name or self.ka_name or self.en_name:
+            self.name = {"ru": self.ru_name, "kz": self.kz_name, "en": self.en_name}
         super().save(*args, **kwargs)
 
 

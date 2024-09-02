@@ -68,7 +68,7 @@ class ElementAdmin(admin.ModelAdmin):
     Elements in admin panel
     """
     fields = ("short_name", "full_name", "abc_dictionary", "code", "parent", "active")
-    list_display = ('get_short_name', 'abc_dictionary', 'id')
+    list_display = ('get_short_name', 'abc_dictionary', "code", 'id')
     search_fields = ('id',)
 
     def get_short_name(self, obj):
@@ -87,5 +87,5 @@ class ElementIndicatorValueAdmin(admin.ModelAdmin):
     """
     fields = (("value_str", "value_int", "value_text", "value_datetime", "value_reference"),
               "index_sort", "element", "indicator")
-    list_display = ("value_int", "value_str", "element", "indicator")
+    list_display = ("value_int", "value_str", "value_datetime", "value_reference", "element", "indicator")
     search_fields = ("value_int", "id")

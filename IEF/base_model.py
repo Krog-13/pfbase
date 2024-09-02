@@ -101,7 +101,7 @@ class IndicatorValueBase(models.Model):
 
 class Enum(models.Model):
     """Enum"""
-    list = models.CharField(max_length=128, unique=True, verbose_name='Код списка')
+    list = models.CharField(max_length=128, verbose_name='Код списка')
     code = models.CharField(max_length=128, verbose_name='Код элемента')
     short_name = models.JSONField(
         verbose_name='Краткое наименование', default=default_map)
