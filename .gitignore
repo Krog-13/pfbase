@@ -11,10 +11,6 @@ venv/
 
 # migrations
 reports/migrations
-users/migrations
-documents/migrations
-dictionaries/migrations
-IEF/migrations
 
 documentation/
 static/

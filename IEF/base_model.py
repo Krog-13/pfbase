@@ -82,6 +82,8 @@ class IndicatorValueBase(models.Model):
         null=True, blank=True, verbose_name='Текст')
     value_datetime = models.DateTimeField(
         null=True, blank=True, verbose_name='Дата и время')
+    value_bool = models.BooleanField(
+        null=True, blank=True, verbose_name='Логическое значение')
     value_reference = models.PositiveIntegerField(
         null=True, blank=True, verbose_name='Внешний ключ')
     index_sort = models.PositiveIntegerField(

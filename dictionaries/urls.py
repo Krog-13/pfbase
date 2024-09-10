@@ -1,21 +1,16 @@
 from django.urls import path, include
 from rest_framework import routers
-from .views import DictionaryAPIView, DictIndicatorValueAPIView, DictIndicatorAPIView,\
-    ElementAPIView, ElementListAPIView, GetVatView
+from dictionaries import views
 
 
 router = routers.SimpleRouter()
-router.register(r"dct/element", ElementAPIView)
+router.register(r"dct/dictionaries", views.ABCDictionaryAPIView)
+router.register(r"dct/indicators", views.IndicatorAPIView)
+router.register(r"dct/elements", views.ElementAPIView)
+router.register(r"dct/value", views.EIValueAPIView)
+
+router.register(r"dct/history", views.ElementHistoryAPIView)
+router.register(r"dct/enum", views.EnumAPIView)
 
 urlpatterns = [
-    # path("dict/element/", ElementAPIView.as_view()),
-
-    path("dct/list/", DictionaryAPIView.as_view()),
-    # path("dict/element/child/", ElementChildAPIView.as_view()), # use indicator from frontend
-    path("dct/element/list/", ElementListAPIView.as_view()),
-    path("dct/indicator/", DictIndicatorAPIView.as_view()),
-    path("dct/values/", DictIndicatorValueAPIView.as_view(),
-         name="reports-idc-values"),
-    path('dct/vat/', GetVatView.as_view()),
-
     path("", include(router.urls))]

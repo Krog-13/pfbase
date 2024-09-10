@@ -1,24 +1,5 @@
-from dictionaries.models import Indicator, ElementIndicatorValue, ABCDictionary, Element
+from dictionaries.models import Indicator, ElementIndicatorValue, ABCDictionary, Element, ElementHistory
 from django.contrib import admin
-from django import forms
-
-
-class DictionaryAdminForm(forms.ModelForm):
-    """
-    Form for dictionaries in admin panel
-    """
-    ru_name = forms.CharField(max_length=256, label='RU наименование', required=True)
-    en_name = forms.CharField(max_length=256, label='EN наименование', required=False)
-    kz_name = forms.CharField(max_length=256, label='KZ наименование', required=False)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Check if the instance exists (editing an object)
-        if self.instance.name:
-            self.fields['ru_name'].initial = self.instance.name.get("ru", "")
-            self.fields['en_name'].initial = self.instance.name.get("en", "")
-            self.fields['kz_name'].initial = self.instance.name.get("kz", "")
 
 
 @admin.register(ABCDictionary)
@@ -26,20 +7,13 @@ class ABCDictionaryAdmin(admin.ModelAdmin):
     """
     Dictionary in admin panel
     """
-    form = DictionaryAdminForm
-    fields = (("ru_name", "en_name", "kz_name"), "description", "code", "active")
+    fields = ("name", "description", "code", "active")
     list_display = ('get_name', 'author', 'code', 'id')
 
     def get_name(self, obj):
         return obj.name.get("ru", obj.code)
 
     def save_model(self, request, obj, form, change):
-        ru_name = form.cleaned_data.get("ru_name")
-        en_name = form.cleaned_data.get("en_name")
-        kz_name = form.cleaned_data.get("kz_name")
-        obj.ru_name = ru_name
-        obj.en_name = en_name
-        obj.kz_name = kz_name
         if not obj.pk:
             obj.author = request.user
         super().save_model(request, obj, form, change)
@@ -89,3 +63,11 @@ class ElementIndicatorValueAdmin(admin.ModelAdmin):
               "index_sort", "element", "indicator")
     list_display = ("value_int", "value_str", "value_datetime", "value_reference", "element", "indicator")
     search_fields = ("value_int", "id")
+
+
+@admin.register(ElementHistory)
+class ElementHistoryAdmin(admin.ModelAdmin):
+    """
+    Element history in admin panel
+    """
+    search_fields = ("element", "id")
