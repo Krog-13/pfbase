@@ -6,7 +6,7 @@ import json
 
 class ABCDictionary(models.Model):
     """
-    Abstract Dictionary
+    Абстракция справочника
     """
     name = models.JSONField(verbose_name='Наименование', default=default_map)
     description = models.JSONField(
@@ -26,15 +26,10 @@ class ABCDictionary(models.Model):
         verbose_name = 'Справочник'
         verbose_name_plural = 'Справочники'
 
-    def save(self, *args, **kwargs):
-        if self.ru_name or self.en_name or self.kz_name:
-            self.name = {"ru": self.ru_name, "en": self.en_name, "kz": self.kz_name}
-        super().save(*args, **kwargs)
-
 
 class Indicator(IndicatorBase):
     """
-    Indicator for dictionaries
+    Показатели :ABCDictionary
     """
     abc_dictionary = models.ForeignKey(
         to=ABCDictionary, on_delete=models.CASCADE, verbose_name='Справочник',
@@ -54,23 +49,22 @@ class Indicator(IndicatorBase):
         verbose_name_plural = 'Индикаторы'
 
     def save(self, *args, **kwargs):
+        """
+        Счетчик сортировки +5
+        """
         if not self.pk:  # If the object is being created (not updated)
             # Get the maximum value of index_sort from existing records
             max_sort = Indicator.objects.aggregate(models.Max('index_sort'))['index_sort__max']
-
             # If max_sort is None (meaning there are no records), start at 0
             if max_sort is None:
                 max_sort = 0
-
-            # Increment by 5
             self.index_sort = max_sort + 5
-
         super().save(*args, **kwargs)
 
 
 class Element(models.Model):
     """
-    Elements
+    Элементы :ABCDictionary
     """
     short_name = models.JSONField(
         verbose_name='Краткое наименование', default=default_map)
@@ -99,7 +93,7 @@ class Element(models.Model):
 
 class ElementIndicatorValue(IndicatorValueBase):
     """
-    Element-Indicator Value
+    Значения индикаторов по Элементам
     """
     element = models.ForeignKey(
         to=Element, on_delete=models.CASCADE, verbose_name='Элемент',
@@ -119,6 +113,7 @@ class ElementIndicatorValue(IndicatorValueBase):
         return self.value_str or str(self.value_int) or self.value_text or str(self.value_datetime)
 
     def save(self, *args, **kwargs):
+        """Автоматическое заполнение сортировки"""
         if not self.pk:
             max_sort = ElementIndicatorValue.objects.aggregate(models.Max('index_sort'))['index_sort__max']
             if max_sort is None:
@@ -130,3 +125,28 @@ class ElementIndicatorValue(IndicatorValueBase):
     def json_file_data(filename, file_id):
         file_data = {"filename": filename, "file_id": file_id}
         return json.dumps(file_data)
+
+
+class ElementHistory(models.Model):
+    """
+    Истрория действии над :Elements
+    """
+    stamp = models.JSONField(verbose_name='Слепок', null=True, blank=True)
+    action = models.CharField(max_length=128, null=True, blank=True, verbose_name='Действие')
+    element = models.ForeignKey(
+        to=Element, on_delete=models.SET_NULL, null=True, verbose_name='Элемент',
+        related_name="element_history")
+    author = models.ForeignKey(
+        to=User, on_delete=models.SET_NULL, null=True, verbose_name='Автор')
+    created_at = models.DateTimeField(
+        auto_now_add=True, blank=True, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(
+        auto_now=True, blank=True, verbose_name='Дата обновления')
+
+    class Meta:
+        db_table = '"dct\".\"element_history"'
+        verbose_name = 'История элемента'
+        verbose_name_plural = 'История элементов'
+
+    def __str__(self):
+        return self.action

@@ -6,7 +6,7 @@ import json
 
 class ABCDocument(models.Model):
     """
-    Abstraction Documents
+    Абстакция документа
     """
     name = models.JSONField(
         verbose_name='Наименование', default=default_map)
@@ -25,15 +25,10 @@ class ABCDocument(models.Model):
         verbose_name = 'Документ'
         verbose_name_plural = 'Документы'
 
-    def save(self, *args, **kwargs):
-        if self.ru_name or self.ka_name or self.en_name:
-            self.name = {"ru": self.ru_name, "kz": self.kz_name, "en": self.en_name}
-        super().save(*args, **kwargs)
-
 
 class IndicatorParameter(ParameterBase):
     """
-    Default parameters for indicators
+    Параметры по умолчанию
     """
     class Meta:
         db_table = '"dcm\".\"idc_parameter"'
@@ -43,7 +38,7 @@ class IndicatorParameter(ParameterBase):
 
 class Indicator(IndicatorBase):
     """
-    Indicator for documents
+    Показатели :ABCDocument
     """
     custom_rule = models.JSONField(verbose_name='Правило', null=True, blank=True)
     abc_document = models.ForeignKey(
@@ -65,6 +60,9 @@ class Indicator(IndicatorBase):
         return self.name.get("ru")
 
     def save(self, *args, **kwargs):
+        """
+        Счетчик сортировки +5
+        """
         if not self.pk:
             max_sort = Indicator.objects.aggregate(models.Max('index_sort'))['index_sort__max']
             if max_sort is None:
@@ -75,7 +73,7 @@ class Indicator(IndicatorBase):
 
 class Record(SoftDelete):
     """
-    Records
+    Запсиси :ABCDocument
     """
     number = models.CharField(verbose_name="Номер", max_length=255)
     date = models.DateField(verbose_name="Дата")
@@ -102,7 +100,7 @@ class Record(SoftDelete):
 
 class RecordIndicatorValue(IndicatorValueBase):
     """
-    Record-Indicator Value
+    Значения индикаторов по Записям
     """
     record = models.ForeignKey(
         to=Record, on_delete=models.CASCADE, verbose_name='Запсиь',
@@ -141,7 +139,9 @@ class Status(models.TextChoices):
 
 
 class RecordHistory(models.Model):
-    """History of Record"""
+    """
+    История действии над :Record
+    """
     status = models.CharField(
         max_length=28,
         choices=Status.choices,
@@ -150,6 +150,7 @@ class RecordHistory(models.Model):
     status_comment = models.TextField(
         max_length=312, null=True, blank=True, verbose_name='Комментарий')
     stage = models.CharField(max_length=128, null=True, blank=True, verbose_name='Этап')
+    action = models.CharField(max_length=128, null=True, blank=True, verbose_name='Действие')
     signature = models.BooleanField(null=True, blank=True, verbose_name='Подписание')
     sign_stamp = models.TextField(verbose_name='Ключ верификации', null=True, blank=True)
     stamp = models.JSONField(verbose_name='Слепок', null=True, blank=True)
@@ -164,3 +165,6 @@ class RecordHistory(models.Model):
         db_table = '"dcm\".\"record_history"'
         verbose_name = 'История записи'
         verbose_name_plural = 'Истории записей'
+
+    def __str__(self):
+        return self.action
