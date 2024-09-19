@@ -18,21 +18,15 @@ from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import path, include
 from rest_framework.authtoken.views import obtain_auth_token
-from users.views import CustomAuthToken, UserLogout
 from django.conf import settings
 from django.conf.urls.static import static
 
 
-
-
 urlpatterns = [
+    path('admin/doc/', include('django.contrib.admindocs.urls')),
     path('admin/', admin.site.urls),
-    path('api/', include('documents.urls')),
-    # path('api/', include('reports.urls')),
-    path('api/', include('users.urls')),
-    path('api/', include('dictionaries.urls')),
-    path('api/api-token-auth/', CustomAuthToken.as_view()),
-    path('api/api-token-logout/', UserLogout.as_view()),
+    path('api/', include('pfbase.urls')),
+    path('api/api-token-auth/', obtain_auth_token),
 ]
 
 

@@ -1,1 +1,0 @@
-[{"model": "users.organization", "pk": 1, "fields": {"short_name": "KMG", "identifier": "RE13311", "address": "Astanaa", "subsidiaries": null}}, {"model": "users.organization", "pk": 2, "fields": {"short_name": "KUMKOL", "identifier": "FR322123", "address": "Astana", "subsidiaries": 1}}]

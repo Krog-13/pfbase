@@ -68,16 +68,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.admindocs',
     'rest_framework',
     'corsheaders',
     'rest_framework.authtoken',
     'django_filters',
     'django_rest_passwordreset',
 
-    'documents',
-    'dictionaries',
-    'users',
-    'IEF',
+    'pfbase',
 ]
 
 MIDDLEWARE = [
@@ -189,7 +187,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # Update default User
-AUTH_USER_MODEL = 'users.User'
+# AUTH_USER_MODEL = 'users.User'
 
 REST_FRAMEWORK = {
     # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
