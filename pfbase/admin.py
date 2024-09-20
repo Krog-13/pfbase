@@ -207,3 +207,37 @@ class NotificationAdmin(admin.ModelAdmin):
     Notification in admin panel
     """
     list_display = ('type_notification', 'source_user', 'user', 'id')
+
+
+def get_app_list(self, request):
+    """
+    Return a sorted list of all the installed apps that have been
+    registered in this site.
+    """
+    ordering = {
+        "DCM Документы": 1,
+        "DCM Индикаторы": 2,
+        "DCM Значения индикаторов": 3,
+        "DCM Записи документов": 4,
+        "DCM Истории записей": 5,
+        "DCT Справочники": 6,
+        "DCT Индикаторы": 7,
+        "DCT Значение индикаторов": 8,
+        "DCT Элементы": 9,
+        "DCT История элементов": 10,
+        "SYS Перечисления": 11,
+        "SYS Уведомления": 12,
+        "Группы": 13,
+        "Пользователи": 14,
+        "Tokens": 15,
+    }
+    app_dict = self._build_app_dict(request)
+    app_list = sorted(app_dict.values(), key=lambda x: x['name'].lower())
+
+    for app in app_list:
+        app['models'].sort(key=lambda x: ordering[x['name']])
+
+    return app_list
+
+# Override get_app_list method in AdminSite
+admin.AdminSite.get_app_list = get_app_list
