@@ -214,7 +214,8 @@ def get_app_list(self, request):
     Return a sorted list of all the installed apps that have been
     registered in this site.
     """
-    ordering = {
+    sort_apps = ['Pfbase'] # add new app name for sorting if needed
+    ordering = {  # add new model name if new app in sort_apps was added 
         "DCM Документы": 1,
         "DCM Индикаторы": 2,
         "DCM Значения индикаторов": 3,
@@ -227,15 +228,13 @@ def get_app_list(self, request):
         "DCT История элементов": 10,
         "SYS Перечисления": 11,
         "SYS Уведомления": 12,
-        "Группы": 13,
-        "Пользователи": 14,
-        "Tokens": 15,
     }
     app_dict = self._build_app_dict(request)
     app_list = sorted(app_dict.values(), key=lambda x: x['name'].lower())
 
     for app in app_list:
-        app['models'].sort(key=lambda x: ordering[x['name']])
+        if app['name'] in sort_apps: 
+            app['models'].sort(key=lambda x: ordering[x['name']])
 
     return app_list
 
