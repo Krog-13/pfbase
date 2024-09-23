@@ -209,12 +209,12 @@ class NotificationAdmin(admin.ModelAdmin):
     list_display = ('type_notification', 'source_user', 'user', 'id')
 
 
-def get_app_list(self, request):
+def get_app_list(self, request, app_label=None):
     """
     Return a sorted list of all the installed apps that have been
     registered in this site.
     """
-    sort_apps = ['Pfbase'] # add new app name for sorting if needed
+    sort_apps = ['Ядро PF']  # add new app name for sorting if needed
     ordering = {  # add new model name if new app in sort_apps was added 
         "DCM Документы": 1,
         "DCM Индикаторы": 2,
