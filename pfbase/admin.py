@@ -214,7 +214,7 @@ def get_app_list(self, request, app_label=None):
     Return a sorted list of all the installed apps that have been
     registered in this site.
     """
-    sort_apps = ['Ядро PF']  # add new app name for sorting if needed
+    sort_apps = ['pfbase'] # add new app name for sorting if needed
     ordering = {  # add new model name if new app in sort_apps was added 
         "DCM Документы": 1,
         "DCM Индикаторы": 2,
@@ -229,13 +229,15 @@ def get_app_list(self, request, app_label=None):
         "SYS Перечисления": 11,
         "SYS Уведомления": 12,
     }
-    app_dict = self._build_app_dict(request)
+    app_dict = self._build_app_dict(request, app_label)
     app_list = sorted(app_dict.values(), key=lambda x: x['name'].lower())
 
     for app in app_list:
-        if app['name'] in sort_apps: 
+        if app['app_label'] in sort_apps: 
             app['models'].sort(key=lambda x: ordering[x['name']])
 
+    # Sort so pfbase app always will be at the first place
+    app_list.sort(key=lambda x: 0 if x['app_label'] == 'pfbase' else 1)
     return app_list
 
 # Override get_app_list method in AdminSite
