@@ -4,7 +4,7 @@ Main admin by Pertro Flow project
 from django.contrib import admin
 from django import forms
 from .models import RecordIndicatorValue, ABCDocument, Record, DcmIndicator, RecordHistory,\
-    Element, ABCDictionary, DctIndicator, ElementIndicatorValue, ElementHistory, PFEnum, Notification
+    Element, ABCDictionary, DctIndicator, ElementIndicatorValue, ElementHistory, PFEnum, Notification, Organization
 
 
 # Admin for Dictionaries
@@ -47,7 +47,7 @@ class ElementAdmin(admin.ModelAdmin):
     """
     Elements in admin panel
     """
-    fields = ("short_name", "full_name", "abc_dictionary", "code", "parent", "active")
+    fields = ("short_name", "full_name", "abc_dictionary", "organization", "code", "parent", "active")
     list_display = ('get_short_name', 'abc_dictionary', "code", 'id')
     search_fields = ('id',)
 
@@ -159,7 +159,7 @@ class RecordAdmin(admin.ModelAdmin):
     """
     Records in the admin panel
     """
-    fields = ("number", "date", "active", "abc_document", "parent")
+    fields = ("number", "date", "active", "abc_document", "organization", "parent")
     list_display = ('number', 'author', 'abc_document', 'id')
     list_filter = ("author",)
 
@@ -209,6 +209,14 @@ class NotificationAdmin(admin.ModelAdmin):
     list_display = ('type_notification', 'source_user', 'user', 'id')
 
 
+@admin.register(Organization)
+class OrganizationAdmin(admin.ModelAdmin):
+    """
+    Organization in admin panel
+    """
+    list_display = ('name', 'identifier', 'address', 'id')
+
+
 def get_app_list(self, request, app_label=None):
     """
     Return a sorted list of all the installed apps that have been
@@ -218,16 +226,17 @@ def get_app_list(self, request, app_label=None):
     ordering = {  # add new model name if new app in sort_apps was added 
         "DCM Документы": 1,
         "DCM Индикаторы": 2,
-        "DCM Значения индикаторов": 3,
-        "DCM Записи документов": 4,
+        "DCM Записи документов": 3,
+        "DCM Значения индикаторов": 4,
         "DCM Истории записей": 5,
         "DCT Справочники": 6,
         "DCT Индикаторы": 7,
-        "DCT Значение индикаторов": 8,
-        "DCT Элементы": 9,
+        "DCT Элементы": 8,
+        "DCT Значение индикаторов": 9,
         "DCT История элементов": 10,
         "SYS Перечисления": 11,
         "SYS Уведомления": 12,
+        "SYS Организации": 13,
     }
     app_dict = self._build_app_dict(request, app_label)
     app_list = sorted(app_dict.values(), key=lambda x: x['name'].lower())

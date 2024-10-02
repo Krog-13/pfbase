@@ -90,6 +90,9 @@ class Element(models.Model):
         default=True, verbose_name='Активный')
     author = models.ForeignKey(
         to=User, on_delete=models.SET_NULL, null=True, verbose_name='Автор', related_name="element")
+    organization = models.ForeignKey(
+        to="organization", on_delete=models.SET_NULL, blank=True, null=True,
+        verbose_name='Организация', related_name="element")
 
     def __str__(self):
         return self.short_name.get("ru")
@@ -246,6 +249,9 @@ class Record(SoftDelete):
         verbose_name='Родительский элемент')
     author = models.ForeignKey(
         to=User, on_delete=models.CASCADE, verbose_name='Автор')
+    organization = models.ForeignKey(
+        to="organization", on_delete=models.SET_NULL, blank=True, null=True,
+        verbose_name='Организация', related_name="record")
 
     def __str__(self):
         return self.number
@@ -381,3 +387,21 @@ class Notification(models.Model):
         db_table = '"sys\".\"notification"'
         verbose_name = 'SYS Уведомление'
         verbose_name_plural = 'SYS Уведомления'
+
+
+class Organization(models.Model):
+    """
+    Организации
+    """
+    name = models.JSONField(verbose_name='Наименование организации', default=default_map)
+    identifier = models.CharField(max_length=128, null=True, blank=True, verbose_name='БИН')
+    address = models.CharField(max_length=128, null=True, blank=True, verbose_name='Адрес')
+    created_at = models.DateTimeField(auto_now_add=True, blank=True)
+
+    class Meta:
+        db_table = '"sys\".\"organization"'
+        verbose_name = "SYS Организация"
+        verbose_name_plural = "SYS Организации"
+
+    def __str__(self):
+        return self.name.get("ru")
