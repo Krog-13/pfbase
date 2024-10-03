@@ -6,7 +6,7 @@ consist of schemas:
 :sys
 """
 from .base_models import IndicatorBase, IndicatorValueBase, default_map, ParameterBase, SoftDelete
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 from enum import Enum
 import json
@@ -23,7 +23,7 @@ class ABCDictionary(models.Model):
     code = models.CharField(
         max_length=128, verbose_name='Код', unique=True)
     author = models.ForeignKey(
-        to=User, on_delete=models.SET_NULL, null=True, verbose_name='Автор')
+        to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор')
     active = models.BooleanField(
         default=True, verbose_name='Активный')
 
@@ -46,7 +46,7 @@ class DctIndicator(IndicatorBase):
     reference = models.ForeignKey(
         to=ABCDictionary, on_delete=models.CASCADE, verbose_name='Внешний ключ',
         null=True, blank=True, related_name='reference')
-    author = models.ForeignKey(to=User, on_delete=models.SET_NULL, null=True, verbose_name='Автор',
+    author = models.ForeignKey(to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор',
                                related_name="indicator_author")
 
     def __str__(self):
@@ -89,7 +89,7 @@ class Element(models.Model):
     active = models.BooleanField(
         default=True, verbose_name='Активный')
     author = models.ForeignKey(
-        to=User, on_delete=models.SET_NULL, null=True, verbose_name='Автор', related_name="element")
+        to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор', related_name="element")
     organization = models.ForeignKey(
         to="organization", on_delete=models.SET_NULL, blank=True, null=True,
         verbose_name='Организация', related_name="element")
@@ -114,7 +114,7 @@ class ElementIndicatorValue(IndicatorValueBase):
         to=DctIndicator, on_delete=models.CASCADE, verbose_name='Показатель',
         related_name="indicator_value")
     author = models.ForeignKey(
-        to=User, on_delete=models.SET_NULL, null=True, verbose_name='Автор')
+        to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор')
 
     class Meta:
         db_table = '"dct\".\"indicator_value"'
@@ -149,19 +149,20 @@ class ElementHistory(models.Model):
         to=Element, on_delete=models.SET_NULL, null=True, verbose_name='Элемент',
         related_name="element_history")
     author = models.ForeignKey(
-        to=User, on_delete=models.SET_NULL, null=True, verbose_name='Автор')
+        to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор')
     created_at = models.DateTimeField(
         auto_now_add=True, blank=True, verbose_name='Дата создания')
     updated_at = models.DateTimeField(
         auto_now=True, blank=True, verbose_name='Дата обновления')
+
+    def __str__(self):
+        return self.action
 
     class Meta:
         db_table = '"dct\".\"element_history"'
         verbose_name = 'DCT История элемента'
         verbose_name_plural = 'DCT История элементов'
 
-    def __str__(self):
-        return self.action
 
 
 # Models for Documents schemas
@@ -176,7 +177,7 @@ class ABCDocument(models.Model):
     code = models.CharField(
         max_length=128, verbose_name='Код', unique=True)
     author = models.ForeignKey(
-        to=User, on_delete=models.CASCADE, verbose_name='Автор')
+        to="User", on_delete=models.CASCADE, verbose_name='Автор')
 
     def __str__(self):
         return self.name.get("ru", self.code)
@@ -209,16 +210,16 @@ class DcmIndicator(IndicatorBase):
         null=True, blank=True, verbose_name='Внешний ключ')
     parameters = models.ManyToManyField(
         IndicatorParameter, blank=True, verbose_name='Параметры')
-    author = models.ForeignKey(to=User, on_delete=models.SET_NULL, null=True, verbose_name='Автор',
+    author = models.ForeignKey(to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор',
                                related_name="indicator")
+
+    def __str__(self):
+        return self.name.get("ru")
 
     class Meta:
         db_table = '"dcm\".\"dcm_indicator"'
         verbose_name = 'DCM Индикатор'
         verbose_name_plural = 'DCM Индикаторы'
-
-    def __str__(self):
-        return self.name.get("ru")
 
     def save(self, *args, **kwargs):
         """
@@ -248,7 +249,7 @@ class Record(SoftDelete):
         "self", null=True, blank=True, related_name="children", on_delete=models.CASCADE,
         verbose_name='Родительский элемент')
     author = models.ForeignKey(
-        to=User, on_delete=models.CASCADE, verbose_name='Автор')
+        to="User", on_delete=models.CASCADE, verbose_name='Автор')
     organization = models.ForeignKey(
         to="organization", on_delete=models.SET_NULL, blank=True, null=True,
         verbose_name='Организация', related_name="record")
@@ -273,13 +274,13 @@ class RecordIndicatorValue(IndicatorValueBase):
         to=DcmIndicator, on_delete=models.CASCADE, verbose_name='Показатель',
         related_name="indicator_value")
 
+    def __str__(self):
+        return self.value_str or self.value_text or self.value_datetime or str(self.value_int)
+
     class Meta:
         db_table = '"dcm\".\"indicator_value"'
         verbose_name = 'DCM Значение инидкатора'
         verbose_name_plural = 'DCM Значения индикаторов'
-
-    def __str__(self):
-        return self.value_str or self.value_text or self.value_datetime or str(self.value_int)
 
     @staticmethod
     def json_file_data(filename, file_id):
@@ -312,18 +313,18 @@ class RecordHistory(models.Model):
     stamp = models.JSONField(verbose_name='Слепок', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     author = models.ForeignKey(
-        to=User, on_delete=models.CASCADE, verbose_name='Автор')
+        to="User", on_delete=models.CASCADE, verbose_name='Автор')
     record = models.ForeignKey(
         to=Record, on_delete=models.SET_NULL, null=True,
         verbose_name='Журнал документа', related_name="record_history")
+
+    def __str__(self):
+        return self.action
 
     class Meta:
         db_table = '"dcm\".\"record_history"'
         verbose_name = 'DCM История записи'
         verbose_name_plural = 'DCM Истории записей'
-
-    def __str__(self):
-        return self.action
 
 
 # Models for System schemas
@@ -339,7 +340,7 @@ class PFEnum(models.Model):
         verbose_name='Полное наименование', null=True, blank=True, default=default_map)
     active = models.BooleanField(default=True, verbose_name='Активный')
     author = models.ForeignKey(
-        to=User, on_delete=models.CASCADE, verbose_name='Автор', related_name="enum")
+        to="User", on_delete=models.CASCADE, verbose_name='Автор', related_name="enum")
 
     def __str__(self):
         return self.list
@@ -377,9 +378,9 @@ class Notification(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     user = models.ForeignKey(
-        to=User, on_delete=models.CASCADE, verbose_name='Получатель')
+        to="User", on_delete=models.CASCADE, verbose_name='Получатель')
     source_user = models.ForeignKey(
-        to=User, on_delete=models.CASCADE, verbose_name='Отправитель', related_name='notification_source')
+        to="User", on_delete=models.CASCADE, verbose_name='Отправитель', related_name='notification_source')
     record = models.ForeignKey(
         to=Record, on_delete=models.CASCADE, verbose_name='Запись', null=True, blank=True)
 
@@ -398,10 +399,30 @@ class Organization(models.Model):
     address = models.CharField(max_length=128, null=True, blank=True, verbose_name='Адрес')
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
 
+    def __str__(self):
+        return self.name.get("ru")
+
     class Meta:
         db_table = '"sys\".\"organization"'
         verbose_name = "SYS Организация"
         verbose_name_plural = "SYS Организации"
 
+
+# Model custom User
+class User(AbstractUser):
+    """
+    Пользователь
+    """
+    avatar = models.ImageField(upload_to='users', verbose_name='Фото профиля', null=True, blank=True)
+    is_blocked = models.BooleanField(default=False, verbose_name='Заблокирован')
+    organization = models.ForeignKey(
+        to=Organization, on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name='Организация', related_name='user_organization')
+
     def __str__(self):
-        return self.name.get("ru")
+        return self.username
+
+    class Meta:
+        db_table = '"sys\".\"user"'
+        verbose_name = 'SYS Пользователь'
+        verbose_name_plural = 'SYS Пользователи'

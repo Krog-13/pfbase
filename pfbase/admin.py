@@ -4,7 +4,8 @@ Main admin by Pertro Flow project
 from django.contrib import admin
 from django import forms
 from .models import RecordIndicatorValue, ABCDocument, Record, DcmIndicator, RecordHistory,\
-    Element, ABCDictionary, DctIndicator, ElementIndicatorValue, ElementHistory, PFEnum, Notification, Organization
+    Element, ABCDictionary, DctIndicator, ElementIndicatorValue, ElementHistory, PFEnum,\
+    Notification, Organization, User
 
 
 # Admin for Dictionaries
@@ -217,6 +218,14 @@ class OrganizationAdmin(admin.ModelAdmin):
     list_display = ('name', 'identifier', 'address', 'id')
 
 
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    """
+    User in admin panel
+    """
+    list_display = ('username', 'email', 'organization', 'id')
+
+
 def get_app_list(self, request, app_label=None):
     """
     Return a sorted list of all the installed apps that have been
@@ -237,6 +246,7 @@ def get_app_list(self, request, app_label=None):
         "SYS Перечисления": 11,
         "SYS Уведомления": 12,
         "SYS Организации": 13,
+        "SYS Пользователи": 14,
     }
     app_dict = self._build_app_dict(request, app_label)
     app_list = sorted(app_dict.values(), key=lambda x: x['name'].lower())
