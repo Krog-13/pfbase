@@ -164,7 +164,6 @@ class ElementHistory(models.Model):
         verbose_name_plural = 'DCT История элементов'
 
 
-
 # Models for Documents schemas
 class ABCDocument(models.Model):
     """
