@@ -274,7 +274,7 @@ class RecordIndicatorValue(IndicatorValueBase):
         related_name="indicator_value")
 
     def __str__(self):
-        return self.value_str or self.value_text or self.value_datetime or str(self.value_int)
+        return self.value_str or self.value_text or str(self.value_datetime) or str(self.value_int)
 
     class Meta:
         db_table = '"dcm\".\"indicator_value"'

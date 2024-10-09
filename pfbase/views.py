@@ -13,10 +13,11 @@ from rest_framework import status
 from .base_views import AbstractModelAPIView
 from .pagination import CustomPagination
 from .models import DctIndicator, ElementIndicatorValue, ABCDictionary, Element, ElementHistory, \
-    ABCDocument, DcmIndicator, Record, RecordIndicatorValue, RecordHistory, PFEnum
+    ABCDocument, DcmIndicator, Record, RecordIndicatorValue, RecordHistory, PFEnum, Notification, User
 from .serializers import DictionarySerializer, DctIndicatorSerializer, \
     EIValueSerializer, ElementSerializer, ElementHistorySerializer, PFEnumSerializer, \
-    ABCDocumentSerializer, DcmIndicatorSerializer, RIValueSerializer, RecordSerializer, RecordHistorySerializer
+    ABCDocumentSerializer, DcmIndicatorSerializer, RIValueSerializer, RecordSerializer,\
+    RecordHistorySerializer, NotificationSerializer, UserSerializer
 
 
 # Views for Dictionary
@@ -282,3 +283,23 @@ class PFEnumAPIView(AbstractModelAPIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = PFEnumSerializer(enums, many=True)
         return Response(serializer.data)
+
+
+class NotificationAPIView(ModelViewSet):
+    """
+    Представление уведомлений
+    """
+    queryset = Notification.objects.all().order_by('id')
+    serializer_class = NotificationSerializer
+    permission_classes = (IsAuthenticated,)
+    pagination_class = CustomPagination
+
+
+class UserAPIView(ModelViewSet):
+    """
+    Представление пользователей
+    """
+    queryset = User.objects.all().order_by('id')
+    serializer_class = UserSerializer
+    permission_classes = (IsAuthenticated,)
+    pagination_class = CustomPagination

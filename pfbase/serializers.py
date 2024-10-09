@@ -3,7 +3,7 @@ Serializers for the models in the pfbase app
 """
 from rest_framework import serializers
 from .models import DctIndicator, ElementIndicatorValue, ABCDictionary, Element, ElementHistory, \
-    RecordIndicatorValue, ABCDocument, Record, DcmIndicator, RecordHistory, PFEnum, Notification
+    RecordIndicatorValue, ABCDocument, Record, DcmIndicator, RecordHistory, PFEnum, Notification, User
 
 
 # serializers for Dictionary
@@ -78,4 +78,10 @@ class PFEnumSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
+        fields = "__all__"
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
         fields = "__all__"

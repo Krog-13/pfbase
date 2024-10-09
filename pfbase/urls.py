@@ -28,6 +28,8 @@ router.register(r'dcm/history', views.RecordHistoryAPIView)
 
 # routers for system
 router.register(r"sys/enum", views.PFEnumAPIView)
+router.register(r"sys/notifications", views.NotificationAPIView)
+router.register(r"sys/users", views.UserAPIView)
 
 urlpatterns = [
     path("", include(router.urls))]
