@@ -28,7 +28,7 @@ class ABCDictionary(models.Model):
         default=True, verbose_name='Активный')
 
     def __str__(self):
-        return self.name.get("ru", self.code)
+        return self.name.get("ru", "No name")
 
     class Meta:
         db_table = '"dct\".\"abc_dictionary"'
@@ -50,7 +50,7 @@ class DctIndicator(IndicatorBase):
                                related_name="indicator_author")
 
     def __str__(self):
-        return self.name.get("ru", self.code)
+        return self.name.get("ru", "No name")
 
     class Meta:
         db_table = '"dct\".\"dct_indicator"'
@@ -95,7 +95,7 @@ class Element(models.Model):
         verbose_name='Организация', related_name="element")
 
     def __str__(self):
-        return self.short_name.get("ru")
+        return self.short_name.get("ru", "No name")
 
     class Meta:
         db_table = '"dct\".\"element"'
@@ -177,9 +177,12 @@ class ABCDocument(models.Model):
         max_length=128, verbose_name='Код', unique=True)
     author = models.ForeignKey(
         to="User", on_delete=models.CASCADE, verbose_name='Автор')
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, related_name="children",
+        on_delete=models.CASCADE, verbose_name='Родительский элемент')
 
     def __str__(self):
-        return self.name.get("ru", self.code)
+        return self.name.get("ru", "No name")
 
     class Meta:
         db_table = '"dcm\".\"abc_document"'
@@ -213,7 +216,7 @@ class DcmIndicator(IndicatorBase):
                                related_name="indicator")
 
     def __str__(self):
-        return self.name.get("ru")
+        return self.name.get("ru", "No name")
 
     class Meta:
         db_table = '"dcm\".\"dcm_indicator"'
@@ -399,7 +402,7 @@ class Organization(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
 
     def __str__(self):
-        return self.name.get("ru")
+        return self.name.get("ru", "No name")
 
     class Meta:
         db_table = '"sys\".\"organization"'

@@ -32,4 +32,10 @@ router.register(r"sys/notifications", views.NotificationAPIView)
 router.register(r"sys/users", views.UserAPIView)
 
 urlpatterns = [
+    path("dct/elements/row/", views.EIAPIView.as_view()),
+    path("dct/elements/row/<int:pk>/", views.EIAPIView.as_view()),
+
+    path("dcm/records/row/", views.RIAPIView.as_view()),
+    path("dcm/records/row/<int:pk>/", views.RIAPIView.as_view()),
+
     path("", include(router.urls))]

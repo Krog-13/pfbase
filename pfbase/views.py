@@ -5,19 +5,23 @@ presented for schemes:
 :dcm
 :sys
 """
+from rest_framework import status, views, exceptions as exc
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status
+from django.db import IntegrityError
 from .base_views import AbstractModelAPIView
+import pfbase.tools as tools
+from .exception import WrongType
 from .pagination import CustomPagination
 from .models import DctIndicator, ElementIndicatorValue, ABCDictionary, Element, ElementHistory, \
     ABCDocument, DcmIndicator, Record, RecordIndicatorValue, RecordHistory, PFEnum, Notification, User
 from .serializers import DictionarySerializer, DctIndicatorSerializer, \
     EIValueSerializer, ElementSerializer, ElementHistorySerializer, PFEnumSerializer, \
     ABCDocumentSerializer, DcmIndicatorSerializer, RIValueSerializer, RecordSerializer,\
-    RecordHistorySerializer, NotificationSerializer, UserSerializer
+    RecordHistorySerializer, NotificationSerializer, UserSerializer, RIPostSerializer,\
+    RIGetSerializer, EIGetSerializer, EIPostSerializer, EIUpdateSerializer, RIUpdateSerializer
 
 
 # Views for Dictionary
@@ -303,3 +307,135 @@ class UserAPIView(ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
+
+
+# Custom dictionary serializer
+class EIAPIView(views.APIView):
+    """
+    Представление :Element with their :Indicator
+    """
+    queryset = Element.objects.all()
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        pk = kwargs.get('pk', False)
+        if not pk:
+            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            queryset = self.queryset.get(id=pk)
+        except Element.DoesNotExist:
+            return Response({"message": "Element not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(EIGetSerializer(queryset, many=False).data)
+
+    def post(self, request):
+        serializer = EIPostSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                output = tools.create_element_row(self.request.user, serializer.validated_data)
+            except ABCDictionary.DoesNotExist:
+                return Response({"message": "Неверный code|id абстракции"},
+                                         status=status.HTTP_400_BAD_REQUEST)
+            except Element.DoesNotExist:
+                return Response({"message": "Неверный parent_id элемента"},
+                                         status=status.HTTP_400_BAD_REQUEST)
+            except WrongType:
+                return Response({"message": "Неверный формат данных"},
+                                         status=status.HTTP_400_BAD_REQUEST)
+            except IntegrityError:
+                return Response({"message": "Код элемента уже существует"},
+                                         status=status.HTTP_400_BAD_REQUEST)
+            return Response(ElementSerializer(output).data, status=status.HTTP_201_CREATED)
+        raise exc.ValidationError(serializer.errors)
+
+    def patch(self, request, *args, **kwargs):
+        serializer = EIUpdateSerializer(data=request.data)
+        pk = kwargs.get('pk', False)
+        if not pk:
+            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            element = self.queryset.get(pk=pk)
+        except Element.DoesNotExist:
+            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        if serializer.is_valid():
+            output = tools.update_element_row(self.request.user, serializer.validated_data, element)
+            return Response(ElementSerializer(output).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, *args, **kwargs):
+        pk = kwargs.get('pk', False)
+        if not pk:
+            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            element = self.queryset.get(pk=pk)
+            element.delete()
+        except Element.DoesNotExist:
+            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# Custom document serializer
+class RIAPIView(views.APIView):
+    """
+    Представление :Record with their :Indicators
+    """
+    queryset = Record.objects.all()
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        pk = kwargs.get('pk', False)
+        if not pk:
+            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            queryset = self.queryset.get(id=pk)
+        except Record.DoesNotExist:
+            return Response({"message": "Record not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(RIGetSerializer(queryset, many=False).data)
+
+    def post(self, request):
+        serializer = RIPostSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                output = tools.create_record_row(self.request.user, serializer.validated_data)
+            except (ABCDocument.DoesNotExist, DcmIndicator.DoesNotExist):
+                return Response({"message": "Неверный code|id абстракции"},
+                                         status=status.HTTP_400_BAD_REQUEST)
+            except Record.DoesNotExist:
+                return Response({"message": "Неверный parent_id записи"},
+                                         status=status.HTTP_400_BAD_REQUEST)
+            except WrongType:
+                return Response({"message": "Неверный формат данных"},
+                                         status=status.HTTP_400_BAD_REQUEST)
+            return Response(RecordSerializer(output).data, status=status.HTTP_201_CREATED)
+        raise exc.ValidationError(serializer.errors)
+
+    def patch(self, request, *args, **kwargs):
+        serializer = RIUpdateSerializer(data=request.data)
+        pk = kwargs.get('pk', False)
+        if not pk:
+            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            record = self.queryset.get(pk=pk)
+        except Record.DoesNotExist:
+            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        if serializer.is_valid():
+            try:
+                output = tools.update_record_row(self.request.user, serializer.validated_data, record)
+            except (ABCDocument.DoesNotExist, RecordIndicatorValue.DoesNotExist):
+                return Response({"message": "Неверный code|id абстракции"},
+                                         status=status.HTTP_400_BAD_REQUEST)
+            except WrongType:
+                return Response({"message": "Неверный тип значения"},
+                                         status=status.HTTP_400_BAD_REQUEST)
+            return Response(RecordSerializer(output).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, *args, **kwargs):
+        pk = kwargs.get('pk', False)
+        if not pk:
+            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            record = self.queryset.get(pk=pk)
+            record.soft_delete()
+        except Record.DoesNotExist:
+            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)

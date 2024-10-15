@@ -32,7 +32,8 @@ class DctIndicatorAdmin(admin.ModelAdmin):
     Indicators in admin panel
     """
     fields = ("abc_dictionary", ("name", "type_value", "type_extend"), "description", ("code", "index_sort"), "active", "reference")
-    list_display = ('get_name', 'type_value', 'abc_dictionary', 'index_sort')
+    list_display = ("get_name", "code", "type_value", "abc_dictionary", "index_sort", "id")
+    list_filter = ("abc_dictionary", "author")
 
     def get_name(self, obj):
         return obj.name.get("ru", obj.code)
@@ -49,7 +50,7 @@ class ElementAdmin(admin.ModelAdmin):
     Elements in admin panel
     """
     fields = ("short_name", "full_name", "abc_dictionary", "organization", "code", "parent", "active")
-    list_display = ('get_short_name', 'abc_dictionary', "code", 'id')
+    list_display = ('get_short_name', 'abc_dictionary', "code", "parent", 'id')
     search_fields = ('id',)
 
     def get_short_name(self, obj):
@@ -68,8 +69,28 @@ class ElementIndicatorValueAdmin(admin.ModelAdmin):
     """
     fields = (("value_str", "value_int", "value_text", "value_datetime", "value_reference"),
               "index_sort", "element", "indicator")
-    list_display = ("value_int", "value_str", "value_datetime", "value_reference", "element", "indicator")
+    list_display = ("some_value", "type_value", "indicator", "element", "index_sort", "id")
     search_fields = ("value_int", "id")
+    list_filter = ("element",)
+
+    def type_value(self, obj):
+        return obj.indicator.type_value
+
+    def some_value(self, obj):
+        if obj.value_int:
+            return obj.value_int
+        elif obj.value_str:
+            return obj.value_str
+        elif obj.value_text:
+            return obj.value_text
+        elif obj.value_datetime:
+            return obj.value_datetime
+        elif obj.value_reference:
+            return obj.value_reference
+        elif obj.value_bool:
+            return obj.value_bool
+        else:
+            return None
 
 
 @admin.register(ElementHistory)
@@ -136,9 +157,9 @@ class IndicatorAdmin(admin.ModelAdmin):
     exclude = ['reference']
     fields = ("abc_document", ("name", "type_value", "type_extend"), "code",
               "active")
-    list_display = ("get_name", "abc_document", "index_sort", "code", "id")
+    list_display = ("get_name", "code", "type_value", "abc_document", "index_sort", "id")
     search_fields = ('name', 'id')
-    list_filter = ("abc_document",)
+    list_filter = ("abc_document", "author")
 
     def get_name(self, obj):
         return obj.name.get("ru", obj.code)
@@ -161,8 +182,8 @@ class RecordAdmin(admin.ModelAdmin):
     Records in the admin panel
     """
     fields = ("number", "date", "active", "abc_document", "organization", "parent")
-    list_display = ('number', 'author', 'abc_document', 'id')
-    list_filter = ("author",)
+    list_display = ("number", "abc_document", "author", "parent", "id")
+    list_filter = ("abc_document", "author")
 
     def save_model(self, request, obj, form, change):
         if not obj.pk:  # If the object is being created for the first time
@@ -177,10 +198,29 @@ class RecordIndicatorValueAdmin(admin.ModelAdmin):
     """
     fields = (("value_int", "value_str", "value_text"), "value_datetime", "value_reference",
               "index_sort", "record", "indicator", "active")
-    list_display = ("value_int", "value_str", "value_text", "value_datetime",
-                    "value_reference", "record", "indicator", "index_sort")
+    list_display = ("some_value", "type_value", "indicator", "record", "index_sort", "id")
     search_fields = (
         'field_value', 'output_document__document__short_name', 'id')
+    list_filter = ("record",)
+
+    def type_value(self, obj):
+        return obj.indicator.type_value
+
+    def some_value(self, obj):
+        if obj.value_int:
+            return obj.value_int
+        elif obj.value_str:
+            return obj.value_str
+        elif obj.value_text:
+            return obj.value_text
+        elif obj.value_datetime:
+            return obj.value_datetime
+        elif obj.value_reference:
+            return obj.value_reference
+        elif obj.value_bool:
+            return obj.value_bool
+        else:
+            return None
 
     def save_model(self, request, obj, form, change):
         if not obj.pk:  # If the object is being created for the first time
