@@ -332,8 +332,8 @@ class EIAPIView(views.APIView):
         if serializer.is_valid():
             try:
                 output = tools.create_element_row(self.request.user, serializer.validated_data)
-            except ABCDictionary.DoesNotExist:
-                return Response({"message": "Неверный code|id абстракции"},
+            except (ABCDictionary.DoesNotExist, DctIndicator.DoesNotExist):
+                return Response({"message": "Неверный code|id|type абстракции"},
                                          status=status.HTTP_400_BAD_REQUEST)
             except Element.DoesNotExist:
                 return Response({"message": "Неверный parent_id элемента"},
@@ -357,7 +357,14 @@ class EIAPIView(views.APIView):
         except Element.DoesNotExist:
             return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         if serializer.is_valid():
-            output = tools.update_element_row(self.request.user, serializer.validated_data, element)
+            try:
+                output = tools.update_element_row(self.request.user, serializer.validated_data, element)
+            except (ABCDictionary.DoesNotExist, ElementIndicatorValue.DoesNotExist):
+                return Response({"message": "Неверный code|id|type абстракции"},
+                                         status=status.HTTP_400_BAD_REQUEST)
+            except WrongType:
+                return Response({"message": "Неверный тип значения"},
+                                         status=status.HTTP_400_BAD_REQUEST)
             return Response(ElementSerializer(output).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -397,7 +404,7 @@ class RIAPIView(views.APIView):
             try:
                 output = tools.create_record_row(self.request.user, serializer.validated_data)
             except (ABCDocument.DoesNotExist, DcmIndicator.DoesNotExist):
-                return Response({"message": "Неверный code|id абстракции"},
+                return Response({"message": "Неверный code|id|type абстракции"},
                                          status=status.HTTP_400_BAD_REQUEST)
             except Record.DoesNotExist:
                 return Response({"message": "Неверный parent_id записи"},
@@ -421,7 +428,7 @@ class RIAPIView(views.APIView):
             try:
                 output = tools.update_record_row(self.request.user, serializer.validated_data, record)
             except (ABCDocument.DoesNotExist, RecordIndicatorValue.DoesNotExist):
-                return Response({"message": "Неверный code|id абстракции"},
+                return Response({"message": "Неверный code|id|type абстракции"},
                                          status=status.HTTP_400_BAD_REQUEST)
             except WrongType:
                 return Response({"message": "Неверный тип значения"},

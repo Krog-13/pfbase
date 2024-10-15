@@ -26,8 +26,6 @@ def create_record_row(user, validated_data):
     document = ABCDocument.objects.get(code=code)
 
     parent_r = Record.objects.get(id=parent_id) if parent_id else None
-    if not parent_r:
-        raise Record.DoesNotExist
     record = Record.objects.create(
         number=metadata.get('number'),
         date=metadata.get('date'),
@@ -39,7 +37,7 @@ def create_record_row(user, validated_data):
         return record
     for indicator in indicators:
         type_value = indicator.get('type')
-        dcm_indicator = DcmIndicator.objects.get(code=indicator.get('code'))
+        dcm_indicator = DcmIndicator.objects.get(code=indicator.get('code'), type_value=type_value)
         rv = record.record_value.create(indicator=dcm_indicator)
         some_value = indicator.get('value')
         result = separate_value(rv, type_value, some_value)
@@ -74,7 +72,7 @@ def update_record_row(user, validated_data, record):
 
     for indicator in indicators:
         type_value = indicator.get('type')
-        rv = record.record_value.get(id=indicator.get('id'))
+        rv = record.record_value.get(id=indicator.get('id'), indicator__type_value=type_value)
         some_value = indicator.get('value')
         result = separate_value(rv, type_value, some_value)
         if not result:
@@ -115,8 +113,6 @@ def create_element_row(user, validated_data):
 
     dictionary = ABCDictionary.objects.get(code=abc_code)
     parent_e = Element.objects.get(id=parent_id) if parent_id else None
-    if not parent_e:
-        raise Element.DoesNotExist
 
     element = Element.objects.create(
         short_name=metadata.get('short_name'),
@@ -131,7 +127,7 @@ def create_element_row(user, validated_data):
 
     for indicator in indicators:
         type_value = indicator.get('type')
-        dcm_indicator = DctIndicator.objects.get(code=indicator.get('code'))
+        dcm_indicator = DctIndicator.objects.get(code=indicator.get('code'), type_value=type_value)
         ev = element.element_value.create(indicator=dcm_indicator)
         some_value = indicator.get('value')
 
@@ -171,7 +167,7 @@ def update_element_row(user, validated_data, element):
 
     for indicator in indicators:
         type_value = indicator.get('type')
-        ev = element.element_value.get(id=indicator.get('id'))
+        ev = element.element_value.get(id=indicator.get('id'), indicator__type_value=type_value)
         some_value = indicator.get('value')
 
         result = separate_value(ev, type_value, some_value)
