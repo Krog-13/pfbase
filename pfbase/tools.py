@@ -19,16 +19,15 @@ def create_record_row(user, validated_data):
     """
     Create Record with their Indicators
     """
-    metadata = validated_data.get('metadata')
-    code = metadata.get('document')
-    indicators = metadata.get('indicators')
-    parent_id = metadata.get('parent_id')
-    document = ABCDocument.objects.get(code=code)
+    document_id = validated_data.get('document_id')
+    indicators = validated_data.get('indicators')
+    parent_id = validated_data.get('parent_id')
+    document = ABCDocument.objects.get(id=document_id)
 
     parent_r = Record.objects.get(id=parent_id) if parent_id else None
     record = Record.objects.create(
-        number=metadata.get('number'),
-        date=metadata.get('date'),
+        number=validated_data.get('number'),
+        date=validated_data.get('date'),
         parent=parent_r,
         author=user,
         abc_document=document
@@ -37,7 +36,7 @@ def create_record_row(user, validated_data):
         return record
     for indicator in indicators:
         type_value = indicator.get('type')
-        dcm_indicator = DcmIndicator.objects.get(code=indicator.get('code'), type_value=type_value)
+        dcm_indicator = DcmIndicator.objects.get(id=indicator.get('id'), type_value=type_value)
         rv = record.record_value.create(indicator=dcm_indicator)
         some_value = indicator.get('value')
         result = separate_value(rv, type_value, some_value)
@@ -52,11 +51,10 @@ def update_record_row(user, validated_data, record):
     """
     Update Record with their Indicators
     """
-    metadata = validated_data.get('metadata')
-    indicators = metadata.get('indicators')
-    parent_id = metadata.get('parent_id')
-    number = metadata.get('number')
-    date = metadata.get('date')
+    indicators = validated_data.get('indicators')
+    parent_id = validated_data.get('parent_id')
+    number = validated_data.get('number')
+    date = validated_data.get('date')
     if parent_id:
         parent_record = Record.objects.get(id=parent_id)
         record.parent = parent_record
@@ -106,18 +104,17 @@ def create_element_row(user, validated_data):
     """
     Create Element with their Indicators
     """
-    metadata = validated_data.get('metadata')
-    abc_code = metadata.get('dictionary')
-    indicators = metadata.get('indicators')
-    parent_id = metadata.get('parent_id')
+    dictionary_id = validated_data.get('dictionary_id')
+    indicators = validated_data.get('indicators')
+    parent_id = validated_data.get('parent_id')
 
-    dictionary = ABCDictionary.objects.get(code=abc_code)
+    dictionary = ABCDictionary.objects.get(id=dictionary_id)
     parent_e = Element.objects.get(id=parent_id) if parent_id else None
 
     element = Element.objects.create(
-        short_name=metadata.get('short_name'),
-        full_name=metadata.get('full_name'),
-        code=metadata.get('code'),
+        short_name=validated_data.get('short_name'),
+        full_name=validated_data.get('full_name'),
+        code=validated_data.get('code'),
         abc_dictionary=dictionary,
         author=user,
         parent=parent_e)
@@ -127,8 +124,8 @@ def create_element_row(user, validated_data):
 
     for indicator in indicators:
         type_value = indicator.get('type')
-        dcm_indicator = DctIndicator.objects.get(code=indicator.get('code'), type_value=type_value)
-        ev = element.element_value.create(indicator=dcm_indicator)
+        dct_indicator = DctIndicator.objects.get(id=indicator.get('id'), type_value=type_value)
+        ev = element.element_value.create(indicator=dct_indicator)
         some_value = indicator.get('value')
 
         result = separate_value(ev, type_value, some_value)
@@ -143,12 +140,11 @@ def update_element_row(user, validated_data, element):
     """
     Update Element with their Indicators
     """
-    metadata = validated_data.get('metadata')
-    indicators = metadata.get('indicators')
-    parent_id = metadata.get('parent_id')
-    short_name = metadata.get('short_name')
-    full_name = metadata.get('full_name')
-    code = metadata.get('code')
+    indicators = validated_data.get('indicators')
+    parent_id = validated_data.get('parent_id')
+    short_name = validated_data.get('short_name')
+    full_name = validated_data.get('full_name')
+    code = validated_data.get('code')
 
     if parent_id:
         parent_element = Element.objects.get(id=parent_id)

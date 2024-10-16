@@ -88,14 +88,23 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 # common serializers
-class IndicatorPostSerializer(serializers.Serializer):
-    code = serializers.CharField(max_length=50)
-    value = serializers.CharField(max_length=100)
-    type = serializers.CharField(max_length=10)
+class CommonSerializer(serializers.Serializer):
+    def to_internal_value(self, data):
+        # Get all allowed fields
+        allowed_fields = set(self.fields.keys())
+        # Get the fields actually passed in the request
+        received_fields = set(data.keys())
+
+        # Check for unknown fields
+        unknown_fields = received_fields - allowed_fields
+        if unknown_fields:
+            raise exceptions.ValidationError({"unknown_fields": f"Unknown field(s): {', '.join(unknown_fields)}"})
+        return super().to_internal_value(data)
 
 
-class IndicatorUpdateSerializer(serializers.Serializer):
+class IndicatorSerializer(CommonSerializer):
     id = serializers.IntegerField()
+    code = serializers.CharField(max_length=50, required=False)
     value = serializers.CharField(max_length=100)
     type = serializers.CharField(max_length=10)
 
@@ -125,13 +134,13 @@ class EIGetSerializer(serializers.ModelSerializer):
         fields = 'short_name', 'full_name', 'code', 'parent', 'element_value'
 
 
-class EMetadataPostSerializer(serializers.Serializer):
+class ElementPostSerializer(CommonSerializer):
     short_name = serializers.JSONField()
     full_name = serializers.JSONField(required=False)
-    code = serializers.CharField(max_length=50)
-    dictionary = serializers.CharField(max_length=50)
+    dictionary_id = serializers.IntegerField()
+    code = serializers.CharField(max_length=50, required=False)
     parent_id = serializers.IntegerField(required=False)
-    indicators = IndicatorPostSerializer(many=True, required=False)
+    indicators = IndicatorSerializer(many=True, required=False)
 
     def to_internal_value(self, data):
         # Get all allowed fields
@@ -142,39 +151,16 @@ class EMetadataPostSerializer(serializers.Serializer):
         # Check for unknown fields
         unknown_fields = received_fields - allowed_fields
         if unknown_fields:
-            raise exceptions.ValidationError(f"Unknown field: {', '.join(unknown_fields)}")
+            raise exceptions.ValidationError({"unknown_fields": f"Unknown field(s): {', '.join(unknown_fields)}"})
         return super().to_internal_value(data)
 
 
-class EMetadataUpdateSerializer(serializers.Serializer):
+class ElementUpdateSerializer(CommonSerializer):
     short_name = serializers.JSONField(required=False)
     full_name = serializers.JSONField(required=False)
     code = serializers.CharField(max_length=50, required=False)
     parent_id = serializers.IntegerField(required=False)
-    indicators = IndicatorUpdateSerializer(many=True, required=False)
-
-    def to_internal_value(self, data):
-        # Get all allowed fields
-        allowed_fields = set(self.fields.keys())
-        # Get the fields actually passed in the request
-        received_fields = set(data.keys())
-
-        # Check for unknown fields
-        unknown_fields = received_fields - allowed_fields
-        if unknown_fields:
-            raise exceptions.ValidationError(f"Unknown field(s): {', '.join(unknown_fields)}")
-        return super().to_internal_value(data)
-
-
-class EIPostSerializer(serializers.Serializer):
-    metadata = EMetadataPostSerializer()
-
-
-class EIUpdateSerializer(serializers.Serializer):
-    metadata = EMetadataUpdateSerializer()
-
-    class Meta:
-        extra_kwargs = None
+    indicators = IndicatorSerializer(many=True, required=False)
 
 
 # Custom document serializer
@@ -194,51 +180,19 @@ class RIndicatorValueSerializer(serializers.ModelSerializer):
             return element.short_name
 
 
-class RMetadataPostSerializer(serializers.Serializer):
-    number = serializers.CharField(required=False)
+class RecordPostSerializer(CommonSerializer):
+    number = serializers.CharField(required=False, default="0000")
     date = serializers.DateField(required=False)
-    document = serializers.CharField(max_length=50)
+    document_id = serializers.IntegerField(required=True)
     parent_id = serializers.IntegerField(required=False)
-    indicators = IndicatorPostSerializer(many=True)
-
-    def to_internal_value(self, data):
-        # Get all allowed fields
-        allowed_fields = set(self.fields.keys())
-        # Get the fields actually passed in the request
-        received_fields = set(data.keys())
-
-        # Check for unknown fields
-        unknown_fields = received_fields - allowed_fields
-        if unknown_fields:
-            raise exceptions.ValidationError(f"Unknown field: {', '.join(unknown_fields)}")
-        return super().to_internal_value(data)
+    indicators = IndicatorSerializer(many=True, required=False)
 
 
-class RMetadataUpdateSerializer(serializers.Serializer):
+class RecordUpdateSerializer(CommonSerializer):
     number = serializers.CharField(required=False)
     date = serializers.DateField(required=False)
     parent_id = serializers.IntegerField(required=False)
-    indicators = IndicatorUpdateSerializer(many=True, required=False)
-
-    def to_internal_value(self, data):
-        # Get all allowed fields
-        allowed_fields = set(self.fields.keys())
-        # Get the fields actually passed in the request
-        received_fields = set(data.keys())
-
-        # Check for unknown fields
-        unknown_fields = received_fields - allowed_fields
-        if unknown_fields:
-            raise exceptions.ValidationError(f"Unknown field: {', '.join(unknown_fields)}")
-        return super().to_internal_value(data)
-
-
-class RIPostSerializer(serializers.Serializer):
-    metadata = RMetadataPostSerializer()
-
-
-class RIUpdateSerializer(serializers.Serializer):
-    metadata = RMetadataUpdateSerializer()
+    indicators = IndicatorSerializer(many=True, required=False)
 
 
 class RIGetSerializer(serializers.ModelSerializer):

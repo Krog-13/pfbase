@@ -20,8 +20,8 @@ from .models import DctIndicator, ElementIndicatorValue, ABCDictionary, Element,
 from .serializers import DictionarySerializer, DctIndicatorSerializer, \
     EIValueSerializer, ElementSerializer, ElementHistorySerializer, PFEnumSerializer, \
     ABCDocumentSerializer, DcmIndicatorSerializer, RIValueSerializer, RecordSerializer,\
-    RecordHistorySerializer, NotificationSerializer, UserSerializer, RIPostSerializer,\
-    RIGetSerializer, EIGetSerializer, EIPostSerializer, EIUpdateSerializer, RIUpdateSerializer
+    RecordHistorySerializer, NotificationSerializer, UserSerializer, RecordPostSerializer,\
+    RIGetSerializer, EIGetSerializer, ElementPostSerializer, ElementUpdateSerializer, RecordUpdateSerializer
 
 
 # Views for Dictionary
@@ -71,9 +71,10 @@ class ElementAPIView(AbstractModelAPIView):
     """
     Представление :Element
     """
-    queryset = Element.objects.all()
+    queryset = Element.objects.all().order_by('id')
     serializer_class = ElementSerializer
     permission_classes = (IsAuthenticated,)
+    pagination_class = CustomPagination
 
     @action(detail=False, methods=['get'], url_path='bydictionary/(?P<pk>\d+)')
     def bydictionary(self, request, pk=None):
@@ -328,7 +329,7 @@ class EIAPIView(views.APIView):
         return Response(EIGetSerializer(queryset, many=False).data)
 
     def post(self, request):
-        serializer = EIPostSerializer(data=request.data)
+        serializer = ElementPostSerializer(data=request.data)
         if serializer.is_valid():
             try:
                 output = tools.create_element_row(self.request.user, serializer.validated_data)
@@ -348,7 +349,7 @@ class EIAPIView(views.APIView):
         raise exc.ValidationError(serializer.errors)
 
     def patch(self, request, *args, **kwargs):
-        serializer = EIUpdateSerializer(data=request.data)
+        serializer = ElementUpdateSerializer(data=request.data)
         pk = kwargs.get('pk', False)
         if not pk:
             return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -399,7 +400,7 @@ class RIAPIView(views.APIView):
         return Response(RIGetSerializer(queryset, many=False).data)
 
     def post(self, request):
-        serializer = RIPostSerializer(data=request.data)
+        serializer = RecordPostSerializer(data=request.data)
         if serializer.is_valid():
             try:
                 output = tools.create_record_row(self.request.user, serializer.validated_data)
@@ -416,7 +417,7 @@ class RIAPIView(views.APIView):
         raise exc.ValidationError(serializer.errors)
 
     def patch(self, request, *args, **kwargs):
-        serializer = RIUpdateSerializer(data=request.data)
+        serializer = RecordUpdateSerializer(data=request.data)
         pk = kwargs.get('pk', False)
         if not pk:
             return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
