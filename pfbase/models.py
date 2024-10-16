@@ -80,7 +80,7 @@ class Element(models.Model):
     full_name = models.JSONField(
         verbose_name='Краткое наименование', null=True, blank=True, default=default_map)
     code = models.CharField(
-        max_length=128, verbose_name='Код', unique=True)
+        max_length=128, verbose_name='Код', unique=False, null=True, blank=True)
     abc_dictionary = models.ForeignKey(
         to=ABCDictionary, on_delete=models.SET_NULL, null=True, verbose_name='Справочник')
     parent = models.ForeignKey(
