@@ -2,7 +2,7 @@
 Module for tools that are used in the project.
 """
 
-from pfbase.models import Record, ABCDocument, DcmIndicator, Element, ABCDictionary, DctIndicator
+from pfbase.models import Record, ABCDocument, DcmIndicator, Element, ABCDictionary, DctIndicator, PFEnum
 from django.db import transaction
 from collections import namedtuple
 from django.utils import timezone
@@ -11,7 +11,8 @@ from datetime import datetime
 
 Typing = namedtuple('Typing', ['int', 'str', 'text', 'datetime', 'bool', 'reference'])
 marker = Typing(int="int", str="str", text="text", datetime=["datetime", "date", "time"],
-                bool="bool", reference="dct")
+                bool="bool", reference=["dct", "enum"])
+
 
 
 @transaction.atomic
@@ -30,15 +31,24 @@ def create_record_row(user, validated_data):
         date=validated_data.get('date'),
         parent=parent_r,
         author=user,
-        abc_document=document
-    )
+        abc_document=document)
+
     if not indicators:
         return record
     for indicator in indicators:
+        some_value = indicator.get('value')
         type_value = indicator.get('type')
+        if type_value == marker.reference[1]:
+            if not isinstance(some_value, int):
+                raise WrongType("Invalid type value")
+            PFEnum.objects.get(id=some_value)
+        elif type_value == marker.reference[0]:
+            if not isinstance(some_value, int):
+                raise WrongType("Invalid type value")
+            Element.objects.get(id=some_value)
+
         dcm_indicator = DcmIndicator.objects.get(id=indicator.get('id'), type_value=type_value)
         rv = record.record_value.create(indicator=dcm_indicator)
-        some_value = indicator.get('value')
         result = separate_value(rv, type_value, some_value)
         if not result:
             raise WrongType("Invalid type value")
@@ -182,7 +192,7 @@ def separate_value(entity, type_value, some_value):
         entity.value_text = some_value
     elif type_value == marker.bool:
         entity.value_bool = some_value
-    elif type_value == marker.reference:
+    elif type_value in marker.reference:
         entity.value_reference = some_value
     elif type_value in marker.datetime:
         date = give_date_format(some_value, type_value)

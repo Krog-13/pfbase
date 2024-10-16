@@ -176,8 +176,11 @@ class RIndicatorValueSerializer(serializers.ModelSerializer):
 
     def get_value_name(self, obj):
         if obj.indicator.type_value == 'dct':
-            element = Element.objects.get(id=obj.value_reference)
+            element = Element.objects.filter(id=obj.value_reference).filter()
             return element.short_name
+        elif obj.indicator.type_value == 'enum':
+            record = PFEnum.objects.filter(id=obj.value_reference).first()
+            return record.short_name
 
 
 class RecordPostSerializer(CommonSerializer):

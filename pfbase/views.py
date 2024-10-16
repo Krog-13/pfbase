@@ -407,6 +407,9 @@ class RIAPIView(views.APIView):
             except (ABCDocument.DoesNotExist, DcmIndicator.DoesNotExist):
                 return Response({"message": "Неверный code|id|type абстракции"},
                                          status=status.HTTP_400_BAD_REQUEST)
+            except (PFEnum.DoesNotExist, Element.DoesNotExist):
+                return Response({"message": "Неверный reference для enum|dct|"},
+                                         status=status.HTTP_400_BAD_REQUEST)
             except Record.DoesNotExist:
                 return Response({"message": "Неверный parent_id записи"},
                                          status=status.HTTP_400_BAD_REQUEST)
