@@ -26,6 +26,9 @@ class ABCDictionary(models.Model):
         to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор')
     active = models.BooleanField(
         default=True, verbose_name='Активный')
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, related_name="children",
+        on_delete=models.CASCADE, verbose_name='Родительский элемент')
 
     def __str__(self):
         return self.name.get("ru", "No name")

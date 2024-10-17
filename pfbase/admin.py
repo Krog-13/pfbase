@@ -14,8 +14,8 @@ class ABCDictionaryAdmin(admin.ModelAdmin):
     """
     Dictionary in admin panel
     """
-    fields = ("name", "description", "code", "active")
-    list_display = ('get_name', 'author', 'code', 'id')
+    fields = ("name", "description", "code", "active", "parent")
+    list_display = ('get_name', 'author', 'code', 'parent', 'id')
 
     def get_name(self, obj):
         return obj.name.get("ru", obj.code)
@@ -107,8 +107,8 @@ class ABCDocumentAdmin(admin.ModelAdmin):
     """
     Abstract Documents in the admin panel
     """
-    fields = ("name", "description", "code")
-    list_display = ("get_name", "code", "id")
+    fields = ("name", "description", "code", "parent")
+    list_display = ("get_name", "code", "parent", "id")
     search_fields = ('get_name', 'id')
 
     def get_name(self, obj):
