@@ -26,9 +26,17 @@ class EIValueSerializer(serializers.ModelSerializer):
 
 
 class ElementSerializer(serializers.ModelSerializer):
+    children = serializers.SerializerMethodField()
+
     class Meta:
         model = Element
         fields = "__all__"
+
+    def get_children(self, obj):
+        children_qs = obj.children.all()
+        if children_qs.exists():
+            return True
+        return False
 
 
 class ElementHistorySerializer(serializers.ModelSerializer):
@@ -51,9 +59,17 @@ class DcmIndicatorSerializer(serializers.ModelSerializer):
 
 
 class RecordSerializer(serializers.ModelSerializer):
+    children = serializers.SerializerMethodField()
+
     class Meta:
         model = Record
         fields = "__all__"
+
+    def get_children(self, obj):
+        children_qs = obj.children.all()
+        if children_qs.exists():
+            return True
+        return False
 
 
 class RIValueSerializer(serializers.ModelSerializer):
