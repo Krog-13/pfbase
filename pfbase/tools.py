@@ -39,11 +39,11 @@ def create_record_row(user, validated_data):
         some_value = indicator.get('value')
         type_value = indicator.get('type')
         if type_value == marker.reference[1]:
-            if not isinstance(some_value, int):
+            if not some_value.isdigit():
                 raise WrongType("Invalid type value")
             PFEnum.objects.get(id=some_value)
         elif type_value == marker.reference[0]:
-            if not isinstance(some_value, int):
+            if not some_value.isdigit():
                 raise WrongType("Invalid type value")
             Element.objects.get(id=some_value)
 
