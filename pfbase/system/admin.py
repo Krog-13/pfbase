@@ -60,10 +60,10 @@ def get_app_list(self, request, app_label=None):
         "DCT Элементы": 8,
         "DCT Значение индикаторов": 9,
         "DCT История элементов": 10,
-        "SYS Перечисления": 11,
-        "SYS Уведомления": 12,
-        "SYS Организации": 13,
-        "SYS Пользователи": 14,
+        "STM Перечисления": 11,
+        "STM Уведомления": 12,
+        "STM Организации": 13,
+        "STM Пользователи": 14,
     }
     app_dict = self._build_app_dict(request, app_label)
     app_list = sorted(app_dict.values(), key=lambda x: x['name'].lower())
