@@ -1,18 +1,18 @@
 """
 Module for tools that are used in the project.
 """
-
-from pfbase.models import Record, ABCDocument, DcmIndicator, Element, ABCDictionary, DctIndicator, PFEnum
+from .system import models as stm_models
+from .document import models as dcm_models
+from .dictionary import models as dct_models
 from django.db import transaction
 from collections import namedtuple
 from django.utils import timezone
 from .exception import WrongType
 from datetime import datetime
 
-Typing = namedtuple('Typing', ['int', 'str', 'text', 'datetime', 'bool', 'reference'])
-marker = Typing(int="int", str="str", text="text", datetime=["datetime", "date", "time"],
+Typing = namedtuple('Typing', ['int', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
+marker = Typing(int="int", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
                 bool="bool", reference=["dct", "enum"])
-
 
 
 @transaction.atomic
@@ -23,10 +23,10 @@ def create_record_row(user, validated_data):
     document_id = validated_data.get('document_id')
     indicators = validated_data.get('indicators')
     parent_id = validated_data.get('parent_id')
-    document = ABCDocument.objects.get(id=document_id)
+    document = dcm_models.Documents.objects.get(id=document_id)
 
-    parent_r = Record.objects.get(id=parent_id) if parent_id else None
-    record = Record.objects.create(
+    parent_r = dcm_models.Records.objects.get(id=parent_id) if parent_id else None
+    record = dcm_models.Records.objects.create(
         number=validated_data.get('number'),
         date=validated_data.get('date'),
         parent=parent_r,
@@ -41,13 +41,13 @@ def create_record_row(user, validated_data):
         if type_value == marker.reference[1]:
             if not some_value.isdigit():
                 raise WrongType("Invalid type value")
-            PFEnum.objects.get(id=some_value)
+            stm_models.PFEnum.objects.get(id=some_value)
         elif type_value == marker.reference[0]:
             if not some_value.isdigit():
                 raise WrongType("Invalid type value")
-            Element.objects.get(id=some_value)
+            dct_models.Elements.objects.get(id=some_value)
 
-        dcm_indicator = DcmIndicator.objects.get(id=indicator.get('id'), type_value=type_value)
+        dcm_indicator = dcm_models.DcmIndicators.objects.get(id=indicator.get('id'), type_value=type_value)
         rv = record.record_value.create(indicator=dcm_indicator)
         result = separate_value(rv, type_value, some_value)
         if not result:
@@ -66,7 +66,7 @@ def update_record_row(user, validated_data, record):
     number = validated_data.get('number')
     date = validated_data.get('date')
     if parent_id:
-        parent_record = Record.objects.get(id=parent_id)
+        parent_record = dcm_models.Records.objects.get(id=parent_id)
         record.parent = parent_record
     if number:
         record.number = number
@@ -118,10 +118,10 @@ def create_element_row(user, validated_data):
     indicators = validated_data.get('indicators')
     parent_id = validated_data.get('parent_id')
 
-    dictionary = ABCDictionary.objects.get(id=dictionary_id)
-    parent_e = Element.objects.get(id=parent_id) if parent_id else None
+    dictionary = dct_models.Dictionaries.objects.get(id=dictionary_id)
+    parent_e = dct_models.Elements.objects.get(id=parent_id) if parent_id else None
 
-    element = Element.objects.create(
+    element = dct_models.Elements.objects.create(
         short_name=validated_data.get('short_name'),
         full_name=validated_data.get('full_name'),
         code=validated_data.get('code'),
@@ -134,7 +134,7 @@ def create_element_row(user, validated_data):
 
     for indicator in indicators:
         type_value = indicator.get('type')
-        dct_indicator = DctIndicator.objects.get(id=indicator.get('id'), type_value=type_value)
+        dct_indicator = dct_models.DctIndicators.objects.get(id=indicator.get('id'), type_value=type_value)
         ev = element.element_value.create(indicator=dct_indicator)
         some_value = indicator.get('value')
 
@@ -157,7 +157,7 @@ def update_element_row(user, validated_data, element):
     code = validated_data.get('code')
 
     if parent_id:
-        parent_element = Element.objects.get(id=parent_id)
+        parent_element = dct_models.Elements.objects.get(id=parent_id)
         element.parent = parent_element
     if short_name:
         element.short_name = short_name
@@ -194,6 +194,8 @@ def separate_value(entity, type_value, some_value):
         entity.value_bool = some_value
     elif type_value in marker.reference:
         entity.value_reference = some_value
+    elif type_value == marker.json:
+        entity.value_json = some_value
     elif type_value in marker.datetime:
         date = give_date_format(some_value, type_value)
         if not date:

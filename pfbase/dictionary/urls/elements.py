@@ -1,0 +1,17 @@
+"""Main routers by Pertro Flow project
+presented for schemes:
+:dct
+"""
+from rest_framework import routers
+from django.urls import path, include
+from ..views.elements import ElementsAPIView, EIAPIView
+
+
+elm_router = routers.DefaultRouter()
+elm_router.register(r"dct/elements", ElementsAPIView)
+
+elm_urlpatterns = [
+    path("dct/element/", EIAPIView.as_view()),
+    path("dct/element/<int:pk>/", EIAPIView.as_view()),
+    path("", include(elm_router.urls)),
+]

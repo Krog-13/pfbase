@@ -2,11 +2,8 @@
 Abstract base models
 """
 from django.db import models
+from .config import default_map
 import json
-
-
-def default_map():
-    return {"ru": "", "kz": "", "en": ""}
 
 
 class IndicatorBase(models.Model):
@@ -15,8 +12,8 @@ class IndicatorBase(models.Model):
     """
     _TYPE_VALUE = [("str", "string"), ("int", "integer"), ("float", "float"), ("bool", "boolean"), ("list", "list"),
                    ("datetime", "datetime"), ("date", "date"), ("time", "time"), ("text", "text"),
-                   ("file", "file"), ("enum", "enum"), ("dct", "dictionary"), ("dcm", "document"),
-                   ("calc", "calculate")]
+                   ("file", "file"), ("dct", "dictionary"), ("dcm", "document"),
+                   ("calc", "calculate"), ("user", "user"), ("org", "organization")]
     name = models.JSONField(verbose_name='Наименование', default=default_map)
     description = models.JSONField(
         null=True, blank=True, verbose_name='Описание', default=default_map)
@@ -55,6 +52,8 @@ class IndicatorValueBase(models.Model):
     """
     Базовый класс значений индикаторов
     """
+    value_json = models.JSONField(
+        null=True, blank=True, verbose_name='Json значение')
     value_int = models.IntegerField(
         null=True, blank=True, verbose_name='Целое число')
     value_str = models.CharField(
@@ -102,3 +101,11 @@ class SoftDelete(models.Model):
 
     class Meta:
         abstract = True
+
+
+class CommonManager(models.Manager):
+    def getByCode(self, code):
+        return self.get(code=code).id
+
+    def getById(self, id):
+        return self.get(id=id).code

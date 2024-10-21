@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from pfbase.models import User
+from pfbase.system.models import User
 
 
 class Command(BaseCommand):

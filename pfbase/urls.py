@@ -7,35 +7,30 @@ presented for schemes:
 """
 from django.urls import path, include
 from rest_framework import routers
-from pfbase import views
-
+from .dictionary.urls import dct_router, idc_router, his_router, elm_router, eiv_router, elm_urlpatterns
+from .document.urls import dcm_router, rct_router, dcm_idc_router, riv_router, dcm_his_router, rct_urlpatterns
+from .system.urls import ntf_router, lv_router, org_router, user_router
 
 router = routers.DefaultRouter()
+router.registry.extend(dct_router.registry)
+router.registry.extend(idc_router.registry)
+router.registry.extend(elm_router.registry)
+router.registry.extend(eiv_router.registry)
+router.registry.extend(his_router.registry)
 
-# routers for dictionaries
-router.register(r"dct/dictionaries", views.ABCDictionaryAPIView)
-router.register(r"dct/indicators", views.DctIndicatorAPIView)
-router.register(r"dct/elements", views.ElementAPIView)
-router.register(r"dct/value", views.EIValueAPIView)
-router.register(r"dct/history", views.ElementHistoryAPIView)
+router.registry.extend(dcm_router.registry)
+router.registry.extend(rct_router.registry)
+router.registry.extend(dcm_idc_router.registry)
+router.registry.extend(riv_router.registry)
+router.registry.extend(dcm_his_router.registry)
 
-# routers for documents
-router.register(r'dcm/documents', views.ABCDocumentViewSet)
-router.register(r'dcm/indicators', views.DcmIndicatorAPIView)
-router.register(r'dcm/records', views.RecordAPIView)
-router.register(r'dcm/values', views.RIValueAPIView)
-router.register(r'dcm/history', views.RecordHistoryAPIView)
-
-# routers for system
-router.register(r"sys/enum", views.PFEnumAPIView)
-router.register(r"sys/notifications", views.NotificationAPIView)
-router.register(r"sys/users", views.UserAPIView)
+router.registry.extend(ntf_router.registry)
+router.registry.extend(lv_router.registry)
+router.registry.extend(org_router.registry)
+router.registry.extend(user_router.registry)
 
 urlpatterns = [
-    path("dct/element/", views.EIAPIView.as_view()),
-    path("dct/element/<int:pk>/", views.EIAPIView.as_view()),
+    path("", include(router.urls)),
+]
 
-    path("dcm/record/", views.RIAPIView.as_view()),
-    path("dcm/record/<int:pk>/", views.RIAPIView.as_view()),
-
-    path("", include(router.urls))]
+urlpatterns += elm_urlpatterns + rct_urlpatterns

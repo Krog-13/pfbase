@@ -1,0 +1,5 @@
+from .documents import dcm_router
+from .indicators import dcm_idc_router
+from .records import rct_router, rct_urlpatterns
+from .RIValues import riv_router
+from .history import dcm_his_router

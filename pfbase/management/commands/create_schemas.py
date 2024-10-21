@@ -3,15 +3,15 @@ from django.db import connection
 
 
 class Command(BaseCommand):
-    help = 'Создать схемы dct|dcm|sys'
+    help = 'Создать схемы dct|dcm|stm'
 
     def handle(self, *args, **kwargs):
         with connection.cursor() as cursor:
             cursor.execute("""
             DO $$
             BEGIN
-              IF NOT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'sys') THEN
-                CREATE SCHEMA sys;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'stm') THEN
+                CREATE SCHEMA stm;
               END IF;
 
               IF NOT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'dcm') THEN
