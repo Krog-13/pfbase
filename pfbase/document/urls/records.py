@@ -8,10 +8,10 @@ from ..views.records import RecordAPIView, RIAPIView
 
 
 rct_router = routers.DefaultRouter()
-rct_router.register(r'dcm/records', RecordAPIView)
+rct_router.register(r'dcm/records/all', RecordAPIView)
 
 rct_urlpatterns = [
-    path("dcm/record/", RIAPIView.as_view()),
-    path("dcm/record/<int:pk>/", RIAPIView.as_view()),
-    path("dcm/records/indicator/", RIAPIView.as_view())
+    path("dcm/records/", RIAPIView.as_view()),
+    path("dcm/records/<int:pk>/", RIAPIView.as_view()),
+    # path("dcm/records/all/", RIAPIView.as_view())
 ]

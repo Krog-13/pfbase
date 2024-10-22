@@ -41,7 +41,7 @@ def create_record_row(user, validated_data):
         if type_value == marker.reference[1]:
             if not some_value.isdigit():
                 raise WrongType("Invalid type value")
-            stm_models.PFEnum.objects.get(id=some_value)
+            stm_models.ListValues.objects.get(id=some_value)
         elif type_value == marker.reference[0]:
             if not some_value.isdigit():
                 raise WrongType("Invalid type value")

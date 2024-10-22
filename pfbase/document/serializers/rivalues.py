@@ -1,8 +1,8 @@
 from rest_framework import serializers
-from ..models.RIValues import RIValues
+from ..models.rivalues import RecordIndicatorValues
 
 
 class RIValuesSerializer(serializers.ModelSerializer):
     class Meta:
-        model = RIValues
+        model = RecordIndicatorValues
         fields = "__all__"

@@ -18,7 +18,20 @@ class RecordIndicatorValues(IndicatorValueBase):
         related_name="indicator_values")
 
     def __str__(self):
-        return self.value_str or self.value_text[:10] or str(self.value_datetime) or str(self.value_int)
+        if self.value_str:
+            return self.value_str
+        elif self.value_text:
+            return self.value_text[:10]
+        elif self.value_datetime:
+            return str(self.value_datetime)
+        elif self.value_int:
+            return str(self.value_int)
+        elif self.value_bool:
+            return str(self.value_bool)
+        elif self.value_reference:
+            return str(self.value_reference)
+        else:
+            return "No data"
 
     class Meta:
         db_table = '"dcm\".\"record_indicator_values"'
@@ -33,7 +46,7 @@ class RecordIndicatorValues(IndicatorValueBase):
     def save(self, *args, **kwargs):
         """Автоматическое заполнение сортировки"""
         if not self.pk:
-            max_sort = RIValues.objects.aggregate(models.Max('index_sort'))['index_sort__max']
+            max_sort = RecordIndicatorValues.objects.aggregate(models.Max('index_sort'))['index_sort__max']
             if max_sort is None:
                 max_sort = 0
             self.index_sort = max_sort + config.STEP_SORT

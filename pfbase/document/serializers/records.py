@@ -1,6 +1,5 @@
 from rest_framework import serializers, exceptions
 from rest_framework.exceptions import ValidationError
-
 from ..models.records import Records
 from ..models.rivalues import RecordIndicatorValues
 from pfbase.dictionary.models.elements import Elements
@@ -23,31 +22,48 @@ class RecordSerializer(serializers.ModelSerializer):
 
 
 class RIValueSerializer(serializers.ModelSerializer):
-    value_name = serializers.SerializerMethodField()
-    indicator = serializers.CharField(source='indicator.name')
+    indicator = serializers.JSONField(source='indicator.name')
     type_value = serializers.CharField(source='indicator.type_value')
+    value = serializers.SerializerMethodField()
 
     class Meta:
         model = RecordIndicatorValues
-        fields = 'indicator', 'type_value', 'value_int', 'value_str', 'value_text', 'value_datetime',\
-            'value_bool', 'value_reference', 'value_name',
+        fields = 'id', 'indicator', 'type_value', 'value_reference', 'value'
 
     def get_value_name(self, obj):
         if obj.indicator.type_value == 'dct':
             element = Elements.objects.filter(id=obj.value_reference).first()
             return element.short_name
-        elif obj.indicator.type_value == 'enum':
+        elif obj.indicator.type_value == 'list':
             record = ListValues.objects.filter(id=obj.value_reference).first()
             return record.short_name
+
+    def get_value(self, obj):
+        value_fields = [
+            'value_int', 'value_text', 'value_datetime',
+            'value_bool', 'value_reference', 'value_str', 'value_json']
+        for field in value_fields:
+            if obj.indicator.type_value in ['dct', 'list']:
+                return self.get_value_name(obj)
+            if value := getattr(obj, field, None):
+                return value
+        return None
 
 
 class RIGetSerializer(serializers.ModelSerializer):
     indicator_value = RIValueSerializer(source="record_values", many=True, read_only=True)
+    status = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
 
     class Meta:
         model = Records
         fields = '__all__'
+
+    def get_status(self, obj):
+        last_status = obj.history.last()
+        if last_status:
+            return last_status.status_list.short_name
+        return None
 
     def get_children(self, obj):
         children_qs = obj.children.all()
@@ -83,6 +99,7 @@ class RecordPostSerializer(CommonSerializer):
     document_id = serializers.IntegerField(required=True)
     parent_id = serializers.IntegerField(required=False)
     indicators = IndicatorSerializer(many=True, required=False)
+    status = serializers.JSONField(required=False)
 
     def create(self, validated_data):
 
@@ -107,3 +124,45 @@ class RecordUpdateSerializer(CommonSerializer):
             return RecordService().update_record_iv(instance, user, validated_data)
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
+
+
+class RIValueSerializer1(serializers.ModelSerializer):
+    value = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RecordIndicatorValues
+        fields = 'value',
+
+    def get_value_name(self, obj):
+        if obj.indicator.type_value == 'dct':
+            element = Elements.objects.filter(id=obj.value_reference).first()
+            return element.short_name
+        elif obj.indicator.type_value == 'list':
+            record = ListValues.objects.filter(id=obj.value_reference).first()
+            return record.short_name
+
+    def get_value(self, obj):
+        value_fields = [
+            'value_int', 'value_text', 'value_datetime',
+            'value_bool', 'value_reference', 'value_str', 'value_json']
+        for field in value_fields:
+            if obj.indicator.type_value in ['dct', 'list']:
+                return self.get_value_name(obj)
+            if value := getattr(obj, field, None):
+                return value
+        return None
+
+
+class RIListSerializer(serializers.ModelSerializer):
+    indicator_value = RIValueSerializer1(source="record_values", many=True, read_only=True)
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Records
+        fields = 'indicator_value', 'status'
+
+    def get_status(self, obj):
+        last_status = obj.history.last()
+        if last_status:
+            return last_status.status_list.short_name
+        return None

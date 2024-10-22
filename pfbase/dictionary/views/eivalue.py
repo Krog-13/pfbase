@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from pfbase.pagination import CustomPagination
-from ..serializers.EIValues import EIValuesSerializer
+from ..serializers.eivalues import EIValuesSerializer
 from ..models.eivalues import ElementIndicatorValues
 
 

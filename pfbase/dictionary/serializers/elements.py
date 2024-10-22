@@ -1,6 +1,6 @@
 from rest_framework import serializers, exceptions
-from ..models.elements import Elements
 from ..models.eivalues import ElementIndicatorValues
+from ..models.elements import Elements
 
 
 class ElementSerializer(serializers.ModelSerializer):
@@ -19,7 +19,7 @@ class ElementSerializer(serializers.ModelSerializer):
 
 class EIValueSerializer(serializers.ModelSerializer):
     value_name = serializers.SerializerMethodField()
-    indicator = serializers.CharField(source='indicator.name')
+    indicator = serializers.JSONField(source='indicator.name')
     type_value = serializers.CharField(source='indicator.type_value')
 
     class Meta:

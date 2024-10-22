@@ -5,7 +5,7 @@ presented for schemes:
 :sys
 """
 from rest_framework import routers
-from ..views.RIValues import RIValueAPIView
+from ..views.rivalues import RIValueAPIView
 
 
 riv_router = routers.DefaultRouter()

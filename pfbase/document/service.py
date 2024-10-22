@@ -6,10 +6,11 @@ from datetime import datetime
 from ..system import models as stm_models
 from ..dictionary import models as dct_models
 from .models import Records, DcmIndicators, Documents
+from django.db.models import Case, When, IntegerField
 
 Typing = namedtuple('Typing', ['int', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
 marker = Typing(int="int", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
-                bool="bool", reference=["dct", "enum"])
+                bool="bool", reference=["dct", "list"])
 
 
 class RecordService:
@@ -22,6 +23,7 @@ class RecordService:
         document_id = validated_data.get('document_id')
         indicators = validated_data.get('indicators')
         parent_id = validated_data.get('parent_id')
+        status = validated_data.get('status')
         document = Documents.objects.get(id=document_id)
 
         parent_r = Records.objects.get(id=parent_id) if parent_id else None
@@ -30,7 +32,7 @@ class RecordService:
             date=validated_data.get('date'),
             parent=parent_r,
             author=user,
-            abc_document=document)
+            document=document)
 
         if not indicators:
             return record
@@ -47,12 +49,24 @@ class RecordService:
                 dct_models.Elements.objects.get(id=some_value)
 
             dcm_indicator = DcmIndicators.objects.get(id=indicator.get('id'), type_value=type_value)
-            rv = record.record_value.create(indicator=dcm_indicator)
+            rv = record.record_values.create(indicator=dcm_indicator)
             result = self.separate_value(rv, type_value, some_value)
             if not result:
                 raise WrongType("Invalid type value")
             rv.save()
+        if status:
+            self.create_history(record, status, user)
         return record
+
+    def create_history(self, record, status, user):
+        status_list_id = status.get("status_list_id")
+        comment = status.get("comment")
+        status = status.get("status")
+        record.history.create(
+            status_list_id=status_list_id,
+            status=status,
+            author=user,
+            status_comment=comment)
 
     @transaction.atomic
     def update_record_iv(self, record, user, validated_data):
@@ -127,3 +141,88 @@ class RecordService:
                     return timezone.make_aware(parse_datetime)
         except ValueError:
             return False
+
+
+class TableService:
+
+    def __init__(self, queryset, params):
+        self.queryset = queryset
+        self.params = params
+        self.output = {"header": [], "body": []}
+        self.row = []
+        self.status = False
+
+    def construction_table(self):
+        self.document_code = self.params.get('document_code')
+        self.lang = self.params.get('lang')
+        self.status = self.params.get('status', False)
+        indicators_code = self.params.get('indicators_code')
+        self.order_indicators_code = indicators_code.split(",")
+        table_header = self.table_header()
+        for item in table_header:
+            label = item.get("name").get(self.lang, None)
+            self.output["header"].append(label)
+        for record in self.queryset:
+            self.row.clear()
+            for code in self.order_indicators_code:
+                self.set_row(record, code)
+            if self.status:
+                self.set_status(record)
+            self.output["body"].append(self.row)
+        return self.output
+
+    def set_status(self, record):
+        last_status = record.history.last()
+        if last_status:
+            record_status = last_status.status_list.short_name.get(self.lang, None)
+            self.row.append(record_status)
+        else:
+            self.row.append(None)
+
+    def table_header(self):
+        ordering = Case(  # подзапрос для сохранения порядка
+            *[When(code=code, then=pos) for pos, code in enumerate(self.order_indicators_code)],
+            output_field=IntegerField())
+
+        header = DcmIndicators.objects.filter(code__in=self.order_indicators_code,
+                                              document__code=self.document_code).values("name").order_by(ordering)
+        return header
+
+    def set_row(self, record, code):
+        value = record.record_values.filter(indicator__code=code).first()
+        if not value:
+            self.row.append(None)
+            return
+        if value.indicator.type_value in marker.reference:
+            value = self.get_reference_value(value)
+        else:
+            value = value.value_int or value.value_str or \
+                    value.value_text or value.value_datetime or \
+                    value.value_bool or value.value_json or \
+                    None
+
+        self.row.append(value)
+
+    def get_reference_value(self, value):
+        """Получение значения по id из Справочника или Списка"""
+        if value.indicator.type_value == 'dct':
+            element = dct_models.Elements.objects.filter(id=value.value_reference).first()
+            return element.short_name.get(self.lang, None)
+        elif value.indicator.type_value == 'list':
+            vl = stm_models.ListValues.objects.filter(id=value.value_reference).first()
+            return vl.short_name.get(self.lang, None)
+        return None
+
+
+def table_present(queryset, params):
+    """
+    Представление данных в виде таблицы
+    :header
+    :body
+    """
+    try:
+        ts = TableService(queryset, params)
+        output = ts.construction_table()
+    except Exception:
+        return {"message": "Error"}
+    return output

@@ -3,7 +3,7 @@ presented for schemes:
 :dct
 """
 from rest_framework import routers
-from ..views.EIValue import EIValuesAPIView
+from ..views.eivalue import EIValuesAPIView
 
 
 eiv_router = routers.DefaultRouter()

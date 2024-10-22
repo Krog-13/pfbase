@@ -13,6 +13,7 @@ from rest_framework import status, views, generics, exceptions as exc
 from pfbase.pagination import CustomPagination
 from ..serializers.records import RIGetSerializer, RecordPostSerializer, RecordUpdateSerializer, RecordSerializer
 from ..models.records import Records
+from ..service import table_present
 
 
 class RecordAPIView(ModelViewSet):
@@ -47,7 +48,10 @@ class RIAPIView(views.APIView):
     def get(self, request, *args, **kwargs):
         pk = kwargs.get('pk', False)
         if not pk:
-            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+            records = self.queryset.all()
+            query_params = request.query_params
+            output = table_present(records, query_params)
+            return Response(output, status=status.HTTP_200_OK)
         try:
             queryset = self.queryset.get(id=pk)
         except Records.DoesNotExist:
