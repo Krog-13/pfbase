@@ -62,9 +62,11 @@ class RecordService:
         status_list_id = status.get("status_list_id")
         comment = status.get("comment")
         status = status.get("status")
+        stage = status.get("stage")
         record.history.create(
             status_list_id=status_list_id,
             status=status,
+            stage=stage,
             author=user,
             status_comment=comment)
 
@@ -150,7 +152,7 @@ class TableService:
         self.params = params
         self.output = {"header": [], "body": []}
         self.row = []
-        self.status = False
+        self.status = None
 
     def construction_table(self):
         self.document_code = self.params.get('document_code')
@@ -167,17 +169,22 @@ class TableService:
             for code in self.order_indicators_code:
                 self.set_row(record, code)
             if self.status:
-                self.set_status(record)
-            self.output["body"].append(self.row)
+                self.status = self.get_status(record)
+
+            self.output["body"].append({"row": self.row, "status": self.status})
         return self.output
 
-    def set_status(self, record):
+    def get_status(self, record):
         last_status = record.history.last()
         if last_status:
             record_status = last_status.status_list.short_name.get(self.lang, None)
-            self.row.append(record_status)
-        else:
-            self.row.append(None)
+            comment = last_status.status_comment
+            stage = last_status.stage
+            created_at = last_status.created_at
+            return {"name": record_status,
+                    "comment": comment,
+                    "stage": stage,
+                    "created_at": created_at.strftime("%Y-%m-%d %H:%M:%S")}
 
     def table_header(self):
         ordering = Case(  # подзапрос для сохранения порядка
