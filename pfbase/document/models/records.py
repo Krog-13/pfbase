@@ -31,3 +31,12 @@ class Records(SoftDelete):
         db_table = '"dcm\".\"records"'
         verbose_name = 'DCM Запись документа'
         verbose_name_plural = 'DCM Записи документов'
+
+    def create_iv(self, user, data):
+        """
+        Создание записи
+        """
+        serializer = RecordPostSerializer(data=data, context={'user': user})
+        if serializer.is_valid():
+            serializer.save()
+            return self

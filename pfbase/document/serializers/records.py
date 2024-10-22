@@ -85,7 +85,10 @@ class RecordPostSerializer(CommonSerializer):
     indicators = IndicatorSerializer(many=True, required=False)
 
     def create(self, validated_data):
+
         user = self.context['request'].user
+        if not user:
+            user = self.context['user']
         try:
             return RecordService().create_record_iv(user, validated_data)
         except ValidationError as e:

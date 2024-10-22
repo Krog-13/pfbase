@@ -1,9 +1,0 @@
-FROM quay.io/minio/minio
-
-ENV MINIO_ROOT_USER=kmg_user
-ENV MINIO_ROOT_PASSWORD=12345678
-
-EXPOSE 9000 9090
-
-# Start MinIO server with the specified configuration
-CMD ["server", "/data", "--console-address", ":9090"]
