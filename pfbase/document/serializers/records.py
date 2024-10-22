@@ -22,13 +22,14 @@ class RecordSerializer(serializers.ModelSerializer):
 
 
 class RIValueSerializer(serializers.ModelSerializer):
-    indicator = serializers.JSONField(source='indicator.name')
+    name = serializers.JSONField(source='indicator.name')
     type_value = serializers.CharField(source='indicator.type_value')
+    type_extend = serializers.CharField(source='indicator.type_extend')
     value = serializers.SerializerMethodField()
 
     class Meta:
         model = RecordIndicatorValues
-        fields = 'id', 'indicator', 'type_value', 'value_reference', 'value'
+        fields = 'id', 'name', 'type_value', 'type_extend', 'value_reference', 'value'
 
     def get_value_name(self, obj):
         if obj.indicator.type_value == 'dct':
