@@ -17,6 +17,6 @@ class User(AbstractUser):
         return self.username
 
     class Meta:
-        db_table = '"stm\".\"user"'
+        db_table = '"stm\".\"users"'
         verbose_name = 'STM Пользователь'
         verbose_name_plural = 'STM Пользователи'
