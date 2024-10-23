@@ -75,9 +75,9 @@ class IndicatorAdmin(admin.ModelAdmin):
         document = form.cleaned_data.get("doc_fk")
         dictionary = form.cleaned_data.get("dict_fk")
         if document:
-            obj.reference = document.abc_code  # or document.id
+            obj.reference = document.code  # or document.id
         elif dictionary:
-            obj.reference = dictionary.abc_code  # or dictionary.id
+            obj.reference = dictionary.code  # or dictionary.id
         if not obj.pk:
             obj.author = request.user
         super().save_model(request, obj, form, change)

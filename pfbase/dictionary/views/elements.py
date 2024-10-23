@@ -25,7 +25,7 @@ class ElementsAPIView(AbstractModelAPIView):
         """
         Получения элементов по :pk ABCDictionary
         """
-        indicators = self.get_queryset().filter(abc_dictionary_id=pk)
+        indicators = self.get_queryset().filter(dictionary_id=pk)
         if not indicators:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = EIGetSerializer(indicators, many=True)

@@ -29,7 +29,7 @@ class IndicatorsAPIView(AbstractModelAPIView):
         """
         Получения индикаторов по :pk Document
         """
-        indicators = self.get_queryset().filter(abc_document_id=pk)
+        indicators = self.get_queryset().filter(document_id=pk)
         if not indicators:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(indicators, many=True)
