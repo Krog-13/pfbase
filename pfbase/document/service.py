@@ -61,11 +61,11 @@ class RecordService:
     def create_history(self, record, status, user):
         status_list_id = status.get("status_list_id")
         comment = status.get("comment")
-        status = status.get("status")
+        status_msg = status.get("status", "created")
         stage = status.get("stage")
         record.history.create(
             status_list_id=status_list_id,
-            status=status,
+            status=status_msg,
             stage=stage,
             author=user,
             status_comment=comment)
