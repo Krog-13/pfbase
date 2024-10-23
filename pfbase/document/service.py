@@ -165,12 +165,11 @@ class TableService:
             label = item.get("name").get(self.lang, None)
             self.output["header"].append(label)
         for record in self.queryset:
-            self.row.clear()
+            self.row = []
             for code in self.order_indicators_code:
                 self.set_row(record, code)
             if self.status:
                 self.status = self.get_status(record)
-
             self.output["body"].append({"row": self.row, "status": self.status, "id": record.id})
         return self.output
 
