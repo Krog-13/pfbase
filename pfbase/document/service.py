@@ -171,7 +171,7 @@ class TableService:
             if self.status:
                 self.status = self.get_status(record)
 
-            self.output["body"].append({"row": self.row, "status": self.status})
+            self.output["body"].append({"row": self.row, "status": self.status, "id": record.id})
         return self.output
 
     def get_status(self, record):
