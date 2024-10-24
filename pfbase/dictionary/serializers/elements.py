@@ -1,6 +1,8 @@
 from rest_framework import serializers, exceptions
+from rest_framework.exceptions import ValidationError
 from ..models.eivalues import ElementIndicatorValues
 from ..models.elements import Elements
+from ..service import ElementService
 
 
 class ElementSerializer(serializers.ModelSerializer):
@@ -77,6 +79,16 @@ class EIPostSerializer(CommonSerializer):
     parent_id = serializers.IntegerField(required=False)
     indicators = IndicatorSerializer(many=True, required=False)
 
+    def create(self, validated_data):
+
+        user = self.context['request'].user
+        if not user:
+            user = self.context['user']
+        try:
+            return ElementService().create_element_iv(user, validated_data)
+        except ValidationError as e:
+            raise exceptions.ValidationError({"error": str(e)})
+
 
 class EIUpdateSerializer(CommonSerializer):
     short_name = serializers.JSONField(required=False)
@@ -84,3 +96,10 @@ class EIUpdateSerializer(CommonSerializer):
     code = serializers.CharField(max_length=50, required=False)
     parent_id = serializers.IntegerField(required=False)
     indicators = IndicatorSerializer(many=True, required=False)
+
+    def update(self, instance, validated_data):
+        user = self.context['request'].user
+        try:
+            return ElementService().update_record_iv(instance, user, validated_data)
+        except ValidationError as e:
+            raise exceptions.ValidationError({"error": str(e)})
