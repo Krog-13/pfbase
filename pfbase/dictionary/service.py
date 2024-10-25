@@ -134,13 +134,13 @@ class ElementService:
 
 def find_driver(queryset, params):
     output = {"drivers": []}
+    indicators = params.get('indicators')
     drivers = queryset.filter(element_values__value_str__contains=params.get('search'))
     for driver in drivers:
         driver_iv = driver.element_values.all()
         values = {"data": [], "id": None}
-        codes = [("fullname", "DI102"), ("tabel", "DI101"), ("iin", "DI103"), ("license", "DI106"), ("blood", "DI104")]
-        for label, code in codes:
-            value = driver_iv.filter(indicator__code=code).first()
+        for idc in indicators.split(","):
+            value = driver_iv.filter(indicator__code=idc).first()
             if value:
                 values["data"].append(value.value_str)
         values["id"] = driver.id
