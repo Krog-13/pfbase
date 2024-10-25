@@ -161,6 +161,7 @@ class TableService:
         indicators_code = self.params.get('indicators_code')
         self.order_indicators_code = indicators_code.split(",")
         table_header = self.table_header()
+        self.queryset = self.queryset.filter(document__code=self.document_code)
         for item in table_header:
             label = item.get("name").get(self.lang, None)
             self.output["header"].append(label)

@@ -27,7 +27,7 @@ class ElementService:
             short_name=validated_data.get('short_name'),
             full_name=validated_data.get('full_name'),
             code=validated_data.get('code'),
-            abc_dictionary=dictionary,
+            dictionary=dictionary,
             author=user,
             parent=parent_e)
 
@@ -51,6 +51,7 @@ class ElementService:
             if not result:
                 raise WrongType("Invalid type value")
             ev.save()
+        return element
 
     @transaction.atomic
     def update_element_iv(self, element, user, validated_data):
@@ -129,3 +130,19 @@ class ElementService:
                     return timezone.make_aware(parse_datetime)
         except ValueError:
             return False
+
+
+def find_driver(queryset, params):
+    output = {"drivers": []}
+    drivers = queryset.filter(element_values__value_str__contains=params.get('search'))
+    for driver in drivers:
+        driver_iv = driver.element_values.all()
+        values = {"data": [], "id": None}
+        codes = [("fullname", "DI102"), ("tabel", "DI101"), ("iin", "DI103"), ("license", "DI106"), ("blood", "DI104")]
+        for label, code in codes:
+            value = driver_iv.filter(indicator__code=code).first()
+            if value:
+                values["data"].append(value.value_str)
+        values["id"] = driver.id
+        output["drivers"].append(values)
+    return output

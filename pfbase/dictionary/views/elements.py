@@ -6,6 +6,7 @@ from pfbase.base_views import AbstractModelAPIView
 from pfbase.pagination import CustomPagination
 from ..serializers.elements import EIGetSerializer, EIPostSerializer, EIUpdateSerializer
 from ..models import elements
+from ..service import find_driver
 
 
 class ElementsAPIView(AbstractModelAPIView):
@@ -39,7 +40,11 @@ class EIAPIView(views.APIView):
     def get(self, request, *args, **kwargs):
         pk = kwargs.get('pk', False)
         if not pk:
-            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+            query_params = request.query_params
+            code = kwargs.get('code', False)
+            elements_queryset = self.queryset.filter(dictionary__code=code)
+            instance = find_driver(elements_queryset, query_params)
+            return Response(instance, status=status.HTTP_200_OK)
         try:
             queryset = self.queryset.get(id=pk)
         except elements.Elements.DoesNotExist:

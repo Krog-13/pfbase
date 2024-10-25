@@ -5,6 +5,7 @@ from ..models.rivalues import RecordIndicatorValues
 from pfbase.dictionary.models.elements import Elements
 from pfbase.system.models.listvalues import ListValues
 from ..service import RecordService
+import datetime
 
 
 class RecordSerializer(serializers.ModelSerializer):
@@ -96,7 +97,7 @@ class IndicatorSerializer(CommonSerializer):
 
 class RecordPostSerializer(CommonSerializer):
     number = serializers.CharField(required=False, default="0000")
-    date = serializers.DateField(required=False)
+    date = serializers.DateField(required=False, default=datetime.date.today())
     document_id = serializers.IntegerField(required=True)
     parent_id = serializers.IntegerField(required=False)
     indicators = IndicatorSerializer(many=True, required=False)

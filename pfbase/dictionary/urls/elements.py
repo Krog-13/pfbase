@@ -13,5 +13,6 @@ elm_router.register(r"dct/elements", ElementsAPIView)
 elm_urlpatterns = [
     path("dct/element/", EIAPIView.as_view()),
     path("dct/element/<int:pk>/", EIAPIView.as_view()),
+    path("dct/element/<str:code>/", EIAPIView.as_view()),
     path("", include(elm_router.urls)),
 ]
