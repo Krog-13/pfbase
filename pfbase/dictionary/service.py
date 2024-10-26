@@ -17,10 +17,13 @@ class ElementService:
     @transaction.atomic
     def create_element_iv(self, user, validated_data):
         dictionary_id = validated_data.get('dictionary_id')
+        code = validated_data.get('code')
         indicators = validated_data.get('indicators')
         parent_id = validated_data.get('parent_id')
-
-        dictionary = Dictionaries.objects.get(id=dictionary_id)
+        if dictionary_id:
+            dictionary = Dictionaries.objects.get(id=dictionary_id)
+        else:
+            dictionary = Dictionaries.objects.get(code=code)
         parent_e = Elements.objects.get(id=parent_id) if parent_id else None
 
         element = Elements.objects.create(
@@ -37,6 +40,8 @@ class ElementService:
         for indicator in indicators:
             some_value = indicator.get('value')
             type_value = indicator.get('type')
+            idc_id = indicator.get('id')
+            idc_code = indicator.get('code')
             if type_value == marker.reference[1]:
                 if not some_value.isdigit():
                     raise WrongType("Invalid type value")
@@ -45,7 +50,10 @@ class ElementService:
                 if not some_value.isdigit():
                     raise WrongType("Invalid type value")
                 Elements.objects.get(id=some_value)
-            dct_indicator = DctIndicators.objects.get(id=indicator.get('id'), type_value=type_value)
+            if idc_id:
+                dct_indicator = DctIndicators.objects.get(id=indicator.get('id'), type_value=type_value)
+            else:
+                dct_indicator = DctIndicators.objects.get(code=idc_code, type_value=type_value)
             ev = element.element_values.create(indicator=dct_indicator)
             result = self.separate_value(ev, type_value, some_value)
             if not result:

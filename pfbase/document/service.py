@@ -21,11 +21,14 @@ class RecordService:
         Create Record with their Indicators
         """
         document_id = validated_data.get('document_id')
+        code = validated_data.get('code')
         indicators = validated_data.get('indicators')
         parent_id = validated_data.get('parent_id')
         status = validated_data.get('status')
-        document = Documents.objects.get(id=document_id)
-
+        if document_id:
+            document = Documents.objects.get(id=document_id)
+        else:
+            document = Documents.objects.get(code=code)
         parent_r = Records.objects.get(id=parent_id) if parent_id else None
         record = Records.objects.create(
             number=validated_data.get('number'),
@@ -39,6 +42,8 @@ class RecordService:
         for indicator in indicators:
             some_value = indicator.get('value')
             type_value = indicator.get('type')
+            idc_id = indicator.get('id')
+            idc_code = indicator.get('code')
             if type_value == marker.reference[1]:
                 if not some_value.isdigit():
                     raise WrongType("Invalid type value")
@@ -47,8 +52,10 @@ class RecordService:
                 if not some_value.isdigit():
                     raise WrongType("Invalid type value")
                 dct_models.Elements.objects.get(id=some_value)
-
-            dcm_indicator = DcmIndicators.objects.get(id=indicator.get('id'), type_value=type_value)
+            if idc_id:
+                dcm_indicator = DcmIndicators.objects.get(id=idc_id, type_value=type_value)
+            else:
+                dcm_indicator = DcmIndicators.objects.get(code=idc_code, type_value=type_value)
             rv = record.record_values.create(indicator=dcm_indicator)
             result = self.separate_value(rv, type_value, some_value)
             if not result:

@@ -13,5 +13,4 @@ rct_router.register(r'dcm/records/all', RecordAPIView)
 rct_urlpatterns = [
     path("dcm/records/", RIAPIView.as_view()),
     path("dcm/records/<int:pk>/", RIAPIView.as_view()),
-    # path("dcm/records/all/", RIAPIView.as_view())
 ]
