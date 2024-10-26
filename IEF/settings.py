@@ -212,6 +212,7 @@ if LOCAL:
     CORS_ALLOW_HEADERS = list(default_headers) + [
         'ngrok-skip-browser-warning',
     ]
+    # CORS_ALLOWED_ORIGINS = env('CORS_ALLOWED_ORIGINS')
     CORS_ALLOW_ALL_ORIGINS = True
     # CORS_ORIGIN_WHITELIST = ["https://e792-176-98-224-108.ngrok-free.app", "http://localhost:5174"]
 else:
