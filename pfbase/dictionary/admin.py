@@ -49,6 +49,8 @@ class ElementAdmin(admin.ModelAdmin):
     """
     fields = ("short_name", "full_name", "dictionary", "organization", "code", "parent", "active")
     list_display = ('get_short_name', 'dictionary', "code", "parent", 'id')
+    list_filter = ("dictionary", "author")
+
     search_fields = ('id',)
 
     def get_short_name(self, obj):

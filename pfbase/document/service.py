@@ -16,6 +16,72 @@ marker = Typing(int="int", str="str", text="text", json='json', datetime=["datet
 class RecordService:
 
     @transaction.atomic
+    def create_record_pack(self, user, validated_data):
+        """
+        Create Record with sub records
+        """
+        main = validated_data.get('main')
+        sub = validated_data.get('sub')
+        status = main.get('status')
+        main_indicators = main.get('indicators')
+        sub_indicators = sub.get('indicators')
+        document_id = main.get('document_id')
+        parent_id = main.get('parent_id')
+        sub_document_id = sub.get('document_id')
+        code = main.get('code')
+        sub_code = sub.get('code')
+        if document_id:
+            document = Documents.objects.get(id=document_id)
+        else:
+            document = Documents.objects.get(code=code)
+        if sub_document_id:
+            sub_document = Documents.objects.get(id=sub_document_id)
+        else:
+            sub_document = Documents.objects.get(code=sub_code)
+        parent_r = Records.objects.get(id=parent_id) if parent_id else None
+
+        main_record = Records.objects.create(
+            number=main.get('number'),
+            date=main.get('date'),
+            parent=parent_r,
+            author=user,
+            document=document)
+
+        for pack_idc in sub_indicators:
+            record = Records.objects.create(
+                number=sub.get('number', "0000"),
+                date=sub.get('date', datetime.today()),
+                parent=main_record,
+                author=user,
+                document=sub_document)
+
+            for indicator in pack_idc:
+                some_value = indicator.get('value')
+                type_value = indicator.get('type')
+                idc_id = indicator.get('id')
+                idc_code = indicator.get('code')
+                if type_value == marker.reference[1]:
+                    if not some_value.isdigit():
+                        raise WrongType("Invalid type value")
+                    stm_models.ListValues.objects.get(id=some_value)
+                elif type_value == marker.reference[0]:
+                    if not some_value.isdigit():
+                        raise WrongType("Invalid type value")
+                    dct_models.Elements.objects.get(id=some_value)
+                if idc_id:
+                    dcm_indicator = DcmIndicators.objects.get(id=idc_id, type_value=type_value)
+                else:
+                    dcm_indicator = DcmIndicators.objects.get(code=idc_code, type_value=type_value)
+                rv = record.record_values.create(indicator=dcm_indicator)
+                result = self.separate_value(rv, type_value, some_value)
+                if not result:
+                    raise WrongType("Invalid type value")
+                rv.save()
+        if status:
+            self.create_history(main_record, status, user)
+        return main_record
+
+    @transaction.atomic
     def create_record_iv(self, user, validated_data):
         """
         Create Record with their Indicators

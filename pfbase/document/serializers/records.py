@@ -114,6 +114,20 @@ class RecordPostSerializer(CommonSerializer):
             raise exceptions.ValidationError({"error": str(e)})
 
 
+class RecordPackPostSerializer(serializers.Serializer):
+    main = serializers.JSONField(required=True)
+    sub = serializers.JSONField(required=True)
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        if not user:
+            user = self.context['user']
+        try:
+            return RecordService().create_record_pack(user, validated_data)
+        except ValidationError as e:
+            raise exceptions.ValidationError({"error": str(e)})
+
+
 class RecordUpdateSerializer(CommonSerializer):
     number = serializers.CharField(required=False)
     date = serializers.DateField(required=False)
