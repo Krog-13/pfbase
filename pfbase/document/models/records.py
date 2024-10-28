@@ -26,6 +26,8 @@ class Records(SoftDelete):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
+        if self.document is None:
+            return "No document"
         return self.document.name.get("ru", "No name") + " №" + self.number + " от " + self.date.strftime("%d.%m.%Y")
 
     class Meta:
