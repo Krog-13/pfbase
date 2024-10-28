@@ -97,7 +97,7 @@ class IndicatorSerializer(CommonSerializer):
 
 class RecordPostSerializer(CommonSerializer):
     number = serializers.CharField(required=False, default="0000")
-    date = serializers.DateField(required=False, default=datetime.date.today())
+    date = serializers.DateTimeField(required=False, default=datetime.datetime.now())
     document_id = serializers.IntegerField(required=True)
     parent_id = serializers.IntegerField(required=False)
     indicators = IndicatorSerializer(many=True, required=False)
