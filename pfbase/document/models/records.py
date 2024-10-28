@@ -25,9 +25,8 @@ class Records(SoftDelete):
     updated_at = models.DateTimeField(auto_now=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
-    # ToDo: (имя абстрации + № + номер + от + дата )
     def __str__(self):
-        return self.number
+        return self.document.name.get("ru", "No name") + " №" + self.number + " от " + self.date.strftime("%d.%m.%Y")
 
     class Meta:
         db_table = '"dcm\".\"records"'

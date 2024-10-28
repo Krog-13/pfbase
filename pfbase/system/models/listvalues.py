@@ -8,9 +8,9 @@ class ListValues(models.Model):
     """
     list = models.CharField(max_length=128, verbose_name='Список')
     code = models.CharField(max_length=128, verbose_name='Код значения')
-    name_short = models.JSONField(
+    short_name = models.JSONField(
         verbose_name='Краткое наименование', default=default_name)
-    name_full = models.JSONField(
+    full_name = models.JSONField(
         verbose_name='Полное наименование', null=True, blank=True, default=default_name)
     active = models.BooleanField(default=True, verbose_name='Активный')
     author = models.ForeignKey(

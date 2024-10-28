@@ -5,10 +5,9 @@ from django.utils import timezone
 from datetime import datetime
 from ..system import models as stm_models
 from .models import Elements, DctIndicators, Dictionaries
-from django.db.models import Case, When, IntegerField
 
-Typing = namedtuple('Typing', ['int', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
-marker = Typing(int="int", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
+Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
+marker = Typing(int="int", float="float", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
                 bool="bool", reference=["dct", "list"])
 
 
@@ -100,6 +99,8 @@ class ElementService:
     def separate_value(self, entity, type_value, some_value):
         if type_value == marker.int:
             entity.value_int = some_value
+        elif type_value == marker.float:
+            entity.value_float = some_value
         elif type_value == marker.str:
             entity.value_str = some_value
         elif type_value == marker.text:

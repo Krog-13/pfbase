@@ -1,8 +1,8 @@
 from pfbase.base_models import IndicatorValueBase
+from pfbase import config
+from django.db import models
 from .indicators import DcmIndicators
 from .records import Records
-from django.db import models
-from pfbase import config
 import json
 
 
@@ -35,6 +35,8 @@ class RecordIndicatorValues(IndicatorValueBase):
             return str(self.value_bool)
         elif self.value_reference:
             return str(self.value_reference)
+        elif self.value_json:
+            return "JSON data"
         else:
             return "No data"
 

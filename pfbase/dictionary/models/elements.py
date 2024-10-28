@@ -7,9 +7,9 @@ class Elements(models.Model):
     """
     Элементы :Dictionary
     """
-    name_short = models.JSONField(
+    short_name = models.JSONField(
         verbose_name='Краткое наименование', default=default_name)
-    name_full = models.JSONField(
+    full_name = models.JSONField(
         verbose_name='Полное наименование', null=True, blank=True, default=default_name)
     code = models.CharField(
         max_length=128, verbose_name='Код', unique=False, null=True, blank=True)
@@ -32,7 +32,7 @@ class Elements(models.Model):
     objects = CommonManager()
 
     def __str__(self):
-        return self.name_short.get("ru", "No name")
+        return self.short_name.get("ru", "No name")
 
     class Meta:
         db_table = '"dct\".\"elements"'

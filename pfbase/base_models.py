@@ -29,8 +29,8 @@ class IndicatorBase(models.Model):
     """
     Базовый класс индикаторы
     """
-    name_short = models.JSONField(verbose_name='Краткое наименование', default=default_name)
-    name_full = models.JSONField(verbose_name='Полное наименование',
+    short_name = models.JSONField(verbose_name='Краткое наименование', default=default_name)
+    full_name = models.JSONField(verbose_name='Полное наименование',
                                  default=default_name, null=True, blank=True)
     description = models.JSONField(
         null=True, blank=True, verbose_name='Описание', default=default_name)

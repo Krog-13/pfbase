@@ -24,7 +24,7 @@ class NotificationAdmin(admin.ModelAdmin):
     """
     Notification in admin panel
     """
-    list_display = ('type_notification', 'source_user', 'user', 'id')
+    list_display = ('type_notification', 'sender_user', 'receiver_user', 'id')
 
 
 @admin.register(Organization)
@@ -32,7 +32,13 @@ class OrganizationAdmin(admin.ModelAdmin):
     """
     Organization in admin panel
     """
-    list_display = ('name', 'identifier', 'address', 'id')
+    list_display = ('get_name', 'get_full_name', 'identifier', 'id')
+
+    def get_name(self, obj):
+        return obj.short_name.get("ru", obj.code)
+
+    def get_full_name(self, obj):
+        return obj.full_name.get("ru", obj.code)
 
 
 @admin.register(User)
@@ -58,9 +64,9 @@ def get_app_list(self, request, app_label=None):
         "DCT Справочники": 6,
         "DCT Индикаторы": 7,
         "DCT Элементы": 8,
-        "DCT Значение индикаторов": 9,
+        "DCT Значения индикаторов": 9,
         "DCT История элементов": 10,
-        "STM Перечисления": 11,
+        "STM Списки значений": 11,
         "STM Уведомления": 12,
         "STM Организации": 13,
         "STM Пользователи": 14,

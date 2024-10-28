@@ -1,7 +1,7 @@
 from pfbase.base_models import IndicatorBase, CommonManager
-from .dictionaries import Dictionaries
-from django.db import models
 from pfbase import config
+from django.db import models
+from .dictionaries import Dictionaries
 
 
 class DctIndicators(IndicatorBase):
@@ -11,15 +11,14 @@ class DctIndicators(IndicatorBase):
     dictionary = models.ForeignKey(
         to=Dictionaries, on_delete=models.CASCADE, verbose_name='Справочник',
         related_name='indicators')
-    author = models.ForeignKey(to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор',
-                               related_name="indicator_author")
+    author = models.ForeignKey(to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор')
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     objects = CommonManager()
 
     def __str__(self):
-        return self.name_short.get("ru", "No name")
+        return self.short_name.get("ru", "No name")
 
     class Meta:
         db_table = '"dct\".\"indicators"'

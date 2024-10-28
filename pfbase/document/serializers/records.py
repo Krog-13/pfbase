@@ -23,14 +23,14 @@ class RecordSerializer(serializers.ModelSerializer):
 
 
 class RIValueSerializer(serializers.ModelSerializer):
-    name = serializers.JSONField(source='indicator.name')
+    short_name = serializers.JSONField(source='indicator.short_name')
     type_value = serializers.CharField(source='indicator.type_value')
     type_extend = serializers.CharField(source='indicator.type_extend')
     value = serializers.SerializerMethodField()
 
     class Meta:
         model = RecordIndicatorValues
-        fields = 'id', 'name', 'type_value', 'type_extend', 'value_reference', 'value'
+        fields = 'id', 'short_name', 'type_value', 'type_extend', 'value_reference', 'value'
 
     def get_value_name(self, obj):
         if obj.indicator.type_value == 'dct':
@@ -42,8 +42,8 @@ class RIValueSerializer(serializers.ModelSerializer):
 
     def get_value(self, obj):
         value_fields = [
-            'value_int', 'value_text', 'value_datetime',
-            'value_bool', 'value_reference', 'value_str', 'value_json']
+            'value_int', 'value_text', 'value_datetime', 'value_float',
+            'value_bool', 'value_str', 'value_json']
         for field in value_fields:
             if obj.indicator.type_value in ['dct', 'list']:
                 return self.get_value_name(obj)

@@ -1,7 +1,7 @@
 from pfbase.base_models import IndicatorBase, CommonManager
+from pfbase import config
 from .documents import Documents
 from django.db import models
-from pfbase import config
 
 
 class DcmIndicators(IndicatorBase):
@@ -20,7 +20,7 @@ class DcmIndicators(IndicatorBase):
     objects = CommonManager()
 
     def __str__(self):
-        return self.name_short.get("ru", "No name")
+        return self.short_name.get("ru", "No name")
 
     class Meta:
         db_table = '"dcm\".\"indicators"'

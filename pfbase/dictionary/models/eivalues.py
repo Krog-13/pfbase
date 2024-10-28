@@ -1,8 +1,8 @@
 from pfbase.base_models import IndicatorValueBase
+from pfbase import config
+from django.db import models
 from .indicators import DctIndicators
 from .elements import Elements
-from django.db import models
-from pfbase import config
 import json
 
 
@@ -24,7 +24,7 @@ class ElementIndicatorValues(IndicatorValueBase):
 
     class Meta:
         db_table = '"dct\".\"element_indicator_values"'
-        verbose_name = 'DCT Значения инициатора'
+        verbose_name = 'DCT Значения индикатора'
         verbose_name_plural = 'DCT Значения индикаторов'
 
     def __str__(self):
@@ -42,6 +42,8 @@ class ElementIndicatorValues(IndicatorValueBase):
             return str(self.value_bool)
         elif self.value_reference:
             return str(self.value_reference)
+        elif self.value_json:
+            return "JSON data"
         else:
             return "No data"
 

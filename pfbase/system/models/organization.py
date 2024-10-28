@@ -6,8 +6,8 @@ class Organization(models.Model):
     """
     Организации
     """
-    name_short = models.JSONField(verbose_name='Краткое наименование', default=default_name)
-    name_full = models.JSONField(verbose_name='Полное наименование', default=default_name,
+    short_name = models.JSONField(verbose_name='Краткое наименование', default=default_name)
+    full_name = models.JSONField(verbose_name='Полное наименование', default=default_name,
                                  null=True, blank=True)
     identifier = models.CharField(max_length=128, null=True, blank=True, verbose_name='Идентификатор')
     active = models.BooleanField(default=True, verbose_name='Активный')
@@ -23,7 +23,7 @@ class Organization(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return self.name_short.get("ru", "No name")
+        return self.short_name.get("ru", "No name")
 
     class Meta:
         db_table = '"stm\".\"organization"'

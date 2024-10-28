@@ -28,9 +28,9 @@ class Notification(models.Model):
         verbose_name='Тип уведомления')
 
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
-    user_receiver = models.ForeignKey(
+    receiver_user = models.ForeignKey(
         to="User", on_delete=models.CASCADE, verbose_name='Получатель', related_name="receiver")
-    user_sender = models.ForeignKey(
+    sender_user = models.ForeignKey(
         to="User", on_delete=models.CASCADE, verbose_name='Отправитель', related_name='sender')
     record = models.ForeignKey(
         to="Records", on_delete=models.CASCADE, verbose_name='Запись', null=True, blank=True)
