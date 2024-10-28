@@ -11,7 +11,7 @@ class User(AbstractUser):
     is_blocked = models.BooleanField(default=False, verbose_name='Заблокирован')
     organization = models.ForeignKey(
         to=Organization, on_delete=models.SET_NULL, null=True, blank=True,
-        verbose_name='Организация', related_name='user_organization')
+        verbose_name='Организация', related_name='users')
 
     def __str__(self):
         return self.username

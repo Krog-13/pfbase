@@ -20,10 +20,11 @@ class RecordHistory(models.Model):
     sign_stamp = models.TextField(verbose_name='Слепок подписания', null=True, blank=True)
     record = models.ForeignKey(
         to=Records, on_delete=models.SET_NULL, null=True,
-        verbose_name='Журнал документа', related_name="history")
+        verbose_name='Запись документа', related_name="history")
     author = models.ForeignKey(
         to="User", on_delete=models.CASCADE, verbose_name='Автор')
-    created_at = models.DateTimeField(auto_now_add=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, blank=True,
+                                      verbose_name='Дата и время действия')
 
     def __str__(self):
         return self.status.code

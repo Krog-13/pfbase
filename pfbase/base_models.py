@@ -2,7 +2,7 @@
 Abstract base models
 """
 from django.db import models
-from .config import default_map
+from .config import default_name
 import json
 
 
@@ -17,6 +17,7 @@ class IndicatorType(models.TextChoices):
     TIME = 'time', 'Time'
     TEXT = 'text', 'Text'
     FILE = 'file', 'File'
+    JSON = 'json', 'Json'
     DICTIONARY = 'dct', 'Dictionary'
     DOCUMENT = 'dcm', 'Document'
     CALCULATE = 'calc', 'Calculate'
@@ -28,34 +29,20 @@ class IndicatorBase(models.Model):
     """
     Базовый класс индикаторы
     """
-    name = models.JSONField(verbose_name='Наименование', default=default_map)
+    name_short = models.JSONField(verbose_name='Краткое наименование', default=default_name)
+    name_full = models.JSONField(verbose_name='Полное наименование',
+                                 default=default_name, null=True, blank=True)
     description = models.JSONField(
-        null=True, blank=True, verbose_name='Описание', default=default_map)
-    index_sort = models.PositiveIntegerField(unique=True, blank=True, verbose_name='Индекс сортировки')
+        null=True, blank=True, verbose_name='Описание', default=default_name)
+    index_sort = models.PositiveIntegerField(blank=True, verbose_name='Индекс сортировки')
     code = models.CharField(
         max_length=128, verbose_name='Код', unique=True)
     active = models.BooleanField(
         default=True, blank=True, verbose_name='Активный')
     type_value = models.CharField(
-        max_length=64, choices=IndicatorType.choices, default=IndicatorType.STRING, verbose_name='Тип')
+        max_length=64, choices=IndicatorType.choices, default=IndicatorType.STRING, verbose_name='Тип значения')
     type_extend = models.CharField(
-        max_length=128, null=True, blank=True, verbose_name='Тип расширения')
-
-    class Meta:
-        abstract = True
-        managed = False
-
-
-class ParameterBase(models.Model):
-    """
-    Базовый класс параметров по умолчанию
-    """
-    short_name = models.JSONField(verbose_name='Краткое наименование')
-    active = models.BooleanField(
-        default=True, blank=True, verbose_name='Активный')
-
-    def __str__(self):
-        return self.short_name.get("ru")
+        max_length=128, null=True, blank=True, verbose_name='Расширения типа')
 
     class Meta:
         abstract = True
@@ -68,8 +55,10 @@ class IndicatorValueBase(models.Model):
     """
     value_json = models.JSONField(
         null=True, blank=True, verbose_name='Json значение')
-    value_int = models.IntegerField(
+    value_int = models.BigIntegerField(
         null=True, blank=True, verbose_name='Целое число')
+    value_float = models.FloatField(
+        null=True, blank=True, verbose_name='Дробное число')
     value_str = models.CharField(
         max_length=255, null=True, blank=True, verbose_name='Строка')
     value_text = models.TextField(
@@ -78,10 +67,10 @@ class IndicatorValueBase(models.Model):
         null=True, blank=True, verbose_name='Дата и время')
     value_bool = models.BooleanField(
         null=True, blank=True, verbose_name='Логическое значение')
-    value_reference = models.PositiveIntegerField(
+    value_reference = models.PositiveBigIntegerField(
         null=True, blank=True, verbose_name='Внешний ключ')
-    index_sort = models.PositiveIntegerField(
-        unique=True, blank=True, verbose_name='Индекс сортировки')
+    index_sort = models.PositiveBigIntegerField(
+        blank=True, verbose_name='Индекс сортировки')
     active = models.BooleanField(
         default=True, blank=True, verbose_name='Активный')
 
@@ -123,3 +112,6 @@ class CommonManager(models.Manager):
 
     def getById(self, id):
         return self.get(id=id).code
+
+    def getAll(self):
+        return self.all()

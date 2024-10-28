@@ -29,6 +29,8 @@ class RecordIndicatorValues(IndicatorValueBase):
             return str(self.value_datetime)
         elif self.value_int:
             return str(self.value_int)
+        elif self.value_float:
+            return str(self.value_float)
         elif self.value_bool:
             return str(self.value_bool)
         elif self.value_reference:
@@ -51,6 +53,6 @@ class RecordIndicatorValues(IndicatorValueBase):
         if not self.pk:
             max_sort = RecordIndicatorValues.objects.aggregate(models.Max('index_sort'))['index_sort__max']
             if max_sort is None:
-                max_sort = 0
+                max_sort = config.START_STEP
             self.index_sort = max_sort + config.STEP_SORT
         super().save(*args, **kwargs)
