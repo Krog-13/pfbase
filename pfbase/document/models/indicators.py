@@ -16,6 +16,9 @@ class DcmIndicators(IndicatorBase):
         null=True, blank=True, verbose_name='Внешний ключ')
     author = models.ForeignKey(to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор',
                                related_name="indicators")
+    created_at = models.DateTimeField(auto_now_add=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
     objects = CommonManager()
 
     def __str__(self):

@@ -18,6 +18,9 @@ class ElementIndicatorValues(IndicatorValueBase):
         related_name="indicator_values")
     author = models.ForeignKey(
         to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор')
+    created_at = models.DateTimeField(auto_now_add=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = '"dct\".\"element_indicator_values"'

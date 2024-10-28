@@ -26,6 +26,9 @@ class Elements(models.Model):
     organization = models.ForeignKey(
         to="organization", on_delete=models.SET_NULL, blank=True, null=True,
         verbose_name='Организация', related_name="elements")
+    created_at = models.DateTimeField(auto_now_add=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
     objects = CommonManager()
 
     def __str__(self):

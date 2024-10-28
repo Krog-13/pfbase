@@ -32,7 +32,7 @@ class RecordHistoryAdmin(admin.ModelAdmin):
     """
     Record History
     """
-    list_display = ('status', 'status_comment', 'author')
+    list_display = ('status', 'author')
 
 
 class DcmIndicatorForm(forms.ModelForm):

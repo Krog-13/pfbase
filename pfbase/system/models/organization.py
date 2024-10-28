@@ -10,6 +10,8 @@ class Organization(models.Model):
     identifier = models.CharField(max_length=128, null=True, blank=True, verbose_name='БИН')
     address = models.CharField(max_length=128, null=True, blank=True, verbose_name='Адрес')
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.name.get("ru", "No name")

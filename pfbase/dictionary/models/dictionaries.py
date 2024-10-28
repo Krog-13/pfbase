@@ -2,6 +2,11 @@ from pfbase.base_models import default_map, CommonManager
 from django.db import models
 
 
+class DictionaryType(models.TextChoices):
+    MAIN = 'main', 'Main'
+    SUB = 'sub', 'Sub'
+
+
 class Dictionaries(models.Model):
     """
     Абстракция справочника
@@ -20,7 +25,14 @@ class Dictionaries(models.Model):
         on_delete=models.CASCADE, verbose_name='Родительский элемент')
     organization = models.ForeignKey(
         to="Organization", on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Организация')
+    type = models.CharField(
+        choices=DictionaryType.choices, max_length=4,
+        verbose_name='Тип', default=DictionaryType.MAIN)
     objects = CommonManager()
+    created_at = models.DateTimeField(auto_now_add=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
 
     def __str__(self):
         return self.name.get("ru", "No name")

@@ -6,14 +6,28 @@ from .config import default_map
 import json
 
 
+class IndicatorType(models.TextChoices):
+    STRING = 'str', 'String'
+    INTEGER = 'int', 'Integer'
+    FLOAT = 'float', 'Float'
+    BOOLEAN = 'bool', 'Boolean'
+    LIST = 'list', 'List'
+    DATETIME = 'datetime', 'Datetime'
+    DATE = 'date', 'Date'
+    TIME = 'time', 'Time'
+    TEXT = 'text', 'Text'
+    FILE = 'file', 'File'
+    DICTIONARY = 'dct', 'Dictionary'
+    DOCUMENT = 'dcm', 'Document'
+    CALCULATE = 'calc', 'Calculate'
+    USER = 'user', 'User'
+    ORGANIZATION = 'org', 'Organization'
+
+
 class IndicatorBase(models.Model):
     """
     Базовый класс индикаторы
     """
-    _TYPE_VALUE = [("str", "string"), ("int", "integer"), ("float", "float"), ("bool", "boolean"), ("list", "list"),
-                   ("datetime", "datetime"), ("date", "date"), ("time", "time"), ("text", "text"),
-                   ("file", "file"), ("dct", "dictionary"), ("dcm", "document"),
-                   ("calc", "calculate"), ("user", "user"), ("org", "organization")]
     name = models.JSONField(verbose_name='Наименование', default=default_map)
     description = models.JSONField(
         null=True, blank=True, verbose_name='Описание', default=default_map)
@@ -23,7 +37,7 @@ class IndicatorBase(models.Model):
     active = models.BooleanField(
         default=True, blank=True, verbose_name='Активный')
     type_value = models.CharField(
-        max_length=64, choices=_TYPE_VALUE, default="str", verbose_name='Тип')
+        max_length=64, choices=IndicatorType.choices, default=IndicatorType.STRING, verbose_name='Тип')
     type_extend = models.CharField(
         max_length=128, null=True, blank=True, verbose_name='Тип расширения')
 

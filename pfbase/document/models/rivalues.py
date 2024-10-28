@@ -16,6 +16,9 @@ class RecordIndicatorValues(IndicatorValueBase):
     indicator = models.ForeignKey(
         to=DcmIndicators, on_delete=models.CASCADE, verbose_name='Показатель',
         related_name="indicator_values")
+    created_at = models.DateTimeField(auto_now_add=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         if self.value_str:

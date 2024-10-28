@@ -9,8 +9,6 @@ class Records(SoftDelete):
     """
     number = models.CharField(verbose_name="Номер", max_length=255)
     date = models.DateField(verbose_name="Дата")
-    created_at = models.DateTimeField(auto_now_add=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, blank=True)
     active = models.BooleanField(default=True, verbose_name="Активный")
     document = models.ForeignKey(
         to=Documents, on_delete=models.SET_NULL, null=True,
@@ -23,6 +21,9 @@ class Records(SoftDelete):
     organization = models.ForeignKey(
         to="organization", on_delete=models.SET_NULL, blank=True, null=True,
         verbose_name='Организация', related_name="records")
+    created_at = models.DateTimeField(auto_now_add=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.number

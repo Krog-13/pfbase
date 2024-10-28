@@ -2,6 +2,11 @@ from pfbase.base_models import default_map, CommonManager
 from django.db import models
 
 
+class DocumentType(models.TextChoices):
+    MAIN = 'main', 'Main'
+    SUB = 'sub', 'Sub'
+
+
 class Documents(models.Model):
     """
     Абстракция документа
@@ -19,6 +24,12 @@ class Documents(models.Model):
         on_delete=models.CASCADE, verbose_name='Родительский элемент')
     organization = models.ForeignKey(
         to="Organization", on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Организация')
+    type = models.CharField(
+        choices=DocumentType.choices, max_length=4,
+        verbose_name='Тип', default=DocumentType.MAIN)
+    created_at = models.DateTimeField(auto_now_add=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
     objects = CommonManager()
 
     def __str__(self):
