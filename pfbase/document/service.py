@@ -8,8 +8,8 @@ from ..dictionary import models as dct_models
 from .models import Records, DcmIndicators, Documents
 from django.db.models import Case, When, IntegerField
 
-Typing = namedtuple('Typing', ['int', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
-marker = Typing(int="int", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
+Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
+marker = Typing(int="int", float="float", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
                 bool="bool", reference=["dct", "list"])
 
 
@@ -132,16 +132,10 @@ class RecordService:
         return record
 
     def create_history(self, record, status, user):
-        status_list_id = status.get("status_list_id")
-        comment = status.get("comment")
-        status_msg = status.get("status", "created")
-        stage = status.get("stage")
+        status_id = status.get("status_id")
         record.history.create(
-            status_list_id=status_list_id,
-            status=status_msg,
-            stage=stage,
-            author=user,
-            status_comment=comment)
+            status_id=status_id,
+            author=user)
 
     @transaction.atomic
     def update_record_iv(self, record, user, validated_data):
@@ -178,6 +172,8 @@ class RecordService:
     def separate_value(self, entity, type_value, some_value):
         if type_value == marker.int:
             entity.value_int = some_value
+        elif type_value == marker.float:
+            entity.value_float = some_value
         elif type_value == marker.str:
             entity.value_str = some_value
         elif type_value == marker.text:
@@ -220,23 +216,23 @@ class RecordService:
 
 class TableService:
 
-    def __init__(self, queryset, params):
+    def __init__(self, queryset, params, data):
         self.queryset = queryset
         self.params = params
+        self.data = data
         self.output = {"header": [], "body": []}
         self.row = []
         self.status = None
 
     def construction_table(self):
-        self.document_code = self.params.get('document_code')
+        self.document_code = self.data.get('document_code')
         self.lang = self.params.get('lang')
         self.status = self.params.get('status', False)
-        indicators_code = self.params.get('indicators_code')
-        self.order_indicators_code = indicators_code.split(",")
+        self.order_indicators_code = self.data.get('indicators_code')
         table_header = self.table_header()
         self.queryset = self.queryset.filter(document__code=self.document_code)
         for item in table_header:
-            label = item.get("name").get(self.lang, None)
+            label = item.get("short_name").get(self.lang, None)
             self.output["header"].append(label)
         for record in self.queryset:
             self.row = []
@@ -251,13 +247,11 @@ class TableService:
     def get_status(self, record):
         last_status = record.history.last()
         if last_status:
-            record_status = last_status.status_list.short_name.get(self.lang, None)
-            comment = last_status.status_comment
-            stage = last_status.stage
+            status = last_status.status.short_name.get(self.lang, None)
+            code = last_status.status.code
             created_at = last_status.created_at
-            return {"name": record_status,
-                    "comment": comment,
-                    "stage": stage,
+            return {"name": status,
+                    "code": code,
                     "created_at": created_at.strftime("%Y-%m-%d %H:%M:%S")}
 
     def table_header(self):
@@ -277,7 +271,7 @@ class TableService:
         if value.indicator.type_value in marker.reference:
             value = self.get_reference_value(value)
         else:
-            value = value.value_int or value.value_str or \
+            value = value.value_int or value.value_str or value.value_float or \
                     value.value_text or value.value_datetime or \
                     value.value_bool or value.value_json or \
                     None
@@ -295,14 +289,14 @@ class TableService:
         return None
 
 
-def table_present(queryset, params):
+def table_present(queryset, params, data):
     """
     Представление данных в виде таблицы
     :header
     :body
     """
     try:
-        ts = TableService(queryset, params)
+        ts = TableService(queryset, params, data)
         output = ts.construction_table()
     except Exception:
         return {"message": "Error"}
