@@ -24,7 +24,7 @@ class Elements(models.Model):
     author = models.ForeignKey(
         to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор', related_name="elements")
     organization = models.ForeignKey(
-        to="organization", on_delete=models.SET_NULL, blank=True, null=True,
+        to="Organization", on_delete=models.SET_NULL, blank=True, null=True,
         verbose_name='Организация', related_name="elements")
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True)

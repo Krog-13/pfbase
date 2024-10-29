@@ -24,11 +24,12 @@ class EIValueSerializer(serializers.ModelSerializer):
     short_name = serializers.JSONField(source='indicator.short_name')
     type_value = serializers.CharField(source='indicator.type_value')
     type_extend = serializers.CharField(source='indicator.type_extend')
+    code = serializers.CharField(source='indicator.code')
     value = serializers.SerializerMethodField()
 
     class Meta:
         model = ElementIndicatorValues
-        fields = 'id', 'short_name', 'type_value', 'type_extend', 'value_reference', 'value'
+        fields = 'id', 'short_name', 'code', 'type_value', 'type_extend', 'value_reference', 'value'
 
     def get_value_name(self, obj):
         if obj.indicator.type_value == 'dct':
