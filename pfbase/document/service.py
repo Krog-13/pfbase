@@ -90,7 +90,7 @@ class RecordService:
         code = validated_data.get('code')
         indicators = validated_data.get('indicators')
         parent_id = validated_data.get('parent_id')
-        status = validated_data.get('status')
+        status_id = validated_data.get('status_id')
         if document_id:
             document = Documents.objects.get(id=document_id)
         else:
@@ -127,12 +127,11 @@ class RecordService:
             if not result:
                 raise WrongType("Invalid type value")
             rv.save()
-        if status:
-            self.create_history(record, status, user)
+        if status_id:
+            self.create_history(record, status_id, user)
         return record
 
-    def create_history(self, record, status, user):
-        status_id = status.get("status_id")
+    def create_history(self, record, status_id, user):
         record.history.create(
             status_id=status_id,
             author=user)

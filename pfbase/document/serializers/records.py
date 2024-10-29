@@ -101,7 +101,7 @@ class RecordPostSerializer(CommonSerializer):
     document_id = serializers.IntegerField(required=True)
     parent_id = serializers.IntegerField(required=False)
     indicators = IndicatorSerializer(many=True, required=False)
-    status = serializers.JSONField(required=False)
+    status_id = serializers.IntegerField(required=False)
 
     def create(self, validated_data):
 
