@@ -266,7 +266,7 @@ class TableService:
             output_field=IntegerField())
 
         header = DcmIndicators.objects.filter(code__in=self.order_indicators_code,
-                                              document__code=self.document_code).values("name").order_by(ordering)
+                                              document__code=self.document_code).values("short_name").order_by(ordering)
         return header
 
     def set_row(self, record, code):

@@ -1,3 +1,4 @@
+from pfbase.system.models.listvalues import ListValues
 from rest_framework import serializers, exceptions
 from rest_framework.exceptions import ValidationError
 from ..models.eivalues import ElementIndicatorValues
@@ -20,24 +21,27 @@ class ElementSerializer(serializers.ModelSerializer):
 
 
 class EIValueSerializer(serializers.ModelSerializer):
-    name = serializers.JSONField(source='indicator.name')
+    short_name = serializers.JSONField(source='indicator.short_name')
     type_value = serializers.CharField(source='indicator.type_value')
     type_extend = serializers.CharField(source='indicator.type_extend')
     value = serializers.SerializerMethodField()
 
     class Meta:
         model = ElementIndicatorValues
-        fields = 'id', 'name', 'type_value', 'type_extend', 'value_reference', 'value'
+        fields = 'id', 'short_name', 'type_value', 'type_extend', 'value_reference', 'value'
 
     def get_value_name(self, obj):
         if obj.indicator.type_value == 'dct':
             element = Elements.objects.get(id=obj.value_reference)
             return element.short_name
+        elif obj.indicator.type_value == 'list':
+            record = ListValues.objects.get(id=obj.value_reference)
+            return record.short_name
 
     def get_value(self, obj):
         value_fields = [
             'value_int', 'value_text', 'value_datetime',
-            'value_bool', 'value_reference', 'value_str', 'value_json']
+            'value_bool', 'value_str', 'value_json', 'value_float']
         for field in value_fields:
             if obj.indicator.type_value in ['dct', 'list']:
                 return self.get_value_name(obj)

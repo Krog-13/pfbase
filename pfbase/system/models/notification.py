@@ -28,12 +28,14 @@ class Notification(models.Model):
         verbose_name='Тип уведомления')
 
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
-    user = models.ForeignKey(
-        to="User", on_delete=models.CASCADE, verbose_name='Получатель')
-    source_user = models.ForeignKey(
-        to="User", on_delete=models.CASCADE, verbose_name='Отправитель', related_name='notification_source')
+    receiver_user = models.ForeignKey(
+        to="User", on_delete=models.CASCADE, verbose_name='Получатель', related_name="receiver")
+    sender_user = models.ForeignKey(
+        to="User", on_delete=models.CASCADE, verbose_name='Отправитель', related_name='sender')
     record = models.ForeignKey(
         to="Records", on_delete=models.CASCADE, verbose_name='Запись', null=True, blank=True)
+    element = models.ForeignKey(
+        to="Elements", on_delete=models.CASCADE, verbose_name='Элемент', null=True, blank=True)
 
     class Meta:
         db_table = '"stm\".\"notification"'

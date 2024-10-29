@@ -1,4 +1,4 @@
-from pfbase.base_models import default_map, CommonManager
+from pfbase.base_models import default_name, CommonManager
 from .dictionaries import Dictionaries
 from django.db import models
 
@@ -8,9 +8,9 @@ class Elements(models.Model):
     Элементы :Dictionary
     """
     short_name = models.JSONField(
-        verbose_name='Краткое наименование', default=default_map)
+        verbose_name='Краткое наименование', default=default_name)
     full_name = models.JSONField(
-        verbose_name='Краткое наименование', null=True, blank=True, default=default_map)
+        verbose_name='Полное наименование', null=True, blank=True, default=default_name)
     code = models.CharField(
         max_length=128, verbose_name='Код', unique=False, null=True, blank=True)
     dictionary = models.ForeignKey(
@@ -26,6 +26,9 @@ class Elements(models.Model):
     organization = models.ForeignKey(
         to="organization", on_delete=models.SET_NULL, blank=True, null=True,
         verbose_name='Организация', related_name="elements")
+    created_at = models.DateTimeField(auto_now_add=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
     objects = CommonManager()
 
     def __str__(self):

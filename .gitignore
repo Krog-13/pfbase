@@ -10,20 +10,12 @@ __pycache__/
 venv/
 
 # migrations
-reports/migrations
 
-documentation/
 static/
-minio
 .env
 .env.db
 docker-compose.yml
 nginx
 Dockerfile
 db.sqlite3
-IEF_LOG.log
-
-# tamplates
-templates/*.html
-templates/*.xlsx
-uploads/*.pdf
+PF_LOG.log

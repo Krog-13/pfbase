@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+RUN pip install --upgrade pip
+
+WORKDIR /app
+
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
+RUN pip install pfbase --index-url https://gitlab.com/api/v4/projects/61972443/packages/pypi/simple
+
+COPY . .
+
+
+COPY ./entrypoint.sh .
+RUN chmod +x /app/entrypoint.sh
+CMD ["sh", "/app/entrypoint.sh"]

@@ -2,26 +2,31 @@ from django.db import models
 from .elements import Elements
 
 
+class Action(models.TextChoices):
+    CREATED = 'create', 'Create'
+    UPDATED = 'update', 'Update'
+    DELETED = 'delete', 'Delete'
+
+
 class ElementHistory(models.Model):
     """
-    Истрория действии над :Elements
+    История действии над :Elements
     """
+    status = models.ForeignKey(
+        to="ListValues", on_delete=models.SET_NULL, null=True, verbose_name='Статус')
     stamp = models.JSONField(verbose_name='Слепок', null=True, blank=True)
-    action = models.CharField(max_length=128, null=True, blank=True, verbose_name='Действие')
+    action = models.CharField(
+        choices=Action.choices, max_length=6, verbose_name='Действие', default=Action.CREATED)
     element = models.ForeignKey(
-        to=Elements, on_delete=models.SET_NULL, null=True, verbose_name='Элемент',
+        to=Elements, on_delete=models.SET_NULL, null=True, verbose_name='Элемент справочника',
         related_name="history")
     author = models.ForeignKey(
         to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор')
     created_at = models.DateTimeField(
-        auto_now_add=True, blank=True, verbose_name='Дата создания')
-    updated_at = models.DateTimeField(
-        auto_now=True, blank=True, verbose_name='Дата обновления')
-    status_enum = models.ForeignKey(
-        to="ListValues", on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Статус действия')
+        auto_now_add=True, blank=True, verbose_name='Дата и время действия')
 
     def __str__(self):
-        return self.action
+        return self.status.code
 
     class Meta:
         db_table = '"dct\".\"element_history"'
