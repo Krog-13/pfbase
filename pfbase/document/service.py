@@ -226,13 +226,13 @@ class TableService:
 
     def construction_table(self):
         self.document_code = self.data.get('document_code')
-        self.lang = self.params.get('lang')
+        self.lang = self.params.get("lang", "ru")
         self.status = self.params.get('status', False)
         self.order_indicators_code = self.data.get('indicators_code')
         table_header = self.table_header()
         self.queryset = self.queryset.filter(document__code=self.document_code)
         for item in table_header:
-            label = item.get("short_name").get(self.lang, None)
+            label = item.get("short_name").get(self.lang, "ru")
             self.output["header"].append(label)
         for record in self.queryset:
             self.row = []
@@ -247,7 +247,7 @@ class TableService:
     def get_status(self, record):
         last_status = record.history.last()
         if last_status:
-            status = last_status.status.short_name.get(self.lang, None)
+            status = last_status.status.short_name.get(self.lang, "ru")
             code = last_status.status.code
             created_at = last_status.created_at
             return {"name": status,
@@ -282,10 +282,10 @@ class TableService:
         """Получение значения по id из Справочника или Списка"""
         if value.indicator.type_value == 'dct':
             element = dct_models.Elements.objects.filter(id=value.value_reference).first()
-            return element.short_name.get(self.lang, None)
+            return element.short_name.get(self.lang, "ru")
         elif value.indicator.type_value == 'list':
             vl = stm_models.ListValues.objects.filter(id=value.value_reference).first()
-            return vl.short_name.get(self.lang, None)
+            return vl.short_name.get(self.lang, "ru")
         return None
 
 
