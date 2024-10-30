@@ -1,12 +1,12 @@
 from django.db import transaction
 from collections import namedtuple
 from pfbase.exception import WrongType
-from django.utils import timezone
 from datetime import datetime
 from ..system import models as stm_models
 from ..dictionary import models as dct_models
 from .models import Records, DcmIndicators, Documents
 from django.db.models import Case, When, IntegerField
+from django.utils import timezone
 
 Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
 marker = Typing(int="int", float="float", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
@@ -15,70 +15,129 @@ marker = Typing(int="int", float="float", str="str", text="text", json='json', d
 
 class RecordService:
 
+    def __init__(self):
+        self.main = None
+        self.subs = None
+        self.number = None
+        self.date = None
+        self.document_id = None
+        self.code = None
+        self.status_id = None
+        self.parent_id = None
+
+    def validate_data(self, request_data):
+        """Validation data"""
+        self.main = request_data['main']
+        self.subs = request_data.get('subs', [])
+        self.number = self.main.get('number', '0000')
+        self.date_string = self.main.get('date')
+        self.document_id = self.main.get('document_id')
+        self.code = self.main.get('code')
+        self.status_id = self.main.get('status_id')
+        self.parent_id = self.main.get('parent_id')
+        self.main_indicators = self.main.get('indicators', [])
+
+        if self.date_string:
+            naive_datetime = datetime.strptime(self.date_string, "%Y-%m-%d %H:%M")
+            self.date = timezone.make_aware(naive_datetime)
+        else:
+            self.date = timezone.now()
+
+        if not self.document_id:
+            if not self.code:
+                raise WrongType("Invalid data")
+
+    def sub_validate_data(self, request_data):
+        """Validation data"""
+        self.number = request_data.get('number', '0005')
+        self.date_string = request_data.get('date')
+        self.document_id = request_data.get('document_id')
+        self.code = request_data.get('code')
+        self.status_id = request_data.get('status_id')
+        self.parent_id = request_data.get('parent_id')
+        self.sub_indicators = request_data.get('indicators', [])
+
+        if self.date_string:
+            naive_datetime = datetime.strptime(self.date_string, "%Y-%m-%d %H:%M")
+            self.date = timezone.make_aware(naive_datetime)
+        else:
+            self.date = timezone.now()
+
+        if not self.document_id:
+            if not self.code:
+                raise WrongType("Invalid data")
+        if self.document_id:
+            self.document = Documents.objects.get(id=self.document_id)
+        else:
+            self.document = Documents.objects.get(code=self.code)
+
+    def create_riv(self, record, indicator_values):
+        for item in indicator_values:
+            value = item['value']
+            type_value = item['type']
+            idc_id = item.get('id')
+            idc_code = item.get('code')
+
+            if type_value == marker.reference[1]:
+                if not value.isdigit():
+                    raise WrongType("Invalid type value")
+                stm_models.ListValues.objects.get(id=value)
+            elif type_value == marker.reference[0]:
+                if not value.isdigit():
+                    raise WrongType("Invalid type value")
+                dct_models.Elements.objects.get(id=value)
+            if idc_id:
+                indicator = DcmIndicators.objects.get(id=idc_id, type_value=type_value)
+            else:
+                indicator = DcmIndicators.objects.get(code=idc_code, type_value=type_value)
+
+            rv = record.record_values.create(indicator=indicator)
+            result = self.separate_value(rv, type_value, value)
+            if not result:
+                raise WrongType("Invalid type value")
+            rv.save()
+        return True
+
     @transaction.atomic
-    def create_record_pack(self, user, validated_data):
+    def create_record_pack(self, user, request_data):
         """
         Create Record with sub records
         """
-        main = validated_data.get('main')
-        sub = validated_data.get('sub')
-        status = main.get('status')
-        main_indicators = main.get('indicators')
-        sub_indicators = sub.get('indicators')
-        document_id = main.get('document_id')
-        parent_id = main.get('parent_id')
-        sub_document_id = sub.get('document_id')
-        code = main.get('code')
-        sub_code = sub.get('code')
-        if document_id:
-            document = Documents.objects.get(id=document_id)
+        self.validate_data(request_data)
+
+        if self.document_id:
+            main_document = Documents.objects.get(id=self.document_id)
         else:
-            document = Documents.objects.get(code=code)
-        if sub_document_id:
-            sub_document = Documents.objects.get(id=sub_document_id)
-        else:
-            sub_document = Documents.objects.get(code=sub_code)
-        parent_r = Records.objects.get(id=parent_id) if parent_id else None
+            main_document = Documents.objects.get(code=self.code)
+        parent_r = Records.objects.get(id=self.parent_id) if self.parent_id else None
 
         main_record = Records.objects.create(
-            number=main.get('number'),
-            date=main.get('date'),
+            number=self.number,
+            date=self.date,
             parent=parent_r,
             author=user,
-            document=document)
+            document=main_document)
 
-        for pack_idc in sub_indicators:
-            record = Records.objects.create(
-                number=sub.get('number', "0000"),
-                date=sub.get('date', datetime.today()),
+        self.create_riv(main_record, self.main_indicators)
+        if self.status_id:
+            self.create_history(main_record, self.status_id, user)
+
+        if not self.subs:
+            return main_record
+
+        for sub in self.subs:
+            self.sub_validate_data(sub)
+
+            sub_record = Records.objects.create(
+                number=self.number,
+                date=self.date,
                 parent=main_record,
                 author=user,
-                document=sub_document)
-
-            for indicator in pack_idc:
-                some_value = indicator.get('value')
-                type_value = indicator.get('type')
-                idc_id = indicator.get('id')
-                idc_code = indicator.get('code')
-                if type_value == marker.reference[1]:
-                    if not some_value.isdigit():
-                        raise WrongType("Invalid type value")
-                    stm_models.ListValues.objects.get(id=some_value)
-                elif type_value == marker.reference[0]:
-                    if not some_value.isdigit():
-                        raise WrongType("Invalid type value")
-                    dct_models.Elements.objects.get(id=some_value)
-                if idc_id:
-                    dcm_indicator = DcmIndicators.objects.get(id=idc_id, type_value=type_value)
-                else:
-                    dcm_indicator = DcmIndicators.objects.get(code=idc_code, type_value=type_value)
-                rv = record.record_values.create(indicator=dcm_indicator)
-                result = self.separate_value(rv, type_value, some_value)
-                if not result:
-                    raise WrongType("Invalid type value")
-                rv.save()
-        if status:
-            self.create_history(main_record, status, user)
+                document=self.document)
+            for row in sub.get('indicators', []):
+                self.create_riv(sub_record, row)
+            if status_id := sub.get('status_id'):
+                self.create_history(sub_record, status_id, user)
         return main_record
 
     @transaction.atomic
@@ -105,36 +164,10 @@ class RecordService:
 
         if not indicators:
             return record
-        for indicator in indicators:
-            some_value = indicator.get('value')
-            type_value = indicator.get('type')
-            idc_id = indicator.get('id')
-            idc_code = indicator.get('code')
-            if type_value == marker.reference[1]:
-                if not some_value.isdigit():
-                    raise WrongType("Invalid type value")
-                stm_models.ListValues.objects.get(id=some_value)
-            elif type_value == marker.reference[0]:
-                if not some_value.isdigit():
-                    raise WrongType("Invalid type value")
-                dct_models.Elements.objects.get(id=some_value)
-            if idc_id:
-                dcm_indicator = DcmIndicators.objects.get(id=idc_id, type_value=type_value)
-            else:
-                dcm_indicator = DcmIndicators.objects.get(code=idc_code, type_value=type_value)
-            rv = record.record_values.create(indicator=dcm_indicator)
-            result = self.separate_value(rv, type_value, some_value)
-            if not result:
-                raise WrongType("Invalid type value")
-            rv.save()
+        self.create_riv(record, indicators)
         if status_id:
             self.create_history(record, status_id, user)
         return record
-
-    def create_history(self, record, status_id, user):
-        record.history.create(
-            status_id=status_id,
-            author=user)
 
     @transaction.atomic
     def update_record_iv(self, record, user, validated_data):
@@ -168,29 +201,33 @@ class RecordService:
             rv.save()
         return record
 
-    def separate_value(self, entity, type_value, some_value):
+    def separate_value(self, record_iv, type_value, value):
         if type_value == marker.int:
-            entity.value_int = some_value
+            record_iv.value_int = value
         elif type_value == marker.float:
-            entity.value_float = some_value
+            record_iv.value_float = value
         elif type_value == marker.str:
-            entity.value_str = some_value
+            record_iv.value_str = value
         elif type_value == marker.text:
-            entity.value_text = some_value
+            record_iv.value_text = value
         elif type_value == marker.bool:
-            entity.value_bool = some_value
+            record_iv.value_bool = value
         elif type_value in marker.reference:
-            entity.value_reference = some_value
+            record_iv.value_reference = value
         elif type_value == marker.json:
-            entity.value_json = some_value
+            record_iv.value_json = value
         elif type_value in marker.datetime:
-            date = self.give_date_format(some_value, type_value)
+            date = self.give_date_format(value, type_value)
             if not date:
                 return False
-            entity.value_datetime = date
+            record_iv.value_datetime = date
         else:
             return False
         return True
+
+    @staticmethod
+    def create_history(record, status_id, user):
+        record.history.create(status_id=status_id, author=user)
 
     @staticmethod
     def give_date_format(date_str, type_value):
@@ -199,8 +236,8 @@ class RecordService:
         """
         formats = [
             ("%Y-%m-%d %H:%M", "datetime"),  # "2024-01-01 12:33"
-            ("%Y-%m-%d", "date"),            # "2024-01-01"
-            ("%H:%M", "time")                # "10:23"
+            ("%Y-%m-%d", "date"),  # "2024-01-01"
+            ("%H:%M", "time")  # "10:23"
         ]
         try:
             for fmt in formats:
