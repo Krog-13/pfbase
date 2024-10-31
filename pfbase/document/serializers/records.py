@@ -89,7 +89,7 @@ class CommonSerializer(serializers.Serializer):
 
 
 class IndicatorSerializer(CommonSerializer):
-    id = serializers.IntegerField()
+    id = serializers.IntegerField(required=False)
     code = serializers.CharField(max_length=50, required=False)
     value = serializers.CharField(max_length=100, required=False, allow_null=True)
     type = serializers.CharField(max_length=10)
@@ -98,10 +98,11 @@ class IndicatorSerializer(CommonSerializer):
 class RecordPostSerializer(CommonSerializer):
     number = serializers.CharField(required=False, default="0000")
     date = serializers.DateTimeField(required=False, default=datetime.datetime.now())
-    document_id = serializers.IntegerField(required=True)
+    document_id = serializers.IntegerField(required=False)
+    code = serializers.CharField(required=False)
     parent_id = serializers.IntegerField(required=False)
     indicators = IndicatorSerializer(many=True, required=False)
-    status = serializers.JSONField(required=False)
+    status_id = serializers.IntegerField(required=False)
 
     def create(self, validated_data):
 
@@ -116,15 +117,17 @@ class RecordPostSerializer(CommonSerializer):
 
 class RecordPackPostSerializer(serializers.Serializer):
     main = serializers.JSONField(required=True)
-    sub = serializers.JSONField(required=True)
+    subs = serializers.ListField(required=True)
 
-    def create(self, validated_data):
+    def create(self, request_data):
         user = self.context['request'].user
         if not user:
             user = self.context['user']
         try:
-            return RecordService().create_record_pack(user, validated_data)
+            return RecordService().create_record_pack(user, request_data)
         except ValidationError as e:
+            raise exceptions.ValidationError({"error": str(e)})
+        except KeyError as e:
             raise exceptions.ValidationError({"error": str(e)})
 
 
