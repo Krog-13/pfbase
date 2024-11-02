@@ -175,6 +175,7 @@ class RecordService:
         self.number = main.get('number', None)
         self.date_string = main.get('date', None)
         self.record_id = main['record_id']
+        self.status_id = main.get('status_id', None)
         self.main_indicators = main.get('indicators', [])
 
         if self.date_string:
@@ -188,6 +189,7 @@ class RecordService:
         self.sub_number = sub.get('number', None)
         self.date_string = sub.get('date', None)
         self.sub_record_id = sub['record_id']
+        self.sub_status_id = sub.get('status_id', None)
         self.sub_indicators = sub.get('indicators', [])
 
         if self.date_string:
@@ -207,6 +209,44 @@ class RecordService:
             rv.save()
         return True
 
+    def validate_records_update_data(self, records):
+        self.records = records['records']
+
+    def validate_record_update_data(self, record):
+        self.record_id = record['record_id']
+        self.number = record.get('number', None)
+        self.date_string = record.get('date', None)
+        self.indicators = record.get('indicators', [])
+        self.status_id = record.get('status_id', None)
+
+        if self.date_string:
+            naive_datetime = datetime.strptime(self.date_string, "%Y-%m-%d %H:%M")
+            self.date = timezone.make_aware(naive_datetime)
+        else:
+            self.date = None
+
+    @transaction.atomic
+    def update_records_list(self, user, request_data):
+        """
+        Update Record with their Indicators
+        """
+        self.validate_records_update_data(request_data)
+        for record in self.records:
+            print(record)
+            self.validate_record_update_data(record)
+            record = Records.objects.get(id=self.record_id)
+            if self.number:
+                record.number = self.number
+            if self.date:
+                record.date = self.date
+            record.user = user
+            record.save()
+
+            self.record_update_iv(self.indicators, record)
+
+            if self.status_id:
+                self.create_history(record, self.status_id, user)
+
     @transaction.atomic
     def update_record_pack(self, user, request_data):
         """
@@ -222,6 +262,8 @@ class RecordService:
         record.save()
         self.record_update_iv(self.main_indicators, record)
         subs = request_data.get('subs', [])
+        if self.status_id:
+            self.create_history(record, self.status_id, user)
 
         for sub in subs:
             self.validate_update_sub_data(sub)
@@ -233,6 +275,9 @@ class RecordService:
             record.user = user
             record.save()
             self.record_update_iv(self.sub_indicators, record)
+
+            if self.sub_status_id:
+                self.create_history(record, self.sub_status_id, user)
         return True
 
     @transaction.atomic

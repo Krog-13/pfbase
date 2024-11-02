@@ -166,6 +166,18 @@ class RecordPackUpdateSerializer(serializers.Serializer):
             raise exceptions.ValidationError({"error": str(e)})
 
 
+class RecordListUpdateSerializer(serializers.Serializer):
+    records = serializers.ListField(required=True)
+
+    def update(self, instance, validated_data):
+        user = self.context['request'].user
+        try:
+            return RecordService().update_records_list(user, validated_data)
+        except ValidationError as e:
+            raise exceptions.ValidationError({"error": str(e)})
+
+
+
 class RIValueSerializer1(serializers.ModelSerializer):
     value = serializers.SerializerMethodField()
 

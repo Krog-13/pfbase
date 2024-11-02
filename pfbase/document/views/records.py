@@ -11,7 +11,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status, views, generics, exceptions as exc
 from pfbase.pagination import CustomPagination
-from ..serializers.records import RIGetSerializer, RecordPostSerializer, RecordUpdateSerializer, RecordSerializer, RecordPackUpdateSerializer
+from ..serializers.records import RIGetSerializer, RecordPostSerializer, RecordUpdateSerializer, RecordSerializer, \
+    RecordPackUpdateSerializer, RecordListUpdateSerializer
 from ..models.records import Records
 from ..service import table_present
 
@@ -67,7 +68,7 @@ class RIAPIView(views.APIView):
         raise exc.ValidationError(serializer.errors)
 
     def patch(self, request, *args, **kwargs):
-        serializer = RecordPackUpdateSerializer(data=request.data, context={'request': request})
+        serializer = RecordListUpdateSerializer(data=request.data, context={'request': request})
         pk = kwargs.get('pk', False)
         if pk:
             return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
