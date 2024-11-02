@@ -169,6 +169,117 @@ class RecordService:
             self.create_history(record, status_id, user)
         return record
 
+    def validate_update_data(self, request_data):
+        main = request_data['main']
+
+        self.number = main.get('number', None)
+        self.date_string = main.get('date', None)
+        self.record_id = main['record_id']
+        self.status_id = main.get('status_id', None)
+        self.main_indicators = main.get('indicators', [])
+
+        if self.date_string:
+            naive_datetime = datetime.strptime(self.date_string, "%Y-%m-%d %H:%M")
+            self.date = timezone.make_aware(naive_datetime)
+        else:
+            self.date = None
+
+    def validate_update_sub_data(self, sub):
+
+        self.sub_number = sub.get('number', None)
+        self.date_string = sub.get('date', None)
+        self.sub_record_id = sub['record_id']
+        self.sub_status_id = sub.get('status_id', None)
+        self.sub_indicators = sub.get('indicators', [])
+
+        if self.date_string:
+            naive_datetime = datetime.strptime(self.date_string, "%Y-%m-%d %H:%M")
+            self.sub_date = timezone.make_aware(naive_datetime)
+        else:
+            self.sub_date = None
+
+    def record_update_iv(self, indicators, record):
+        for indicator in indicators:
+            type_value = indicator.get('type')
+            rv = record.record_values.get(id=indicator.get('id'), indicator__type_value=type_value)
+            some_value = indicator.get('value')
+            result = self.separate_value(rv, type_value, some_value)
+            if not result:
+                raise WrongType("Invalid type value")
+            rv.save()
+        return True
+
+    def validate_records_update_data(self, records):
+        self.records = records['records']
+
+    def validate_record_update_data(self, record):
+        self.record_id = record['record_id']
+        self.number = record.get('number', None)
+        self.date_string = record.get('date', None)
+        self.indicators = record.get('indicators', [])
+        self.status_id = record.get('status_id', None)
+
+        if self.date_string:
+            naive_datetime = datetime.strptime(self.date_string, "%Y-%m-%d %H:%M")
+            self.date = timezone.make_aware(naive_datetime)
+        else:
+            self.date = None
+
+    @transaction.atomic
+    def update_records_list(self, user, request_data):
+        """
+        Update Record with their Indicators
+        """
+        self.validate_records_update_data(request_data)
+        for record in self.records:
+            print(record)
+            self.validate_record_update_data(record)
+            record = Records.objects.get(id=self.record_id)
+            if self.number:
+                record.number = self.number
+            if self.date:
+                record.date = self.date
+            record.user = user
+            record.save()
+
+            self.record_update_iv(self.indicators, record)
+
+            if self.status_id:
+                self.create_history(record, self.status_id, user)
+
+    @transaction.atomic
+    def update_record_pack(self, user, request_data):
+        """
+        Update Record with their Indicators
+        """
+        self.validate_update_data(request_data)
+        record = Records.objects.get(id=self.record_id)
+        if self.number:
+            record.number = self.number
+        if self.date:
+            record.date = self.date
+        record.user = user
+        record.save()
+        self.record_update_iv(self.main_indicators, record)
+        subs = request_data.get('subs', [])
+        if self.status_id:
+            self.create_history(record, self.status_id, user)
+
+        for sub in subs:
+            self.validate_update_sub_data(sub)
+            record = Records.objects.get(id=self.sub_record_id)
+            if self.sub_number:
+                record.number = self.sub_number
+            if self.sub_date:
+                record.date = self.sub_date
+            record.user = user
+            record.save()
+            self.record_update_iv(self.sub_indicators, record)
+
+            if self.sub_status_id:
+                self.create_history(record, self.sub_status_id, user)
+        return True
+
     @transaction.atomic
     def update_record_iv(self, record, user, validated_data):
         """
@@ -271,6 +382,7 @@ class TableService:
             label = item.get("short_name").get(self.lang, "ru")
             self.output["header"].append(label)
         for record in self.queryset:
+            print(record.id)
             self.row = []
             for code in self.order_indicators_code:
                 self.set_row(record, code)
@@ -317,6 +429,7 @@ class TableService:
     def get_reference_value(self, value):
         """Получение значения по id из Справочника или Списка"""
         if value.indicator.type_value == 'dct':
+            print(value.value_reference)
             element = dct_models.Elements.objects.filter(id=value.value_reference).first()
             return element.short_name.get(self.lang, "ru")
         elif value.indicator.type_value == 'list':
@@ -334,6 +447,6 @@ def table_present(queryset, params, data):
     try:
         ts = TableService(queryset, params, data)
         output = ts.construction_table()
-    except Exception:
+    except KeyError:
         return {"message": "Error"}
     return output

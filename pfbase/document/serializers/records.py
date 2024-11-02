@@ -5,6 +5,7 @@ from ..models.rivalues import RecordIndicatorValues
 from pfbase.dictionary.models.elements import Elements
 from pfbase.system.models.listvalues import ListValues
 from ..service import RecordService
+from pfbase.exception import WrongType
 import datetime
 
 
@@ -94,6 +95,9 @@ class IndicatorSerializer(CommonSerializer):
     value = serializers.CharField(max_length=100, required=False, allow_null=True)
     type = serializers.CharField(max_length=10)
 
+class IndicatorUpdateSerializer(CommonSerializer):
+    id = serializers.IntegerField(required=True)
+    value = serializers.CharField(max_length=100, required=True)
 
 class RecordPostSerializer(CommonSerializer):
     number = serializers.CharField(required=False, default="0000")
@@ -129,13 +133,16 @@ class RecordPackPostSerializer(serializers.Serializer):
             raise exceptions.ValidationError({"error": str(e)})
         except KeyError as e:
             raise exceptions.ValidationError({"error": str(e)})
+        except Exception as e:
+            raise exceptions.ValidationError({"error": str(e)})
 
 
 class RecordUpdateSerializer(CommonSerializer):
     number = serializers.CharField(required=False)
     date = serializers.DateField(required=False)
     parent_id = serializers.IntegerField(required=False)
-    indicators = IndicatorSerializer(many=True, required=False)
+    record_id = serializers.IntegerField(required=True)
+    indicators = IndicatorUpdateSerializer(many=True, required=False)
 
     def update(self, instance, validated_data):
         user = self.context['request'].user
@@ -143,6 +150,32 @@ class RecordUpdateSerializer(CommonSerializer):
             return RecordService().update_record_iv(instance, user, validated_data)
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
+
+
+class RecordPackUpdateSerializer(serializers.Serializer):
+    main = serializers.JSONField(required=True)
+    subs = serializers.ListField(required=True)
+
+    def update(self, instance, request_data):
+        user = self.context['request'].user
+        try:
+            return RecordService().update_record_pack(user, request_data)
+        except ValidationError as e:
+            raise exceptions.ValidationError({"error": str(e)})
+        except Exception as e:
+            raise exceptions.ValidationError({"error": str(e)})
+
+
+class RecordListUpdateSerializer(serializers.Serializer):
+    records = serializers.ListField(required=True)
+
+    def update(self, instance, validated_data):
+        user = self.context['request'].user
+        try:
+            return RecordService().update_records_list(user, validated_data)
+        except ValidationError as e:
+            raise exceptions.ValidationError({"error": str(e)})
+
 
 
 class RIValueSerializer1(serializers.ModelSerializer):
