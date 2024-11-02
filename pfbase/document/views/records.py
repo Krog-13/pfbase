@@ -11,7 +11,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status, views, generics, exceptions as exc
 from pfbase.pagination import CustomPagination
-from ..serializers.records import RIGetSerializer, RecordPostSerializer, RecordUpdateSerializer, RecordSerializer
+from ..serializers.records import RIGetSerializer, RecordPostSerializer, RecordUpdateSerializer, RecordSerializer, RecordPackUpdateSerializer
 from ..models.records import Records
 from ..service import table_present
 
@@ -67,12 +67,12 @@ class RIAPIView(views.APIView):
         raise exc.ValidationError(serializer.errors)
 
     def patch(self, request, *args, **kwargs):
-        serializer = RecordUpdateSerializer(data=request.data, context={'request': request})
+        serializer = RecordPackUpdateSerializer(data=request.data, context={'request': request})
         pk = kwargs.get('pk', False)
-        if not pk:
+        if pk:
             return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         try:
-            record = self.queryset.get(id=pk)
+            record = self.queryset.first()
         except Records.DoesNotExist:
             return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         if serializer.is_valid():
@@ -108,3 +108,15 @@ class RecordIndicator(generics.ListAPIView):
         serializer = self.serializer_class(queryset, many=True)
         return Response(serializer.data)
 
+
+class TestApiView(views.APIView):
+    """
+    Представление :Record with their :Indicators
+    """
+    queryset = Records.objects.all().order_by('-created_at')
+    permission_classes = (IsAuthenticated,)
+    pagination_class = CustomPagination
+
+    def get(self, request, *args, **kwargs):
+
+        return Response({"message": "Test API"}, status=status.HTTP_200_OK)

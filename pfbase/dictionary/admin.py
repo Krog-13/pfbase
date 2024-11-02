@@ -68,7 +68,7 @@ class EIValueAdmin(admin.ModelAdmin):
     """
     Element-indicator values in admin panel
     """
-    fields = (("value_str", "value_int", "value_float", "value_text", "value_datetime", "value_reference"),
+    fields = (("value_str", "value_int", "value_float", "value_text", "value_datetime", "value_reference", "value_json", "value_bool"),
               "index_sort", "element", "indicator")
     list_display = ("some_value", "type_value", "indicator", "element", "index_sort", "id")
     search_fields = ("value_int", "id")
