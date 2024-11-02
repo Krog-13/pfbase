@@ -24,6 +24,10 @@ class ElementsAPIView(AbstractModelAPIView):
         Получения элементов по :pk ABCDictionary
         """
         indicators = self.get_queryset().filter(dictionary_id=pk)
+        page = self.paginate_queryset(indicators)
+        if page is not None:
+            serializer = EIGetSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
         if not indicators:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = EIGetSerializer(indicators, many=True)
