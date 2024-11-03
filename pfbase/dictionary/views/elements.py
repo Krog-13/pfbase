@@ -30,7 +30,7 @@ class ElementsAPIView(AbstractModelAPIView):
             return self.get_paginated_response(serializer.data)
         if not indicators:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = EIGetSerializer(indicators, many=True)
+        serializer = EIGetSerializer(indicators, many=True, context={'request': request})
         return Response(serializer.data)
 
 

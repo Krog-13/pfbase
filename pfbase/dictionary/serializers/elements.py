@@ -52,6 +52,8 @@ class EIValueSerializer(serializers.ModelSerializer):
 
 
 class EIGetSerializer(serializers.ModelSerializer):
+    short_name = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField()
     indicator_value = EIValueSerializer(source="element_values", many=True, read_only=True)
     children = serializers.SerializerMethodField()
 
@@ -64,6 +66,16 @@ class EIGetSerializer(serializers.ModelSerializer):
         if children_qs.exists():
             return True
         return False
+
+    def get_short_name(self, obj):
+        query_params = self.context['request'].query_params
+        lang = query_params.get('lang', 'ru')
+        return obj.short_name.get(lang)
+
+    def get_full_name(self, obj):
+        query_params = self.context['request'].query_params
+        lang = query_params.get('lang', 'ru')
+        return obj.full_name.get(lang)
 
 
 class CommonSerializer(serializers.Serializer):

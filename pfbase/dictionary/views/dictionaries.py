@@ -32,5 +32,5 @@ class DictionariesAPIView(AbstractModelAPIView):
         dct_indicators = DctIndicators.objects.filter(dictionary_id=pk)
         if not dct_indicators:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = indicators.IndicatorSerializer(dct_indicators, many=True)
+        serializer = indicators.IndicatorSerializer(dct_indicators, many=True, context={'request': request})
         return Response(serializer.data)
