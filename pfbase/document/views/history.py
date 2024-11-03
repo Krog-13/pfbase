@@ -32,5 +32,5 @@ class RecordHistoryAPIView(ModelViewSet):
         values = self.get_queryset().filter(record_id=record_id)
         if not values:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = self.serializer_class(values, many=True)
+        serializer = self.serializer_class(values, many=True, context={'request': request})
         return Response(serializer.data)

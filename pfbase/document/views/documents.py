@@ -35,5 +35,5 @@ class DocumentsViewSet(AbstractModelAPIView):
         indicators = DcmIndicators.objects.filter(document_id=pk)
         if not indicators:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = IndicatorSerializer(indicators, many=True)
+        serializer = IndicatorSerializer(indicators, many=True, context={'request': request})
         return Response(serializer.data)

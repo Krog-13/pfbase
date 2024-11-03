@@ -30,7 +30,7 @@ class ElementsAPIView(AbstractModelAPIView):
             return self.get_paginated_response(serializer.data)
         if not indicators:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = EIGetSerializer(indicators, many=True)
+        serializer = EIGetSerializer(indicators, many=True, context={'request': request})
         return Response(serializer.data)
 
 
@@ -53,7 +53,7 @@ class EIAPIView(views.APIView):
             queryset = self.queryset.get(id=pk)
         except elements.Elements.DoesNotExist:
             return Response({"message": "Element not found"}, status=status.HTTP_404_NOT_FOUND)
-        return Response(EIGetSerializer(queryset, many=False).data)
+        return Response(EIGetSerializer(queryset, many=False, context={'request':request}).data)
 
     def post(self, request):
         serializer = EIPostSerializer(data=request.data, context={'request': request})
@@ -64,7 +64,7 @@ class EIAPIView(views.APIView):
         raise exc.ValidationError(serializer.errors)
 
     def patch(self, request, *args, **kwargs):
-        serializer = EIUpdateSerializer(data=request.data)
+        serializer = EIUpdateSerializer(data=request.data, context={'request': request})
         pk = kwargs.get('pk', False)
         if not pk:
             return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)

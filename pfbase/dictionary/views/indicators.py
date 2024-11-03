@@ -30,5 +30,5 @@ class IndicatorsAPIView(AbstractModelAPIView):
         indicators = self.get_queryset().filter(dictionary_id=pk)
         if not indicators:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = self.serializer_class(indicators, many=True)
+        serializer = self.serializer_class(indicators, many=True, context={'request': request})
         return Response(serializer.data)

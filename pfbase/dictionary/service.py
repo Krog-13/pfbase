@@ -13,88 +13,104 @@ marker = Typing(int="int", float="float", str="str", text="text", json='json', d
 
 class ElementService:
 
+    def __init__(self):
+        self.short_name = None
+        self.full_name = None
+        self.code = None
+        self.dictionary_id = None
+        self.parent_id = None
+        self.indicators = []
+
+    def validate_data(self, request_data):
+        """Validation for creating a new element"""
+        self.short_name = request_data.get('short_name')
+        self.full_name = request_data.get('full_name')
+        self.code = request_data.get('code')
+        self.dictionary_id = request_data.get('dictionary_id')
+        self.parent_id = request_data.get('parent_id')
+        self.indicators = request_data.get('indicators', [])
+
+        if not self.dictionary_id and not self.code:
+            raise WrongType("Invalid data: 'dictionary_id' or 'code' is required.")
+
+    def validate_update_data(self, request_data):
+        """Validation for updating an existing element"""
+        self.short_name = request_data.get('short_name')
+        self.full_name = request_data.get('full_name')
+        self.code = request_data.get('code')
+        self.parent_id = request_data.get('parent_id')
+        self.indicators = request_data.get('indicators', [])
+
     @transaction.atomic
     def create_element_iv(self, user, validated_data):
-        dictionary_id = validated_data.get('dictionary_id')
-        code = validated_data.get('code')
-        indicators = validated_data.get('indicators')
-        parent_id = validated_data.get('parent_id')
-        if dictionary_id:
-            dictionary = Dictionaries.objects.get(id=dictionary_id)
-        else:
-            dictionary = Dictionaries.objects.get(code=code)
-        parent_e = Elements.objects.get(id=parent_id) if parent_id else None
+        self.validate_data(validated_data)
+        dictionary = Dictionaries.objects.get(
+            id=self.dictionary_id) if self.dictionary_id else Dictionaries.objects.get(code=self.code)
+        parent_e = Elements.objects.get(id=self.parent_id) if self.parent_id else None
 
         element = Elements.objects.create(
-            short_name=validated_data.get('short_name'),
-            full_name=validated_data.get('full_name'),
-            code=validated_data.get('code'),
+            short_name=self.short_name,
+            full_name=self.full_name,
+            code=self.code,
             dictionary=dictionary,
             author=user,
             parent=parent_e)
 
-        if not indicators:
+        if not self.indicators:
             return element
 
-        for indicator in indicators:
-            some_value = indicator.get('value')
-            type_value = indicator.get('type')
-            idc_id = indicator.get('id')
-            idc_code = indicator.get('code')
-            if type_value == marker.reference[1]:
-                if not some_value.isdigit():
-                    raise WrongType("Invalid type value")
-                stm_models.ListValues.objects.get(id=some_value)
-            elif type_value == marker.reference[0]:
-                if not some_value.isdigit():
-                    raise WrongType("Invalid type value")
-                Elements.objects.get(id=some_value)
-            if idc_id:
-                dct_indicator = DctIndicators.objects.get(id=indicator.get('id'), type_value=type_value)
-            else:
-                dct_indicator = DctIndicators.objects.get(code=idc_code, type_value=type_value)
-            ev = element.element_values.create(indicator=dct_indicator)
-            result = self.separate_value(ev, type_value, some_value)
-            if not result:
-                raise WrongType("Invalid type value")
-            ev.save()
+        for indicator in self.indicators:
+            self.create_or_update_indicator_value(element, indicator)
+
         return element
 
     @transaction.atomic
     def update_element_iv(self, element, user, validated_data):
-        """
-        Update Element with their Indicators
-        """
-        indicators = validated_data.get('indicators')
-        parent_id = validated_data.get('parent_id')
-        short_name = validated_data.get('short_name')
-        full_name = validated_data.get('full_name')
-        code = validated_data.get('code')
+        self.validate_update_data(validated_data)
 
-        if parent_id:
-            parent_element = Elements.objects.get(id=parent_id)
-            element.parent = parent_element
-        if short_name:
-            element.short_name = short_name
-        if full_name:
-            element.full_name = full_name
-        if code:
-            element.code = code
-        element.user = user
+        if self.parent_id:
+            element.parent = Elements.objects.get(id=self.parent_id)
+        if self.short_name:
+            element.short_name = self.short_name
+        if self.full_name:
+            element.full_name = self.full_name
+        if self.code:
+            element.code = self.code
+        element.author = user
         element.save()
 
-        if not indicators:
-            return element
+        for indicator in self.indicators:
+            self.create_or_update_indicator_value(element, indicator, update=True)
 
-        for indicator in indicators:
-            type_value = indicator.get('type')
-            rv = element.record_value.get(id=indicator.get('id'), indicator__type_value=type_value)
-            some_value = indicator.get('value')
-            result = self.separate_value(rv, type_value, some_value)
-            if not result:
-                raise WrongType("Invalid type value")
-            rv.save()
         return element
+
+    def create_or_update_indicator_value(self, element, indicator, update=False):
+        some_value = indicator.get('value')
+        type_value = indicator.get('type')
+        idc_id = indicator.get('id')
+        idc_code = indicator.get('code')
+
+        if type_value == marker.reference[1]:
+            if not some_value.isdigit():
+                raise WrongType("Invalid type value")
+            stm_models.ListValues.objects.get(id=some_value)
+        elif type_value == marker.reference[0]:
+            if not some_value.isdigit():
+                raise WrongType("Invalid type value")
+            Elements.objects.get(id=some_value)
+
+        if idc_id:
+            dct_indicator = DctIndicators.objects.get(id=idc_id, type_value=type_value)
+        else:
+            dct_indicator = DctIndicators.objects.get(code=idc_code, type_value=type_value)
+
+        ev = element.element_values.filter(indicator=dct_indicator).first() if update else None
+        if ev is None:
+            ev = element.element_values.create(indicator=dct_indicator)
+
+        if not self.separate_value(ev, type_value, some_value):
+            raise WrongType("Invalid type value")
+        ev.save()
 
     def separate_value(self, entity, type_value, some_value):
         if type_value == marker.int:
