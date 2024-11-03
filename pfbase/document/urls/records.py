@@ -4,7 +4,7 @@ presented for schemes:
 """
 from rest_framework import routers
 from django.urls import path
-from ..views.records import RecordAPIView, RIAPIView
+from ..views.records import RecordAPIView, RIAPIView, TestApiView
 
 
 rct_router = routers.DefaultRouter()
@@ -14,5 +14,5 @@ rct_urlpatterns = [
     path("dcm/records/", RIAPIView.as_view()),
     path("dcm/records/<int:pk>/", RIAPIView.as_view()),
 
-    path("dcm/test/", RIAPIView.as_view()),
+    path("dcm/test/", TestApiView.as_view()),
 ]

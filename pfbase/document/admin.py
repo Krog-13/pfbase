@@ -32,7 +32,7 @@ class RecordHistoryAdmin(admin.ModelAdmin):
     """
     Record History
     """
-    list_display = ('status', 'author')
+    list_display = ('status', 'record', 'author', 'created_at', 'id')
 
 
 @admin.register(DcmIndicators)

@@ -1,6 +1,7 @@
 from pfbase.base_models import SoftDelete
 from .documents import Documents
 from django.db import models
+from ..manager import RecordsManager
 
 # ToDo: размножить SoftDelete в каждом приложении
 class Records(SoftDelete):
@@ -24,6 +25,7 @@ class Records(SoftDelete):
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    objects = RecordsManager()
 
     def __str__(self):
         if self.document is None:

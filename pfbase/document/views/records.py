@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework import status, views, generics, exceptions as exc
 from pfbase.pagination import CustomPagination
 from ..serializers.records import RIGetSerializer, RecordPostSerializer, RecordUpdateSerializer, RecordSerializer, \
-    RecordPackUpdateSerializer, RecordListUpdateSerializer
+    RecordPackUpdateSerializer, RecordListUpdateSerializer, RecordsSerializer
 from ..models.records import Records
 from ..service import table_present
 
@@ -114,10 +114,12 @@ class TestApiView(views.APIView):
     """
     Представление :Record with their :Indicators
     """
-    queryset = Records.objects.all().order_by('-created_at')
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
 
     def get(self, request, *args, **kwargs):
-
-        return Response({"message": "Test API"}, status=status.HTTP_200_OK)
+        # output = self.queryset.obj getByFilter({"id": 45})
+        query_params = request.query_params
+        out = Records.objects.getByFilter(query_params)
+        output = RecordsSerializer(out, many=True)
+        return Response(output.data, status=status.HTTP_200_OK)
