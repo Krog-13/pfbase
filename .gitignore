@@ -11,7 +11,6 @@ venv/
 
 # migrations
 
-static/
 .env
 .env.db
 docker-compose.yml
@@ -20,5 +19,3 @@ Dockerfile
 db.sqlite3
 PF_LOG.log
 
-pfbase/docs
-pfbase/templates

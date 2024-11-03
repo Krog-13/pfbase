@@ -121,5 +121,5 @@ class TestApiView(views.APIView):
         # output = self.queryset.obj getByFilter({"id": 45})
         query_params = request.query_params
         out = Records.objects.getByFilter(query_params)
-        output = RecordsSerializer(out, many=True)
+        output = RecordsSerializer(out, many=True, context={'request': request})
         return Response(output.data, status=status.HTTP_200_OK)
