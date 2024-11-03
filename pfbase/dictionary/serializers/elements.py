@@ -116,6 +116,6 @@ class EIUpdateSerializer(CommonSerializer):
     def update(self, instance, validated_data):
         user = self.context['request'].user
         try:
-            return ElementService().update_record_iv(instance, user, validated_data)
+            return ElementService().update_element_iv(instance, user, validated_data)
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
