@@ -24,22 +24,31 @@ class RecordSerializer(serializers.ModelSerializer):
 
 
 class RIValueSerializer(serializers.ModelSerializer):
-    short_name = serializers.JSONField(source='indicator.short_name')
+    # shortname = serializers.JSONField(source='indicator.short_name')
+    short_name = serializers.SerializerMethodField(source='indicator.short_name')
     type_value = serializers.CharField(source='indicator.type_value')
     type_extend = serializers.CharField(source='indicator.type_extend')
+    code = serializers.CharField(source='indicator.code')
     value = serializers.SerializerMethodField()
 
     class Meta:
         model = RecordIndicatorValues
-        fields = 'id', 'short_name', 'type_value', 'type_extend', 'value_reference', 'value'
+        fields = 'id', 'short_name', 'code', 'type_value', 'type_extend', 'value_reference', 'value'
+
+    def get_short_name(self, obj):
+        query_params = self.context['request'].query_params
+        lang = query_params.get('lang', 'ru')
+        return obj.indicator.short_name.get(lang)
 
     def get_value_name(self, obj):
+        query_params = self.context['request'].query_params
+        lang = query_params.get('lang', 'ru')
         if obj.indicator.type_value == 'dct':
             element = Elements.objects.filter(id=obj.value_reference).first()
-            return element.short_name
+            return element.short_name.get(lang)
         elif obj.indicator.type_value == 'list':
             record = ListValues.objects.filter(id=obj.value_reference).first()
-            return record.short_name
+            return record.short_name.get(lang)
 
     def get_value(self, obj):
         value_fields = [
@@ -50,6 +59,28 @@ class RIValueSerializer(serializers.ModelSerializer):
                 return self.get_value_name(obj)
             if value := getattr(obj, field, None):
                 return value
+        return None
+
+
+class RecordsSerializer(serializers.ModelSerializer):
+    indicator_value = RIValueSerializer(source="record_values", many=True, read_only=True)
+    children = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Records
+        fields = "__all__"
+
+    def get_children(self, obj):
+        children_qs = obj.children.all()
+        if children_qs.exists():
+            return True
+        return False
+
+    def get_status(self, obj):
+        last_status = obj.history.last()
+        if last_status:
+            return last_status.status.short_name
         return None
 
 
@@ -65,7 +96,7 @@ class RIGetSerializer(serializers.ModelSerializer):
     def get_status(self, obj):
         last_status = obj.history.last()
         if last_status:
-            return last_status.status_list.short_name
+            return last_status.status.short_name
         return None
 
     def get_children(self, obj):

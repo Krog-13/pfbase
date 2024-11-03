@@ -232,7 +232,6 @@ class RecordService:
         """
         self.validate_records_update_data(request_data)
         for record in self.records:
-            print(record)
             self.validate_record_update_data(record)
             record = Records.objects.get(id=self.record_id)
             if self.number:
@@ -382,7 +381,6 @@ class TableService:
             label = item.get("short_name").get(self.lang, "ru")
             self.output["header"].append(label)
         for record in self.queryset:
-            print(record.id)
             self.row = []
             for code in self.order_indicators_code:
                 self.set_row(record, code)
@@ -429,7 +427,6 @@ class TableService:
     def get_reference_value(self, value):
         """Получение значения по id из Справочника или Списка"""
         if value.indicator.type_value == 'dct':
-            print(value.value_reference)
             element = dct_models.Elements.objects.filter(id=value.value_reference).first()
             return element.short_name.get(self.lang, "ru")
         elif value.indicator.type_value == 'list':
