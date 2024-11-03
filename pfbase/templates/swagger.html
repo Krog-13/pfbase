@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h3>Records</h3>
+    <table class="table">
+	<thead>
+		<tr>
+			<th>ACTION</th>
+			<th>Serializer</th>
+			<th>Method</th>
+			<th>Body | Query params</th>
+			<th>Import</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>PATCH</td>
+			<td>RecordListUpdateSerializer</td>
+			<td></td>
+            <td>
+                <pre>
+                    <code>
+{
+  "records": [
+    {
+      "record_id": 10,      # id записи
+      "indicators": [
+        {
+          "id": 2,          # id значения
+          "value": "test",  # новое значение
+          "type": "str"
+        },
+        {
+          "id": 129,
+          "value": "76",
+          "type": "int"
+        }
+      ]
+    }
+  ]
+}
+                    </code>
+                </pre>
+            </td>
+			<td>
+                <pre>
+                    <code>
+from pfbase.document.serializers.records import RecordListUpdateSerializer
+
+                    </code>
+                </pre>
+            </td>
+
+		</tr>
+		<tr>
+			<td>POST</td>
+			<td>RecordPackPostSerializer</td>
+			<td></td>
+            <td>
+                <pre>
+                    <code>
+{
+  "main": {
+    "number": "0002",
+    "date": "2024-10-11 14:11",
+    "code": "TRS_CAR",              # or "document_id": 10
+    "status_id": 20
+  },
+  "subs": [
+    {
+      "code": "TRS_DRIVER",         # or "document_id": 11
+      "indicators": [
+        [
+          {
+            "code": "TRS_DRIVER_NAME",
+            "value": "Full Name",
+            "type": "str"
+          },
+          {
+            "code": "TRS_DRIVER_AGE",
+            "value": "33",
+            "type": "int"
+          }
+        ],
+        [
+          {
+            "code": "TRS_DRIVER_NAME",
+            "value": "FG394",
+            "type": "str"
+          },
+          {
+            "code": "TRS_DRIVER_AGE",
+            "value": "Volkswagen",
+            "type": "str"
+          }
+        ]
+      ]
+    },
+    {
+      "code": "TRS_VICTUM",
+      "indicators": [
+        [
+          {
+            "code": "TRS_VICTUM_AGE",
+            "value": "25",
+            "type": "str"
+          },
+          {
+            "code": "TRS_VICTUM_NAME",
+            "value": "Irina",
+            "type": "str"
+          }
+        ],
+        [
+          {
+            "code": "TRS_VICTUM_AGE",
+            "value": "27",
+            "type": "str"
+          },
+          {
+            "code": "TRS_VICTUM_NAME",
+            "value": "Karla",
+            "type": "str"
+          }
+        ]
+      ]
+    }
+  ]
+}
+                    </code>
+                </pre>
+            </td>
+			<td>
+                <pre>
+                    <code>
+from pfbase.document.serializers.records import RecordPackPostSerializer
+
+                    </code>
+                </pre>
+            </td>
+		</tr>
+    <tr>
+			<td>GET</td>
+			<td></td>
+			<td>getByFilter(query_params)</td>
+            <td>
+                <pre>
+                    <code>
+                        KEY:    VALUE
+
+                        str:    "test"
+                        int:    76
+                        date:   "2024-10-11"
+                        ...
+                    </code>
+                </pre>
+            </td>
+			<td>
+                <pre>
+                    <code>
+queryset = Records.objects.getByFilter(query_params)
+                    </code>
+                </pre>
+            </td>
+		</tr>
+
+	</tbody>
+</table>
+
+    <h3>Dictionary</h3>
+    <table class="table">
+	<thead>
+		<tr>
+			<th></th>
+			<th>Last Name</th>
+			<th>ZIP</th>
+			<th>Birthday</th>
+			<th>Points</th>
+			<th>Average</th>
+			<th>Amount</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>Gloria</td>
+			<td>Reeves</td>
+			<td>67439</td>
+			<td>10/18/1985</td>
+			<td>4</td>
+			<td>0.1</td>
+			<td>$50</td>
+		</tr>
+	</tbody>
+</table>
+{% endblock %}
