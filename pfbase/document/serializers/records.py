@@ -35,10 +35,20 @@ class RIValueSerializer(serializers.ModelSerializer):
         model = RecordIndicatorValues
         fields = 'id', 'short_name', 'code', 'type_value', 'type_extend', 'value_reference', 'value'
 
+    # def get_short_name(self, obj):
+    #     query_params = self.context['request'].query_params
+    #     lang = query_params.get('lang', 'ru')
+    #     return obj.indicator.short_name.get(lang)
+
     def get_short_name(self, obj):
         query_params = self.context['request'].query_params
-        lang = query_params.get('lang', 'ru')
-        return obj.indicator.short_name.get(lang)
+        lang = query_params.get('lang')
+        if not lang or lang not in ["ru", "en", "kk"]:
+            return obj.indicator.short_name
+        short_name = obj.indicator.short_name.get(lang, None)
+        obj.indicator.short_name = {}
+        obj.indicator.short_name[lang] = short_name
+        return obj.indicator.short_name
 
     def get_value_name(self, obj):
         query_params = self.context['request'].query_params

@@ -26,7 +26,7 @@ class ElementsAPIView(AbstractModelAPIView):
         indicators = self.get_queryset().filter(dictionary_id=pk)
         page = self.paginate_queryset(indicators)
         if page is not None:
-            serializer = EIGetSerializer(page, many=True)
+            serializer = EIGetSerializer(page, many=True, context={'request': request})
             return self.get_paginated_response(serializer.data)
         if not indicators:
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -53,7 +53,7 @@ class EIAPIView(views.APIView):
             queryset = self.queryset.get(id=pk)
         except elements.Elements.DoesNotExist:
             return Response({"message": "Element not found"}, status=status.HTTP_404_NOT_FOUND)
-        return Response(EIGetSerializer(queryset, many=False, context={'request':request}).data)
+        return Response(EIGetSerializer(queryset, many=False, context={'request': request}).data)
 
     def post(self, request):
         serializer = EIPostSerializer(data=request.data, context={'request': request})
