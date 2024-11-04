@@ -25,7 +25,7 @@ class LValuesAPIView(AbstractModelAPIView):
         enums = self.get_queryset().filter(list=item)
         if not enums:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = self.serializer_class(enums, many=True)
+        serializer = self.serializer_class(enums, many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], url_path='bylistandcode/(?P<item>[^/.]+)/(?P<code>[^/.]+)')
@@ -36,5 +36,5 @@ class LValuesAPIView(AbstractModelAPIView):
         enums = self.get_queryset().filter(list=item, code=code)
         if not enums:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = self.serializer_class(enums, many=True)
+        serializer = self.serializer_class(enums, many=True, context={'request': request})
         return Response(serializer.data)
