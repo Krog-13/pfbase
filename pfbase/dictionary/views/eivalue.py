@@ -25,7 +25,7 @@ class EIValuesAPIView(ModelViewSet):
         values = self.get_queryset().filter(element_id=element_id)
         if not values:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = self.serializer_class(values, many=True)
+        serializer = self.serializer_class(values, many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], url_path='byindicator/(?P<indicator_id>\d+)')
@@ -36,5 +36,5 @@ class EIValuesAPIView(ModelViewSet):
         values = self.get_queryset().filter(indicator_id=indicator_id)
         if not values:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = self.serializer_class(values, many=True)
+        serializer = self.serializer_class(values, many=True, context={'request': request})
         return Response(serializer.data)
