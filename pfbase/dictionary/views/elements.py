@@ -53,7 +53,7 @@ class EIAPIView(views.APIView):
             queryset = self.queryset.get(id=pk)
         except elements.Elements.DoesNotExist:
             return Response({"message": "Element not found"}, status=status.HTTP_404_NOT_FOUND)
-        return Response(EIGetSerializer(queryset, many=False, context={'request':request}).data)
+        return Response(EIGetSerializer(queryset, many=False, context={'request': request}).data)
 
     def post(self, request):
         serializer = EIPostSerializer(data=request.data, context={'request': request})
