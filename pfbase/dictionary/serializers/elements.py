@@ -106,6 +106,7 @@ class EIPostSerializer(CommonSerializer):
     code = serializers.CharField(max_length=50, required=False)
     parent_id = serializers.IntegerField(required=False)
     indicators = IndicatorSerializer(many=True, required=False)
+    organization_id = serializers.IntegerField(required=False)
 
     def create(self, validated_data):
 

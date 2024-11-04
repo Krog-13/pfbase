@@ -5,8 +5,11 @@ from rest_framework.response import Response
 from pfbase.base_views import AbstractModelAPIView
 from pfbase.pagination import CustomPagination
 from ..serializers.elements import EIGetSerializer, EIPostSerializer, EIUpdateSerializer
-from ..models import elements
+from ..models import elements, dictionaries, indicators
+from ...system.models import organization
+from rest_framework.parsers import MultiPartParser, FormParser
 from ..service import find_driver
+import openpyxl
 
 
 class ElementsAPIView(AbstractModelAPIView):
@@ -87,3 +90,121 @@ class EIAPIView(views.APIView):
         except elements.Elements.DoesNotExist:
             return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class FileUploadView(views.APIView):
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request):
+        uploaded_file = request.FILES.get('file')
+        if not uploaded_file:
+            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            code = uploaded_file.name.split('_', 1)[-1].split('.')[0].strip()
+            if not dictionaries.Dictionaries.objects.filter(code=code).exists():
+                return Response({"error": f"Code '{code}' not found in the database"},
+                                status=status.HTTP_404_NOT_FOUND)
+            workbook = openpyxl.load_workbook(uploaded_file, data_only=True)
+
+            if 'PF' not in workbook.sheetnames:
+                return Response({"error": "Sheet 'PF' not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+            sheet = workbook['PF']
+            headers = [cell for cell in next(sheet.iter_rows(min_row=1, max_row=1, values_only=True))]
+            data = []
+
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                row_data = dict(zip(headers, row))
+                code_el = row_data.get("CODE", "")
+                org_code = row_data.get("ORGANIZATION.code")
+                org_identifier = row_data.get("ORGANIZATION.identifier")
+
+                organization_id = None
+                if org_code:
+                    organization_id = organization.Organization.objects.getByCode(org_code)
+                elif org_identifier:
+                    organization_id = organization.Organization.objects.getByIdentifier(org_identifier)
+
+                if not organization_id:
+                    continue
+                short_name = {
+                    "ru": row_data.get("SHORTNAME.ru", ""),
+                    "kz": row_data.get("SHORTNAME.kz", ""),
+                    "en": row_data.get("SHORTNAME.en", "")
+                }
+
+                dictionary_entry = dictionaries.Dictionaries.objects.getByCode(code)
+                if not dictionary_entry:
+                    continue
+
+                dictionary_id = dictionary_entry
+                indicators_list = []
+                element_pod = None
+                for header, value in row_data.items():
+                    if header and header.startswith("IDC.") and value is not None:
+                        parts = header.split('.')
+                        if len(parts) >= 3:
+                            ind_code = parts[1]
+                            data_type = parts[2]
+                            if data_type == "int":
+                                ind_type = "int"
+                            elif data_type == "str":
+                                ind_type = "str"
+                            elif data_type == "date":
+                                ind_type = "date"
+                            elif data_type == "time":
+                                ind_type = "time"
+                            elif data_type == "bool":
+                                ind_type = "bool"
+                            elif data_type == "float":
+                                ind_type = "float"
+                            elif data_type == "datetime":
+                                ind_type = "datetime"
+                            elif data_type == "text":
+                                ind_type = "text"
+                            elif data_type == "dct":
+                                ind_type = "dct"
+                            else:
+                                continue
+                            indicator_entry = indicators.DctIndicators.objects.getByCode(ind_code)
+                            if header in "IDC.TRS_VEHCARD_CLASS.dct":
+                                try:
+                                    element_id = elements.Elements.objects.getByCode(value)
+                                    if element_id:
+                                        value = element_id
+                                except elements.Elements.DoesNotExist:
+                                    continue
+                            elif header == "IDC.TRS_VEHCARD_NGDU.dct":
+                                value = row_data.get("IDC.TRS_VEHCARD_NGDU.dct")
+
+                            if indicator_entry:
+                                indicators_list.append({
+                                    "id": indicator_entry,
+                                    "code": ind_code,
+                                    "value": value,
+                                    "type": ind_type,
+                                })
+
+                json_entry = {
+                    "short_name": short_name,
+                    "code": code_el,
+                    "dictionary_id": dictionary_id,
+                    "indicators": indicators_list,
+                    "organization_id": organization_id,
+                }
+
+                data.append(json_entry)
+            for entry in data:
+                serializer = EIPostSerializer(data=entry, context={'request': request})
+                if serializer.is_valid():
+                    serializer.save()
+                else:
+                    return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "All elements created successfully"}, status=status.HTTP_201_CREATED)
+
+        except openpyxl.utils.exceptions.InvalidFileException:
+            return Response({"error": "Invalid file format. Please upload a valid Excel file."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
