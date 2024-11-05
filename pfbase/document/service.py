@@ -127,17 +127,16 @@ class RecordService:
 
         for sub in self.subs:
             self.sub_validate_data(sub)
-
-            sub_record = Records.objects.create(
-                number=self.number,
-                date=self.date,
-                parent=main_record,
-                author=user,
-                document=self.document)
             for row in sub.get('indicators', []):
+                sub_record = Records.objects.create(
+                    number=self.number,
+                    date=self.date,
+                    parent=main_record,
+                    author=user,
+                    document=self.document)
                 self.create_riv(sub_record, row)
-            if status_id := sub.get('status_id'):
-                self.create_history(sub_record, status_id, user)
+                if status_id := sub.get('status_id'):
+                    self.create_history(sub_record, status_id, user)
         return main_record
 
     @transaction.atomic
