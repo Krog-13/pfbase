@@ -113,5 +113,8 @@ class CommonManager(models.Manager):
     def getById(self, id):
         return self.get(id=id).code
 
+    def getByListAndCode(self, list, code):
+        return self.get(list=list, code=code).id
+
     def getAll(self):
         return self.all()

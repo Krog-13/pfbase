@@ -55,7 +55,7 @@ class RecordsManager(models.Manager):
                 quryset = quryset.annotate(
                     latest_status_date=Max('history__created_at')
                 ).filter(
-                    history__status_id=value,
+                    history__status_id__in=value,
                     history__created_at=F('latest_status_date')
                 )
         return quryset
