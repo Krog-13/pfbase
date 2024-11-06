@@ -103,7 +103,7 @@ class CommonSerializer(serializers.Serializer):
 
 
 class IndicatorSerializer(CommonSerializer):
-    id = serializers.IntegerField()
+    id = serializers.IntegerField(required=False)
     code = serializers.CharField(max_length=50, required=False)
     value = serializers.CharField(max_length=100)
     type = serializers.CharField(max_length=10)
