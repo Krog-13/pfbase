@@ -23,7 +23,10 @@ class ElementsAPIView(AbstractModelAPIView):
         """
         Получения элементов по :pk ABCDictionary
         """
-        indicators = self.get_queryset().filter(dictionary_id=pk)
+        dictionary = elements.Dictionaries.objects.get(pk=pk)
+        params = request.GET.copy()
+        params["DICT_CODE"] = dictionary.code
+        indicators = elements.Elements.objects.getByFilter(params)       
         page = self.paginate_queryset(indicators)
         if page is not None:
             serializer = EIGetSerializer(page, many=True, context={'request': request})
