@@ -4,9 +4,10 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from pfbase.pagination import CustomPagination
 from rest_framework.views import APIView
-from ..serializers.user import UserSerializer, RegisterUserSerializer, GroupSerializer
+from ..serializers.user import UserSerializer, GroupSerializer, RegisterUserSerializer
 from ..models.user import User
 from django.contrib.auth.models import Group
+from rest_framework.generics import CreateAPIView
 
 
 class UserAPIView(ModelViewSet):
@@ -19,7 +20,7 @@ class UserAPIView(ModelViewSet):
     pagination_class = CustomPagination
 
 
-class RegisterUserAPIView(APIView):
+class RegisterUserAPIView(CreateAPIView):
     """
     Регистрация нового пользователя
     """
