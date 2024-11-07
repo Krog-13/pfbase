@@ -1,7 +1,7 @@
 from pfbase.base_models import default_name, CommonManager
 from .dictionaries import Dictionaries
 from django.db import models
-
+from ..manager import ElementManager
 
 class Elements(models.Model):
     """
@@ -29,7 +29,7 @@ class Elements(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    objects = CommonManager()
+    objects = ElementManager()
 
     def __str__(self):
         return self.short_name.get("ru", "No name")
