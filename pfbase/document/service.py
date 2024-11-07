@@ -4,7 +4,7 @@ from pfbase.exception import WrongType
 from datetime import datetime
 from ..system import models as stm_models
 from ..dictionary import models as dct_models
-from .models import Records, DcmIndicators, Documents
+from .models import Records, DcmIndicators, Documents, RecordIndicatorValues
 from django.db.models import Case, When, IntegerField
 from django.utils import timezone
 
@@ -200,7 +200,13 @@ class RecordService:
     def record_update_iv(self, indicators, record):
         for indicator in indicators:
             type_value = indicator.get('type')
-            rv = record.record_values.get(id=indicator.get('id'), indicator__type_value=type_value)
+            code = indicator.get('code')
+            id = indicator.get('id')
+            try:
+                rv = record.record_values.get(id=id, indicator__type_value=type_value)
+            except RecordIndicatorValues.DoesNotExist:
+                record_indicator = DcmIndicators.objects.get(code=code, type_value=type_value)
+                rv = record.record_values.create(indicator=record_indicator)
             some_value = indicator.get('value')
             result = self.separate_value(rv, type_value, some_value)
             if not result:
