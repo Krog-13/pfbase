@@ -1,4 +1,4 @@
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
@@ -16,7 +16,7 @@ class RegisterUserSerializer(serializers.ModelSerializer):
     """
     Сериализатор для регистрации пользователей
     """
-    username = serializers.CharField(min_length=6, max_length=20,
+    username = serializers.CharField(min_length=4, max_length=40,
                                      validators=[UniqueValidator(queryset=User.objects.all())])
 
     email = serializers.EmailField(
@@ -30,10 +30,13 @@ class RegisterUserSerializer(serializers.ModelSerializer):
     password_confirm = serializers.CharField(
         write_only=True, required=True
     )
+    first_name = serializers.CharField(min_length=4, max_length=40, required=True)
+    last_name = serializers.CharField(min_length=4, max_length=40, required=True)
+    groups = serializers.CharField(required=True)
 
     class Meta:
         model = User
-        fields = ("password", "password_confirm", "email", "username")
+        fields = ("password", "password_confirm", "email", "username", "first_name", "last_name", "groups")
 
     def validate(self, attrs):
         if attrs["password"] != attrs["password_confirm"]:
@@ -43,11 +46,16 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        user = User.objects.create(
-            email=validated_data["email"],
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=validated_data['password'],
+            last_name=validated_data['last_name'],
+            first_name=validated_data['first_name']
+
         )
         user.set_password(validated_data["password"])
-        user.is_active = False  # Пользователь должен подтвердить регистрацию
+        user.is_active = True
         user.save()
         return user
 
