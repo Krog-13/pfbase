@@ -28,6 +28,7 @@ class ElementService:
         self.code = request_data.get('code')
         self.dictionary_id = request_data.get('dictionary_id')
         self.parent_id = request_data.get('parent_id')
+        self.organization_id = request_data.get('organization_id')
         self.indicators = request_data.get('indicators', [])
 
         if not self.dictionary_id and not self.code:
@@ -39,6 +40,7 @@ class ElementService:
         self.full_name = request_data.get('full_name')
         self.code = request_data.get('code')
         self.parent_id = request_data.get('parent_id')
+        self.organization_id = request_data.get('organization_id')
         self.indicators = request_data.get('indicators', [])
 
     @transaction.atomic
@@ -54,7 +56,9 @@ class ElementService:
             code=self.code,
             dictionary=dictionary,
             author=user,
-            parent=parent_e)
+            parent=parent_e,
+            organization_id=self.organization_id
+        )
 
         if not self.indicators:
             return element
@@ -76,6 +80,9 @@ class ElementService:
             element.full_name = self.full_name
         if self.code:
             element.code = self.code
+        if self.organization_id:
+            element.organization_id = self.organization_id
+
         element.author = user
         element.save()
 

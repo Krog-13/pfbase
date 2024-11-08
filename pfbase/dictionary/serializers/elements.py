@@ -135,6 +135,8 @@ class EIUpdateSerializer(CommonSerializer):
     code = serializers.CharField(max_length=50, required=False)
     parent_id = serializers.IntegerField(required=False)
     indicators = IndicatorSerializer(many=True, required=False)
+    dictionary_id = serializers.IntegerField(required=False)
+    organization_id = serializers.IntegerField(required=False)
 
     def update(self, instance, validated_data):
         user = self.context['request'].user
