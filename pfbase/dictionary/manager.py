@@ -41,7 +41,7 @@ class ElementManager(models.Manager):
                 queryset = queryset.filter(organization=value)
             if key == "parent_id":
                 queryset = queryset.filter(parent=value)
-            if key not in ["short_name", "full_name", "DICT_CODE", "CODE", "active", "organization_id", "parent_id"]:
+            if key not in ["short_name", "full_name", "DICT_CODE", "CODE", "active", "organization_id", "parent_id", "page"]:
                 from .models import DctIndicators
                 indic = DctIndicators.objects.get(code=key)
                 if indic.type_value == IndicatorType.STRING:
