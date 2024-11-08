@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
 from .organization import Organization
 
@@ -7,6 +7,7 @@ class User(AbstractUser):
     """
     Пользователь
     """
+
     avatar = models.ImageField(upload_to='users', verbose_name='Фото профиля', null=True, blank=True)
     is_blocked = models.BooleanField(default=False, verbose_name='Заблокирован')
     organization = models.ForeignKey(
