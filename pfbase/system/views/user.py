@@ -4,10 +4,11 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from pfbase.pagination import CustomPagination
 from rest_framework.views import APIView
-from ..serializers.user import UserSerializer, GroupSerializer, RegisterUserSerializer
+from ..serializers.user import UserSerializer, RegisterUserSerializer, GroupSerializer, PermissionSerializer
 from ..models.user import User
 from django.contrib.auth.models import Group
 from rest_framework.generics import CreateAPIView
+from django.contrib.auth.models import Permission
 
 
 class UserAPIView(ModelViewSet):
@@ -40,4 +41,11 @@ class GroupAPIView(ModelViewSet):
     queryset = Group.objects.all().order_by('id')
     serializer_class = GroupSerializer
     permission_classes = (IsAuthenticated,)
+    pagination_class = CustomPagination
+
+
+class PermissionAPIView(ModelViewSet):
+    queryset = Permission.objects.all().order_by('id')
+    permission_classes = (IsAuthenticated,)
+    serializer_class = PermissionSerializer
     pagination_class = CustomPagination

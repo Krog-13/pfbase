@@ -1,15 +1,27 @@
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import Group, User, Permission
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 from ..models.user import User
 
 
+class PermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Permission
+        fields = '__all__'
+
+
+class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = '__all__'
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = 'last_login', 'is_superuser', 'username', 'first_name', 'last_name', 'email', \
-            'is_staff', 'is_active', 'date_joined', 'avatar', 'is_blocked', 'organization'
+            'is_staff', 'is_active', 'date_joined', 'avatar', 'is_blocked', 'organization', 'groups'
 
 
 class RegisterUserSerializer(serializers.ModelSerializer):
@@ -32,12 +44,12 @@ class RegisterUserSerializer(serializers.ModelSerializer):
     )
     first_name = serializers.CharField(min_length=4, max_length=40, required=True)
     last_name = serializers.CharField(min_length=4, max_length=40, required=True)
-    groups = serializers.CharField(required=False)
+    groups = serializers.ListField(required=False)
     organization_id = serializers.IntegerField(required=False)
 
     class Meta:
         model = User
-        fields = ("password", "password_confirm", "email", "username", "first_name", "last_name", "organization_id", "groups")
+        fields = ("password", "password_confirm", "email", "username", "first_name", "last_name", "organization_id","groups")
 
     def validate(self, attrs):
         if attrs["password"] != attrs["password_confirm"]:
@@ -55,7 +67,8 @@ class RegisterUserSerializer(serializers.ModelSerializer):
             first_name=validated_data['first_name'],
             organization_id=validated_data.get('organization_id', None)
         )
-        user.groups.set([1,2])
+
+        user.groups.set(validated_data['groups'])
 
         user.set_password(validated_data["password"])
         user.is_active = True
@@ -63,8 +76,4 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         return user
 
 
-class GroupSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Group
-        fields = '__all__'
 
