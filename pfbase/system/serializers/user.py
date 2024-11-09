@@ -46,10 +46,11 @@ class RegisterUserSerializer(serializers.ModelSerializer):
     last_name = serializers.CharField(min_length=4, max_length=40, required=True)
     groups = serializers.ListField(required=False)
     organization_id = serializers.IntegerField(required=False)
+    job_title = serializers.CharField(min_length=4, max_length=40, required=True)
 
     class Meta:
         model = User
-        fields = ("password", "password_confirm", "email", "username", "first_name", "last_name", "organization_id","groups")
+        fields = ("password", "password_confirm", "email", "username", "first_name", "last_name", "organization_id", "groups", "job_title")
 
     def validate(self, attrs):
         if attrs["password"] != attrs["password_confirm"]:
