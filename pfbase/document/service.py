@@ -4,7 +4,7 @@ from pfbase.exception import WrongType
 from datetime import datetime
 from ..system import models as stm_models
 from ..dictionary import models as dct_models
-from .models import Records, DcmIndicators, Documents, RecordIndicatorValues
+from .models import Records, DcmIndicators, Documents, RecordIndicatorValues, RecordHistory
 from django.db.models import Case, When, IntegerField
 from django.utils import timezone
 
@@ -452,3 +452,23 @@ def table_present(queryset, params, data):
     except KeyError:
         return {"message": "Error"}
     return output
+
+
+class HistoryService:
+
+    @transaction.atomic
+    def create_record_history(self, user, validated_data):
+        """
+        Create Record with their Indicators
+        """
+        records = validated_data.get('records')
+        for record in records:
+            record_id = record.get("record_id")
+            status_id = record.get("status_id")
+            if record_id and status_id:
+                RecordHistory.objects.create(
+                    record_id=record_id,
+                    status_id=status_id,
+                    action="update",
+                    author=user)
+        return True
