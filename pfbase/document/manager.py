@@ -3,7 +3,7 @@ from django.db import models
 from ..base_models import IndicatorType
 from django.utils import timezone
 from datetime import datetime
-# from django.db.models.functions import TruncDate
+from django.db.models import Q
 
 
 class RecordsManager(models.Manager):
@@ -11,7 +11,7 @@ class RecordsManager(models.Manager):
         output = self.findByQuery(params)
         return output
 
-    def findByQuery(self, params):
+    def findByQueryOld(self, params):
         """
         Поиск по параметрам
         """
@@ -59,6 +59,67 @@ class RecordsManager(models.Manager):
                     history__created_at=F('latest_status_date')
                 )
         return quryset
+
+    def findByQuery(self, params):
+        queryset = self.all()
+        for key, value in params.items():
+            if key == "NUMBER":
+                queryset = queryset.filter(number=value)
+            if key == "DCM_CODE":
+                queryset = queryset.filter(document__code=value)
+            if key == "active":
+                queryset = queryset.filter(active=value)
+            if key == "organization_id":
+                queryset = queryset.filter(organization=value)
+            if key == "parent_id":
+                queryset = queryset.filter(parent=value)
+            if key not in ["NUMBER", "DCM_CODE", "active", "organization_id", "parent_id", "page", "lang",
+                           "status", "date", "STATUS"]:
+                from .models import DcmIndicators
+                print("key", key)
+                indic = DcmIndicators.objects.get(code=key)
+                if indic.type_value == IndicatorType.STRING:
+                    queryset = queryset.filter(record_values__indicator__code=key, record_values__value_str=value)
+                elif indic.type_value == IndicatorType.INTEGER:
+                    queryset = queryset.filter(record_values__indicator__code=key, record_values__value_int=value)
+                elif indic.type_value == IndicatorType.FLOAT:
+                    queryset = queryset.filter(record_values__indicator__code=key, record_values__value_float=value)
+                elif indic.type_value == IndicatorType.BOOLEAN:
+                    queryset = queryset.filter(record_values__indicator__code=key, record_values__value_bool=value)
+                elif indic.type_value == IndicatorType.DICTIONARY:
+                    queryset = queryset.filter(record_values__indicator__code=key, record_values__value_reference=value)
+                elif indic.type_value == IndicatorType.LIST:
+                    queryset = queryset.filter(record_values__indicator__code=key, record_values__value_reference=value)
+                elif indic.type_value == IndicatorType.DOCUMENT:
+                    queryset = queryset.filter(record_values__indicator__code=key, record_values__value_reference=value)
+                elif indic.type_value == IndicatorType.TIME:
+                    parsed_value = give_date_format(value, "time")
+                    if parsed_value:
+                        queryset = queryset.filter(
+                            record_values__indicator__code=key,
+                            record_values__value_datetime__hour=parsed_value.hour,
+                            record_values__value_datetime__minute=parsed_value.minute
+                        )
+                elif indic.type_value == IndicatorType.DATE:
+                    parsed_value = give_date_format(value, "date")
+                    if parsed_value:
+                        queryset = queryset.filter(
+                            record_values__indicator__code=key,
+                            record_values__value_datetime__date=parsed_value.date()
+                        )
+                elif indic.type_value == IndicatorType.DATETIME:
+                    datetime_only = datetime.strptime(value, "%Y-%m-%d %H:%M")
+                    date_only = datetime_only.date()
+                    hour_only = datetime_only.hour
+                    minute_only = datetime_only.minute
+                    queryset = queryset.filter(
+                        record_values__indicator__code=key,
+                        record_values__value_datetime__date=date_only,
+                        record_values__value_datetime__hour=hour_only,
+                        record_values__value_datetime__minute=minute_only
+                    )
+        return queryset
+
 
 def give_date_format(date_str, type_value):
     """
