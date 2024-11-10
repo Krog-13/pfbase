@@ -141,6 +141,13 @@ class FileUploadView(views.APIView):
                 if has_pk and search_criteria:
                     element = Elements.objects.filter(**search_criteria).first()
 
+                parent_code = row_data.get("PARENT.CODE")
+                parent_id = None
+                if parent_code:
+                    parent_element = Elements.objects.filter(code=parent_code).first()
+                    if parent_element:
+                        parent_id = parent_element.id
+
                 short_name = {}
                 for header, value in row_data.items():
                     if header.startswith("SHORTNAME.") and value:
@@ -211,6 +218,7 @@ class FileUploadView(views.APIView):
                     "dictionary_id": dictionary_id,
                     "indicators": indicators_list,
                     "organization_id": organization_id,
+                    "parent_id": parent_id,
                 }
 
                 if element:
