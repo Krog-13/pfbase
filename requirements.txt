@@ -7,3 +7,4 @@ django-environ
 gunicorn==23.0.0
 pillow==11.0.0
 django-filter==24.3
+openpyxl==3.1.2

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from pfbase.pagination import CustomPagination
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
-from ..serializers.user import UserSerializer, RegisterUserSerializer, GroupSerializer, \
+from ..serializers.user import UserSerializer, RegisterUserSerializer, RolesSerializer, \
     PermissionSerializer, AuthTokenSerializer
 from ..models.user import User
 from rest_framework.views import APIView

@@ -6,7 +6,7 @@ presented for schemes:
 """
 from rest_framework import routers
 from django.urls import path
-from ..views.user import UserAPIView, GroupAPIView, RegisterUserAPIView, PermissionAPIView
+from ..views.user import UserAPIView, RegisterUserAPIView, PermissionAPIView, RolesAPIView
 from ..views.user import CustomAuthToken, UserLogout
 
 user_router = routers.DefaultRouter()
