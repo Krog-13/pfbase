@@ -53,11 +53,11 @@ class ElementManager(models.Manager):
                 elif indic.type_value == IndicatorType.BOOLEAN:
                     queryset = queryset.filter(element_values__indicator__code=key,element_values__value_bool=value)
                 elif indic.type_value == IndicatorType.DICTIONARY:
-                    queryset = queryset.filter(element_values__indicator_code=key,element_values__value_reference=value)
+                    queryset = queryset.filter(element_values__indicator__code=key,element_values__value_reference=value)
                 elif indic.type_value == IndicatorType.LIST:
-                    queryset = queryset.filter(element_values__indicator_code=key,element_values__value_reference=value)
+                    queryset = queryset.filter(element_values__indicator__code=key,element_values__value_reference=value)
                 elif indic.type_value == IndicatorType.DOCUMENT:
-                    queryset = queryset.filter(element_values__indicator_code=key,element_values__value_reference=value)
+                    queryset = queryset.filter(element_values__indicator__code=key,element_values__value_reference=value)
                 elif indic.type_value == IndicatorType.TIME:
                     parsed_value = give_date_format(value, "time")
                     if parsed_value:
