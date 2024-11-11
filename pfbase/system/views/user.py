@@ -40,11 +40,10 @@ class RegisterUserAPIView(CreateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class GroupAPIView(ModelViewSet):
+class RolesAPIView(ModelViewSet):
     queryset = Group.objects.all().order_by('id')
-    serializer_class = GroupSerializer
+    serializer_class = RolesSerializer
     permission_classes = (IsAuthenticated,)
-    pagination_class = CustomPagination
 
 
 class PermissionAPIView(ModelViewSet):
