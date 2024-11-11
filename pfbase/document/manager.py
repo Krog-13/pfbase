@@ -76,7 +76,6 @@ class RecordsManager(models.Manager):
             if key not in ["NUMBER", "DCM_CODE", "active", "organization_id", "parent_id", "page", "lang",
                            "status", "date", "STATUS"]:
                 from .models import DcmIndicators
-                print("key", key)
                 indic = DcmIndicators.objects.get(code=key)
                 if indic.type_value == IndicatorType.STRING:
                     queryset = queryset.filter(record_values__indicator__code=key, record_values__value_str=value)
