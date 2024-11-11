@@ -7,7 +7,6 @@ class User(AbstractUser):
     """
     Пользователь
     """
-
     avatar = models.ImageField(upload_to='users', verbose_name='Фото профиля', null=True, blank=True)
     organization = models.ForeignKey(
         to=Organization, on_delete=models.SET_NULL, null=True, blank=True,
