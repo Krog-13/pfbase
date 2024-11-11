@@ -2,6 +2,7 @@ from .models.notification import Notification
 from .models.listvalues import ListValues
 from .models.organization import Organization
 from .models.user import User
+from django.contrib.auth.admin import UserAdmin
 from django.contrib import admin
 
 
@@ -41,12 +42,15 @@ class OrganizationAdmin(admin.ModelAdmin):
         return obj.full_name.get("ru", obj.code)
 
 
-@admin.register(User)
-class UserAdmin(admin.ModelAdmin):
+# @admin.register(User)
+class CustomUserAdmin(UserAdmin):
     """
     User in admin panel
     """
+
     list_display = ('username', 'email', 'organization', 'id')
+
+admin.site.register(User, CustomUserAdmin)
 
 
 def get_app_list(self, request, app_label=None):
