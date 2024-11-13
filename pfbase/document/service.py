@@ -10,7 +10,7 @@ from django.utils import timezone
 
 Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
 marker = Typing(int="int", float="float", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
-                bool="bool", reference=["dct", "list"])
+                bool="bool", reference=["dct", "list", "dcm"])
 
 
 class RecordService:
@@ -86,6 +86,10 @@ class RecordService:
                 if not value.isdigit():
                     raise WrongType("Invalid type value")
                 dct_models.Elements.objects.get(id=value)
+            elif type_value == marker.reference[2]:
+                if not value.isdigit():
+                    raise WrongType("Invalid type value")
+                Records.objects.get(id=value)
             if idc_id:
                 indicator = DcmIndicators.objects.get(id=idc_id, type_value=type_value)
             else:
