@@ -44,7 +44,7 @@ class IndicatorBase(models.Model):
     type_extend = models.CharField(
         max_length=128, null=True, blank=True, verbose_name='Расширения типа')
     is_filtered = models.BooleanField(
-        default=False, blank=True, verbose_name='Фильтруемый')
+        default=False, blank=True, verbose_name='Добавить в фильтр')
 
     class Meta:
         abstract = True
