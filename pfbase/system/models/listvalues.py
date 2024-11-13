@@ -15,7 +15,7 @@ class ListValues(models.Model):
     active = models.BooleanField(default=True, verbose_name='Активный')
     author = models.ForeignKey(
         to="User", on_delete=models.CASCADE, verbose_name='Автор', related_name="list_values")
-    index_sort = models.PositiveIntegerField(blank=True, verbose_name='Индекс сортировки')
+    index_sort = models.PositiveIntegerField(blank=True, verbose_name='Индекс сортировки', null=True, default=0)
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
