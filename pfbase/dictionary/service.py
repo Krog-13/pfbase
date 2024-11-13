@@ -5,10 +5,11 @@ from django.utils import timezone
 from datetime import datetime
 from ..system import models as stm_models
 from .models import Elements, DctIndicators, Dictionaries
+from ..document import models as dcm_models
 
 Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
 marker = Typing(int="int", float="float", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
-                bool="bool", reference=["dct", "list"])
+                bool="bool", reference=["dct", "list", "dcm"])
 
 
 class ElementService:
@@ -105,6 +106,10 @@ class ElementService:
             if not some_value.isdigit():
                 raise WrongType("Invalid type value")
             Elements.objects.get(id=some_value)
+        elif type_value == marker.reference[2]:
+            if not some_value.isdigit():
+                raise WrongType("Invalid type value")
+            dcm_models.Records.objects.get(id=some_value)
 
         if idc_id:
             dct_indicator = DctIndicators.objects.get(id=idc_id, type_value=type_value)
