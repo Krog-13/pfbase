@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from pfbase.pagination import CustomPagination
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
-from ..serializers.user import UserSerializer, RegisterUserSerializer, RolesSerializer, \
+from ..serializers.user import UserSerializer, RegistrationUserSerializer, RolesSerializer, \
     PermissionSerializer, AuthTokenSerializer
 from ..models.user import User
 from rest_framework.views import APIView
@@ -24,13 +24,13 @@ class UserAPIView(ModelViewSet):
     pagination_class = CustomPagination
 
 
-class RegisterUserAPIView(CreateAPIView):
+class RegistrationUserAPIView(CreateAPIView):
     """
     Регистрация нового пользователя
     """
 
     def post(self, request, *args, **kwargs):
-        serializer = RegisterUserSerializer(data=request.data, context={'request': request})
+        serializer = RegistrationUserSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(

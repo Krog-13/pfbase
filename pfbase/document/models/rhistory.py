@@ -16,6 +16,7 @@ class RecordHistory(models.Model):
         to="ListValues", on_delete=models.SET_NULL, null=True, verbose_name='Статус')
     action = models.CharField(
         max_length=10, choices=Action.choices, verbose_name='Действие', default=Action.CREATED)
+    comment = models.TextField(verbose_name='Комментарий', null=True, blank=True, max_length=900)
     stamp = models.JSONField(verbose_name='Слепок', null=True, blank=True)
     sign_stamp = models.TextField(verbose_name='Слепок подписания', null=True, blank=True)
     record = models.ForeignKey(

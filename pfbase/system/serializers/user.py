@@ -25,9 +25,9 @@ class UserSerializer(serializers.ModelSerializer):
             'is_staff', 'is_active', 'date_joined', 'avatar', 'organization', 'groups'
 
 
-class RegisterUserSerializer(serializers.ModelSerializer):
+class RegistrationUserSerializer(serializers.ModelSerializer):
     """
-    Сериализатор для регистрации пользователей
+    Сериализатор для регистрации пользователя
     """
     username = serializers.CharField(min_length=4, max_length=40,
                                      validators=[UniqueValidator(queryset=User.objects.all())])
@@ -47,11 +47,14 @@ class RegisterUserSerializer(serializers.ModelSerializer):
     last_name = serializers.CharField(min_length=4, max_length=40, required=True)
     groups = serializers.ListField(required=False)
     organization_id = serializers.IntegerField(required=False)
-    job_title = serializers.CharField(min_length=4, max_length=40, required=True)
+    avatar = serializers.ImageField(required=False)
+    is_active = serializers.BooleanField(default=True)
+    is_staff = serializers.BooleanField(default=False)
 
     class Meta:
         model = User
-        fields = ("password", "password_confirm", "email", "username", "first_name", "last_name", "organization_id", "groups", "job_title")
+        fields = ("password", "password_confirm", "email", "username", "first_name", "last_name", "organization_id",
+                  "groups", "avatar", "is_active", "is_staff")
 
     def validate(self, attrs):
         if attrs["password"] != attrs["password_confirm"]:
@@ -67,13 +70,13 @@ class RegisterUserSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             last_name=validated_data['last_name'],
             first_name=validated_data['first_name'],
-            organization_id=validated_data.get('organization_id', None)
-        )
-
-        user.groups.set(validated_data['groups'])
+            organization_id=validated_data.get('organization_id', None),
+            is_active=validated_data['is_active'],
+            is_staff=validated_data['is_staff'],
+            avatar=validated_data.get('avatar', None))
 
         user.set_password(validated_data["password"])
-        user.is_active = True
+        user.groups.set(validated_data.get('groups', []))
         user.save()
         return user
 

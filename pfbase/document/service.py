@@ -465,10 +465,12 @@ class HistoryService:
         for record in records:
             record_id = record.get("record_id")
             status_id = record.get("status_id")
+            comment = record.get("comment")
             if record_id and status_id:
                 RecordHistory.objects.create(
                     record_id=record_id,
                     status_id=status_id,
+                    comment=comment,
                     action="update",
                     author=user)
         return True
