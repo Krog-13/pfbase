@@ -75,7 +75,7 @@ class RecordIndicatorValueAdmin(admin.ModelAdmin):
     """
     Record-Indicator Value in the admin panel
     """
-    fields = (("value_int", "value_float", "value_str", "value_text"), "value_datetime", "value_reference",
+    fields = (("value_int", "value_float", "value_str", "value_text", "value_json"), "value_datetime", "value_reference",
               "index_sort", "record", "indicator", "active")
     list_display = ("some_value", "type_value", "indicator", "record", "index_sort", "id")
     search_fields = (
