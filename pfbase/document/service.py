@@ -9,8 +9,8 @@ from django.db.models import Case, When, IntegerField
 from django.utils import timezone
 
 Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
-marker = Typing(int="int", float="float", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
-                bool="bool", reference=["dct", "list", "dcm"])
+marker = Typing(int="int", float="float", str="str", text="text", json='json',
+                datetime=["datetime", "date", "time"], bool="bool", reference=["dct", "list", "dcm"])
 
 
 class RecordService:
