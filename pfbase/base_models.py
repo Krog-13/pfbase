@@ -12,6 +12,7 @@ class IndicatorType(models.TextChoices):
     FLOAT = 'float', 'Float'
     BOOLEAN = 'bool', 'Boolean'
     LIST = 'list', 'List'
+    CHECKBOX = 'checkbox', 'Checkbox'
     DATETIME = 'datetime', 'Datetime'
     DATE = 'date', 'Date'
     TIME = 'time', 'Time'

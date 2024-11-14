@@ -8,9 +8,9 @@ from .models import Records, DcmIndicators, Documents, RecordIndicatorValues, Re
 from django.db.models import Case, When, IntegerField
 from django.utils import timezone
 
-Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
-marker = Typing(int="int", float="float", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
-                bool="bool", reference=["dct", "list", "dcm"])
+Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json', 'checkbox'])
+marker = Typing(int="int", float="float", str="str", text="text", json='json', checkbox="checkbox",
+                datetime=["datetime", "date", "time"], bool="bool", reference=["dct", "list", "dcm"])
 
 
 class RecordService:
@@ -86,6 +86,9 @@ class RecordService:
                 if not value.isdigit():
                     raise WrongType("Invalid type value")
                 dct_models.Elements.objects.get(id=value)
+            elif type_value == marker.checkbox:
+                for lv_id in value.split(","):
+                    stm_models.ListValues.objects.get(id=lv_id)
             elif type_value == marker.reference[2]:
                 if not value.isdigit():
                     raise WrongType("Invalid type value")
@@ -335,6 +338,8 @@ class RecordService:
             record_iv.value_reference = value
         elif type_value == marker.json:
             record_iv.value_json = value
+        elif type_value == marker.checkbox:
+            record_iv.value_str = value
         elif type_value in marker.datetime:
             date = self.give_date_format(value, type_value)
             if not date:
