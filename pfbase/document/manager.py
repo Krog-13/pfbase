@@ -3,6 +3,7 @@ from django.db import models
 from ..base_models import IndicatorType
 from django.utils import timezone
 from datetime import datetime
+from django.db.models import Subquery, OuterRef
 from django.db.models import Q
 
 
@@ -73,8 +74,20 @@ class RecordsManager(models.Manager):
                 queryset = queryset.filter(organization=value)
             if key == "parent_id":
                 queryset = queryset.filter(parent=value)
+            if key == "record_date":
+                queryset = queryset.filter(date__date=value)
+            if key == "code_status":
+                from .models import RecordHistory
+                queryset = queryset.annotate(
+                    last_status=Subquery(
+                        RecordHistory.objects.filter(
+                            record=OuterRef('pk')
+                        ).order_by('-created_at').values('status__code')[:1]
+                    )
+                ).filter(last_status=value)
+
             if key not in ["NUMBER", "DCM_CODE", "active", "organization_id", "parent_id", "page", "lang",
-                           "status", "date", "STATUS"]:
+                           "status", "date", "STATUS", "code_status", "record_date"]:
                 from .models import DcmIndicators
                 indic = DcmIndicators.objects.get(code=key)
                 if indic.type_value == IndicatorType.STRING:
