@@ -1,0 +1,15 @@
+image: python:3.11
+
+stages:
+  - deploy
+
+before_script:
+  - apt-get update && apt-get install -y python3-pip
+
+deploy:
+  stage: deploy
+  script:
+    - pip install twine
+    - python3 -m twine upload --repository-url https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/packages/pypi dist/* --username $TWINE_USERNAME --password $TWINE_PASSWORD
+  only:
+    - master
