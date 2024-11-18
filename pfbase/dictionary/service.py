@@ -6,6 +6,12 @@ from datetime import datetime
 from ..system import models as stm_models
 from .models import Elements, DctIndicators, Dictionaries
 from ..document import models as dcm_models
+from rest_framework import status
+from rest_framework.response import Response
+from .models import dictionaries, indicators
+from ..system.models import organization
+import openpyxl
+
 
 Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
 marker = Typing(int="int", float="float", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
@@ -183,3 +189,121 @@ def find_driver(queryset, params):
         values["id"] = driver.id
         output["drivers"].append(values)
     return output
+
+def upload_file(uploaded_file):
+        json_entry_list = []
+        update_json_entry_list = []
+        if not uploaded_file:
+            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            code = uploaded_file.name.split('_', 1)[-1].split('.')[0].strip()
+            if not dictionaries.Dictionaries.objects.filter(code=code).exists():
+                raise Dictionaries.objects.DoesNotExist(f"Dictionary with code {code} not found")
+            dictionary_id = dictionaries.Dictionaries.objects.getByCode(code)
+            workbook = openpyxl.load_workbook(uploaded_file, data_only=True)
+            if 'PF' not in workbook.sheetnames:
+                raise Exception("Sheet 'PF' not found in the file")
+            
+            sheet = workbook['PF']
+            headers = [cell for cell in next(sheet.iter_rows(min_row=1, max_row=1, values_only=True)) if
+                       cell is not None]
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                row_data = dict(zip(headers, row))#коннект каждой строки с хедером
+                if all(value is None for value in row_data.values()):
+                    break
+
+                parent_id = None
+                element = None #for updating
+                organization_id = None
+                indicators_list = []
+                short_name = {}
+                code_el = None
+
+                if 'PARENT.CODE' in headers:
+                    parent_code = row_data.get("PARENT.CODE")
+                    if parent_code:
+                        try:
+                            parent_element = Elements.objects.get(code=str(parent_code).strip())
+                            if parent_element:
+                                parent_id = parent_element.id
+                        except:
+                            continue
+                if "ORGANIZATION.CODE" in headers:
+                    org_code = row_data.get("ORGANIZATION.CODE").strip()            
+                    if org_code:
+                        organization_id = organization.Organization.objects.getByCode(org_code)
+
+                for header, value in row_data.items():
+                    if header.startswith("SHORTNAME.") and value:
+                        lang_code = header.split(".")[1]
+                        short_name[lang_code] = value
+                
+                raw_code_el = row_data.get("CODE(pk)")
+                if raw_code_el:
+                    code_el = str(raw_code_el).strip()             
+                    try:
+                        check_element = Elements.objects.filter(code=code_el).first()
+                        if check_element:
+                            # if Element exists -> update
+                            element = check_element
+                            code_el = None 
+                    except Elements.DoesNotExist:
+                        code_el = row_data.get("CODE(pk)").strip()
+                        
+                if code_el is None and not element:
+                    continue
+
+                for header, value in row_data.items():
+                    if header and header.startswith("IDC.") and value is not None:
+                        parts = header.split('.')
+                        if len(parts) >= 3:
+                            ind_code = parts[1]
+                            ind_type = parts[2]
+                            if not ind_type:
+                                continue
+                            indicator_entry = indicators.DctIndicators.objects.getByCode(ind_code)
+                            if ind_type == "dct" or ind_type == "dcm" or ind_type == "list":
+                                try:
+                                    element_id = Elements.objects.getByCode(value)
+                                    if element_id:
+                                        value = element_id
+                                except Elements.DoesNotExist:
+                                    continue
+                            if ind_type == "date":
+                                value = value.strftime("%Y-%m-%d")
+                            if indicator_entry:
+                                indicators_list.append({
+                                    "id": indicator_entry,
+                                    "code": ind_code,
+                                    "value": value,
+                                    "type": ind_type,
+                                })
+                if code_el is not None and element is None:
+                    json_entry = {
+                        "short_name": short_name,
+                        "dictionary_id": dictionary_id,
+                        "indicators": indicators_list,
+                        "code": code_el,
+                    }
+                    if organization_id is not None:
+                        json_entry["organization_id"] = organization_id
+                    if parent_id is not None:
+                        json_entry["parent_id"] = parent_id
+                    json_entry_list.append(json_entry)
+
+                if element is not None and code_el is None:
+                    json_entry = {
+                        "short_name": short_name,
+                        "indicators": indicators_list,
+                        "dictionary_id": dictionary_id,
+                    }
+                    if parent_id is not None:
+                        json_entry["parent_id"] = parent_id
+                    if organization_id is not None:
+                        json_entry["organization_id"] = organization_id
+                    update_json_entry_list.append((element, json_entry))
+            return json_entry_list,update_json_entry_list
+        except openpyxl.utils.exceptions.InvalidFileException:
+            raise Exception("Invalid file format")
+        except Exception as e:
+            raise Exception(str(e))
