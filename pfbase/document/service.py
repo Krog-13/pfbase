@@ -346,7 +346,7 @@ class RecordService:
         return True
 
     @staticmethod
-    def create_history(record, status_id, user, comment):
+    def create_history(record, status_id, user, comment=None):
         record.history.create(status_id=status_id, author=user, comment=comment)
 
     @staticmethod
