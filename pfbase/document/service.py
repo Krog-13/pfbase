@@ -7,10 +7,17 @@ from ..dictionary import models as dct_models
 from .models import Records, DcmIndicators, Documents, RecordIndicatorValues, RecordHistory
 from django.db.models import Case, When, IntegerField
 from django.utils import timezone
+from .minio_client import MinioClient
+from uuid import uuid4
+
 
 Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
 marker = Typing(int="int", float="float", str="str", text="text", json='json',
                 datetime=["datetime", "date", "time"], bool="bool", reference=["dct", "list", "dcm"])
+
+# Initialize MinioClient
+minio = MinioClient()
+minio.get_client()
 
 
 class RecordService:
@@ -142,6 +149,21 @@ class RecordService:
                 if status_id := sub.get('status_id'):
                     self.create_history(sub_record, status_id, user)
         return main_record
+
+    def create_record_form(self, user, request_data):
+        """
+        Form data with Rocord and File
+        """
+        file = request_data.get('file')
+        if file:
+            file_id = uuid4().hex
+            file_data = f"{file.name},{file_id}"
+            # minio.save_file_minio(file, file_id)
+            print(file_data)
+        data = request_data.get('data')
+        print(data)
+
+        return {"msg": True}
 
     @transaction.atomic
     def create_record_iv(self, user, validated_data):

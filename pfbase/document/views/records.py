@@ -12,9 +12,10 @@ from rest_framework.response import Response
 from rest_framework import status, views, generics, exceptions as exc
 from pfbase.pagination import CustomPagination
 from ..serializers.records import RIGetSerializer, RecordPostSerializer, RecordUpdateSerializer, RecordSerializer, \
-    RecordPackUpdateSerializer, RecordListUpdateSerializer, RecordsSerializer
+    RecordPackUpdateSerializer, RecordListUpdateSerializer, RecordsSerializer, RecordFormDataSerializer
 from ..models.records import Records
 from ..service import table_present
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 
 class RecordAPIView(ModelViewSet):
@@ -45,6 +46,8 @@ class RIAPIView(views.APIView):
     queryset = Records.objects.all().order_by('-created_at')
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
 
     def get(self, request, *args, **kwargs):
         pk = kwargs.get('pk', False)
@@ -60,7 +63,7 @@ class RIAPIView(views.APIView):
         return Response(RIGetSerializer(queryset, many=False).data)
 
     def post(self, request):
-        serializer = RecordPostSerializer(data=request.data, context={'request': request})
+        serializer = RecordFormDataSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "Record created successfully"},

@@ -5,7 +5,6 @@ from ..models.rivalues import RecordIndicatorValues
 from pfbase.dictionary.models.elements import Elements
 from pfbase.system.models.listvalues import ListValues
 from ..service import RecordService
-from pfbase.exception import WrongType
 import datetime
 
 
@@ -139,6 +138,22 @@ class IndicatorSerializer(CommonSerializer):
 class IndicatorUpdateSerializer(CommonSerializer):
     id = serializers.IntegerField(required=True)
     value = serializers.CharField(max_length=100, required=True)
+
+
+class RecordFormDataSerializer(serializers.Serializer):
+    file = serializers.FileField(required=False)
+    data = serializers.JSONField(required=True)
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        if not user:
+            user = self.context['user']
+        try:
+            pass
+            return RecordService().create_record_form(user, validated_data)
+        except ValidationError as e:
+            raise exceptions.ValidationError({"error": str(e)})
+
 
 class RecordPostSerializer(CommonSerializer):
     number = serializers.CharField(required=False, default="0000")
