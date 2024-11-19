@@ -73,7 +73,7 @@ class RecordsManager(models.Manager):
             if key == "organization_id":
                 queryset = queryset.filter(organization=value)
             if key == "parent_id":
-                queryset = queryset.filter(parent=value)
+                queryset = queryset.filter(parent_id=value)
             if key == "record_date":
                 queryset = queryset.filter(date__date=value)
             if key == "code_status":
