@@ -39,3 +39,10 @@ class MinioClient:
         headers = {"Content-Type": "multipart/byteranges", "Access-Control-Expose-Headers": "Content-Disposition",
                    "Content-Disposition": f"attachment; filename*=utf-8''{quote(filename)}"}
         return FileResponse(data_object, as_attachment=True, filename=filename, headers=headers)
+
+    def delete_file_minio(self, file_id):
+        """
+        Delete file from minio
+        """
+        self.client.remove_object(settings.MINIO_BUCKET, file_id)
+        logger.warning(f"Free form file deleted from minio by file_id-{file_id}")

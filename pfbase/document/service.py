@@ -158,10 +158,10 @@ class RecordService:
         if file:
             file_id = uuid4().hex
             file_data = f"{file.name},{file_id}"
-            # minio.save_file_minio(file, file_id)
-            print(file_data)
+            minio.save_file_minio(file, file_id)
         data = request_data.get('data')
-        print(data)
+
+        # self.create_record_iv(user, data)
 
         return {"msg": True}
 
