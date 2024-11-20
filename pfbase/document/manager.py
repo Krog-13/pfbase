@@ -76,6 +76,13 @@ class RecordsManager(models.Manager):
                 queryset = queryset.filter(parent_id=value)
             if key == "record_date":
                 queryset = queryset.filter(date__date=value)
+            if key == "STATUS":
+                queryset = queryset.annotate(
+                    latest_status_date=Max('history__created_at')
+                ).filter(
+                    history__status_id__in=value,
+                    history__created_at=F('latest_status_date')
+                )
             if key == "code_status":
                 from .models import RecordHistory
                 queryset = queryset.annotate(
