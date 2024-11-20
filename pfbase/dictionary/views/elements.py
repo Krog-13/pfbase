@@ -31,7 +31,7 @@ class ElementsAPIView(AbstractModelAPIView):
         params = request.GET.copy()
         params["DICT_CODE"] = dictionary.code
         indicators = elements.Elements.objects.getByFilter(params)
-        if_paginate = request.query_params.get('paginate', True)
+        if_paginate = request.query_params.get('paginate', False)
         if if_paginate:
             serializer = EIGetSerializer(indicators, many=True, context={'request': request})
             return Response(serializer.data)
