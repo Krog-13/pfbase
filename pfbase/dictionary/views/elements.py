@@ -27,9 +27,12 @@ class ElementsAPIView(AbstractModelAPIView):
         """
         Получения элементов по :pk ABCDictionary
         """
+        user = request.user
+        org = user.organization
         dictionary = elements.Dictionaries.objects.get(pk=pk)
         params = request.GET.copy()
         params["DICT_CODE"] = dictionary.code
+        params["organization_id"] = org.id
         indicators = elements.Elements.objects.getByFilter(params)
         if_paginate = request.query_params.get('paginate', False)
         if if_paginate:
