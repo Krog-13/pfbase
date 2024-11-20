@@ -216,7 +216,7 @@ def upload_file(uploaded_file):
                 element = None #for updating
                 organization_id = None
                 indicators_list = []
-                short_name = {}
+                short_name = {'kk': '', 'en': '', 'ru': ''}
                 code_el = None
 
                 if 'PARENT.CODE' in headers:
@@ -237,6 +237,12 @@ def upload_file(uploaded_file):
                     if header.startswith("SHORTNAME.") and value:
                         lang_code = header.split(".")[1]
                         short_name[lang_code] = value
+                        if short_name['kk'] is None:
+                            short_name['kk'] = ""
+                        if short_name['en'] is None:
+                            short_name['en'] = ""
+                        if short_name['ru'] is None:
+                            short_name['ru'] = ""
                 
                 raw_code_el = row_data.get("CODE(pk)")
                 if raw_code_el:
