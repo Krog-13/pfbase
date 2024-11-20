@@ -163,6 +163,7 @@ class RecordService:
             date=validated_data.get('date'),
             parent=parent_r,
             author=user,
+            organization_id=user.organization_id,
             document=document)
 
         if not indicators:
