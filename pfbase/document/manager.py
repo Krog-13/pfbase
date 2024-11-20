@@ -64,6 +64,8 @@ class RecordsManager(models.Manager):
     def findByQuery(self, params):
         queryset = self.all()
         for key, value in params.items():
+            if key == "author_id":
+                queryset = queryset.filter(author_id=value)
             if key == "NUMBER":
                 queryset = queryset.filter(number=value)
             if key == "DCM_CODE":
@@ -94,7 +96,7 @@ class RecordsManager(models.Manager):
                 ).filter(last_status=value)
 
             if key not in ["NUMBER", "DCM_CODE", "active", "organization_id", "parent_id", "page", "lang",
-                           "status", "date", "STATUS", "code_status", "record_date"]:
+                           "status", "date", "STATUS", "code_status", "record_date", "author_id"]:
                 from .models import DcmIndicators
                 indic = DcmIndicators.objects.get(code=key)
                 if indic.type_value == IndicatorType.STRING:

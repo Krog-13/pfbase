@@ -38,7 +38,7 @@ class ElementManager(models.Manager):
             if key == "active":
                 queryset = queryset.filter(active=value)
             if key == "organization_id":
-                queryset = queryset.filter(organization=value)
+                queryset = queryset.filter(organization__in=value)
             if key == "parent_id":
                 queryset = queryset.filter(parent=value)
             if key not in ["short_name", "paginate", "full_name", "DICT_CODE", "CODE", "active", "organization_id", "parent_id", "page"]:
