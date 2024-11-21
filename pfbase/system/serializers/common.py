@@ -5,8 +5,6 @@ from uuid import uuid4
 from minio.error import S3Error
 
 # Initialize MinioClient
-minio = MinioClient()
-minio.get_client()
 
 
 class FileSaveSerializer(serializers.Serializer):
@@ -14,6 +12,8 @@ class FileSaveSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         try:
+            minio = MinioClient()
+            minio.get_client()
             file = validated_data['file']
             file_id = uuid4().hex
             minio.save_file_minio(file, file_id)
@@ -27,6 +27,8 @@ class FileGetSerializer(serializers.Serializer):
 
     def fetch_file(self, file_id):
         try:
+            minio = MinioClient()
+            minio.get_client()
             file = minio.get_file_minio(file_id)
         except S3Error as e:
             raise exceptions.ValidationError({"error": str(e.code)})
