@@ -9,7 +9,7 @@ from django.urls import path, include
 from rest_framework import routers
 from .dictionary.urls import dct_router, idc_router, his_router, elm_router, eiv_router, elm_urlpatterns
 from .document.urls import dcm_router, rct_router, dcm_idc_router, riv_router, dcm_his_router, rct_urlpatterns
-from .system.urls import ntf_router, lv_router, org_router, user_router, user_urlpatterns
+from .system.urls import ntf_router, lv_router, org_router, user_router, user_urlpatterns, common_urlpatterns
 from .docs.urls import doc_urlpatterns
 
 router = routers.DefaultRouter()
@@ -34,4 +34,4 @@ urlpatterns = [
     path("", include(router.urls)),
 ]
 
-urlpatterns += elm_urlpatterns + rct_urlpatterns + doc_urlpatterns + user_urlpatterns
+urlpatterns += elm_urlpatterns + rct_urlpatterns + doc_urlpatterns + user_urlpatterns + common_urlpatterns
