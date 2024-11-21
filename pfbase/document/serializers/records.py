@@ -141,7 +141,7 @@ class IndicatorUpdateSerializer(CommonSerializer):
 
 
 class RecordFormDataSerializer(serializers.Serializer):
-    file = serializers.FileField(required=False)
+    file = serializers.FileField(required=True)
     data = serializers.JSONField(required=True)
 
     def create(self, validated_data):
