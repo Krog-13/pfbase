@@ -7,6 +7,8 @@ from ..dictionary import models as dct_models
 from .models import Records, DcmIndicators, Documents, RecordIndicatorValues, RecordHistory
 from django.db.models import Case, When, IntegerField
 from django.utils import timezone
+from uuid import uuid4
+
 
 Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
 marker = Typing(int="int", float="float", str="str", text="text", json='json',
@@ -142,6 +144,20 @@ class RecordService:
                 if status_id := sub.get('status_id'):
                     self.create_history(sub_record, status_id, user)
         return main_record
+
+    # DRAFT SAVE FILE WITH DATA FROM FORM-DATA
+    def create_record_form(self, user, request_data):
+        """
+        Form data with Rocord and File
+        """
+        pass
+        # file = request_data.get('file')
+        # if file:
+        #     file_id = uuid4().hex
+        #     file_data = f"{file.name},{file_id}"
+        #     minio.save_file_minio(file, file_id)
+        # data = request_data.get('data')
+        # self.create_record_iv(user, data)
 
     @transaction.atomic
     def create_record_iv(self, user, validated_data):

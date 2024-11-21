@@ -15,6 +15,7 @@ from ..serializers.records import RIGetSerializer, RecordPostSerializer, RecordU
     RecordPackUpdateSerializer, RecordListUpdateSerializer, RecordsSerializer
 from ..models.records import Records
 from ..service import table_present
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 
 class RecordAPIView(ModelViewSet):
@@ -45,6 +46,8 @@ class RIAPIView(views.APIView):
     queryset = Records.objects.all().order_by('-created_at')
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
 
     def get(self, request, *args, **kwargs):
         pk = kwargs.get('pk', False)
