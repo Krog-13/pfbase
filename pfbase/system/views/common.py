@@ -13,10 +13,10 @@ class FileAPIView(views.APIView):
 
     def get(self, request):
         """Get file from minio"""
-        file_id = request.query_params.get("file_id")
-        serializer = FileGetSerializer(data={"file_id": file_id})
+        file_data = request.query_params.get("file_data")
+        serializer = FileGetSerializer(data={"file_data": file_data})
         if serializer.is_valid():
-            file = serializer.fetch_file(file_id)
+            file = serializer.fetch_file(file_data)
             return file
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -25,6 +25,6 @@ class FileAPIView(views.APIView):
         serializer = FileSaveSerializer(data=request.data)
         if serializer.is_valid():
             file_data = serializer.save()
-            return Response({"message": "File saved in minio storage", "file_id": file_data},
+            return Response({"message": "File saved in minio storage", "file_data": file_data},
                             status=status.HTTP_201_CREATED)
         raise exc.ValidationError(serializer.errors)

@@ -16,20 +16,22 @@ class FileSaveSerializer(serializers.Serializer):
             minio.get_client()
             file = validated_data['file']
             file_id = uuid4().hex
+            file_data = f"{file.name},{file_id}"
             minio.save_file_minio(file, file_id)
-            return file_id
+            return file_data
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
 
 
 class FileGetSerializer(serializers.Serializer):
-    file_id = serializers.CharField(required=True)
+    file_data = serializers.CharField(required=True)
 
-    def fetch_file(self, file_id):
+    def fetch_file(self, file_data):
         try:
             minio = MinioClient()
             minio.get_client()
-            file = minio.get_file_minio(file_id)
+            file_data = file_data.split(",")
+            file = minio.get_file_minio(file_data[0], file_data[1])
         except S3Error as e:
             raise exceptions.ValidationError({"error": str(e.code)})
         return file
