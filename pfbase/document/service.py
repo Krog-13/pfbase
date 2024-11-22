@@ -10,8 +10,8 @@ from django.utils import timezone
 from uuid import uuid4
 
 
-Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
-marker = Typing(int="int", float="float", str="str", text="text", json='json',
+Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json', 'file', 'user'])
+marker = Typing(int="int", float="float", str="str", text="text", json='json', file="file", user="user",
                 datetime=["datetime", "date", "time"], bool="bool", reference=["dct", "list", "dcm"])
 
 
@@ -345,6 +345,10 @@ class RecordService:
             record_iv.value_float = value
         elif type_value == marker.str:
             record_iv.value_str = value
+        elif type_value == marker.file:
+            record_iv.value_str = value
+        elif type_value == marker.user:
+            record_iv.value_reference = value
         elif type_value == marker.text:
             record_iv.value_text = value
         elif type_value == marker.bool:
