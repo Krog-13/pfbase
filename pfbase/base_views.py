@@ -27,6 +27,11 @@ class AbstractModelAPIView(ModelViewSet):
         """
         Получение дочерних объектов по :parent_id
         """
-        queryset = self.get_queryset().filter(parent_id=parent_id)
+        dct_code = request.query_params.get('dct_code')
+        search = request.query_params.get('search')
+        queryset = self.get_queryset().filter(parent_id=parent_id,
+                                              dictionary__code=dct_code,
+                                              short_name__ru__icontains=search
+                                              )
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
