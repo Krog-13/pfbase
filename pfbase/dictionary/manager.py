@@ -38,10 +38,14 @@ class ElementManager(models.Manager):
             if key == "active":
                 queryset = queryset.filter(active=value)
             if key == "organization_id":
-                queryset = queryset.filter(organization__in=value)
+                queryset = queryset.filter(Q(organization__in=value) | Q(organization__isnull=True))
             if key == "parent_id":
-                queryset = queryset.filter(parent=value)
-            if key not in ["short_name", "paginate", "full_name", "DICT_CODE", "CODE", "active", "organization_id", "parent_id", "page"]:
+                if value == "null":
+                    queryset = queryset.filter(parent=None)
+                else:
+                    queryset = queryset.filter(parent=value)
+            if key not in ["short_name", "paginate", "full_name", "DICT_CODE", "CODE", "active", "organization_id",
+                           "parent_id", "page"]:
                 from .models import DctIndicators
                 indic = DctIndicators.objects.get(code=key)
                 if indic.type_value == IndicatorType.STRING:
@@ -105,4 +109,3 @@ def give_date_format(date_str, type_value):
                 return timezone.make_aware(parse_datetime)
     except ValueError:
         return False
-    

@@ -5,6 +5,7 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework import status
+from django.db.models import Q
 
 
 class AbstractModelAPIView(ModelViewSet):
@@ -28,9 +29,9 @@ class AbstractModelAPIView(ModelViewSet):
         Получение дочерних объектов по :parent_id
         """
         dct_code = request.query_params.get('dct_code')
-        search = request.query_params.get('search')
-        queryset = self.get_queryset().filter(parent_id=parent_id,
-                                              dictionary__code=dct_code,
+        search = request.query_params.get('search', '')
+        queryset = self.get_queryset().filter(Q(dictionary__code=dct_code) if dct_code else Q(),
+                                              parent_id=parent_id,
                                               short_name__ru__icontains=search
                                               )
         serializer = self.get_serializer(queryset, many=True)
