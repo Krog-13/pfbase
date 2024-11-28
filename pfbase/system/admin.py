@@ -42,15 +42,15 @@ class OrganizationAdmin(admin.ModelAdmin):
         return obj.full_name.get("ru", obj.code)
 
 
-# @admin.register(User)
-class CustomUserAdmin(UserAdmin):
+@admin.register(User)
+class CustomUserAdmin(admin.ModelAdmin):
     """
     User in admin panel
     """
-
+    # fieldsets = (("username", "email"), ("id", "first_name"))
     list_display = ('username', 'email', 'organization', 'id')
 
-admin.site.register(User, CustomUserAdmin)
+# admin.site.register(User, CustomUserAdmin)
 
 
 def get_app_list(self, request, app_label=None):

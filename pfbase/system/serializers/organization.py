@@ -29,3 +29,9 @@ class OrganizationSerializer(serializers.ModelSerializer):
         obj.full_name = {}
         obj.full_name[lang] = full_name
         return obj.full_name
+
+class OrganizationCreateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Organization
+        fields = "__all__"
