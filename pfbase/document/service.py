@@ -169,6 +169,7 @@ class RecordService:
         indicators = validated_data.get('indicators')
         parent_id = validated_data.get('parent_id')
         status_id = validated_data.get('status_id')
+        organization_id = validated_data.get('organization_id', user.organization_id)
         if document_id:
             document = Documents.objects.get(id=document_id)
         else:
@@ -179,7 +180,7 @@ class RecordService:
             date=validated_data.get('date'),
             parent=parent_r,
             author=user,
-            organization_id=user.organization_id,
+            organization_id=organization_id,
             document=document)
 
         if not indicators:
