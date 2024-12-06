@@ -7,7 +7,7 @@ presented for schemes:
 from rest_framework import routers
 from django.urls import path
 from ..views.user import UserAPIView, RegistrationUserAPIView, PermissionAPIView, RolesAPIView
-from ..views.user import CustomAuthToken, UserLogout
+from ..views.user import CustomAuthToken, UserLogout, ChangePasswordViewSet
 
 user_router = routers.DefaultRouter()
 user_router.register(r"stm/users", UserAPIView)
@@ -17,4 +17,5 @@ user_urlpatterns = [
     path("stm/user/registration/", RegistrationUserAPIView.as_view()),
     path('api-token-auth/', CustomAuthToken.as_view()),
     path('api-token-logout/', UserLogout.as_view()),
+    path('change-password/', ChangePasswordViewSet.as_view()),
 ]
