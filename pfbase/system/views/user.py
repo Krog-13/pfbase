@@ -64,9 +64,11 @@ class CustomAuthToken(ObtainAuthToken):
         user = serializer.validated_data["user"]
         token, created = Token.objects.get_or_create(user=user)
         roles = [gp.name for gp in user.groups.all()]
+        fio = user.first_name +" "+ user.last_name
         return Response({
             "token": token.key,
             "email": user.email,
+            "fio": fio,
             "user_id": user.pk,
             "roles": roles,
         })
