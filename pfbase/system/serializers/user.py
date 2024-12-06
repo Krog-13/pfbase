@@ -113,3 +113,30 @@ class AuthTokenSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Custom update update"""
+    old_password = serializers.CharField(
+        write_only=True, required=True)
+    new_password = serializers.CharField(
+        write_only=True, required=True,
+        validators=[validate_password])
+    confirm_password = serializers.CharField(
+        write_only=True, required=True)
+
+    def validate(self, attrs):
+        if attrs["new_password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError(
+                {"message": "Password fields didn't match."})
+        elif attrs["old_password"] == attrs["new_password"]:
+            raise serializers.ValidationError(
+                {"message": "New password must be different from old password."})
+        return attrs
+
+    def save(self, obj, **kwargs):
+        if not obj.check_password(self.validated_data['old_password']):
+            raise serializers.ValidationError(
+                {"message": "Old password is incorrect"})
+        obj.set_password(self.validated_data['new_password'])
+        obj.save()
+        return obj

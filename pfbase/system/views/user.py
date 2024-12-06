@@ -1,17 +1,18 @@
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet, ViewSet
 from rest_framework.response import Response
 from pfbase.pagination import CustomPagination
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from ..serializers.user import UserSerializer, RegistrationUserSerializer, RolesSerializer, \
-    PermissionSerializer, AuthTokenSerializer
+    PermissionSerializer, AuthTokenSerializer, ChangePasswordSerializer
 from ..models.user import User
 from rest_framework.views import APIView
 from django.contrib.auth.models import Group
-from rest_framework.generics import CreateAPIView
+from rest_framework.generics import CreateAPIView, get_object_or_404, UpdateAPIView
 from django.contrib.auth.models import Permission
+from ...permissions import IsOwnerOrReadOnly
 
 
 class UserAPIView(ModelViewSet):
@@ -64,9 +65,11 @@ class CustomAuthToken(ObtainAuthToken):
         user = serializer.validated_data["user"]
         token, created = Token.objects.get_or_create(user=user)
         roles = [gp.name for gp in user.groups.all()]
+        fio = user.first_name +" "+ user.last_name
         return Response({
             "token": token.key,
             "email": user.email,
+            "fio": fio,
             "user_id": user.pk,
             "roles": roles,
         })
@@ -80,3 +83,17 @@ class UserLogout(APIView):
             return Response({"message": "User not found"}, status=status.HTTP_400_BAD_REQUEST)
         request.user.auth_token.delete()
         return Response(status=status.HTTP_200_OK)
+
+
+class ChangePasswordViewSet(UpdateAPIView):
+    """Change password"""
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+
+    def put(self, request):
+        obj = get_object_or_404(User, pk=request.user.id)
+        serializer = ChangePasswordSerializer(obj, data=request.data)
+        if serializer.is_valid():
+            serializer.save(obj)
+            obj.save()
+            return Response({"message": "Пароль изменен успешно"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
