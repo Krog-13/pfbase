@@ -1,7 +1,5 @@
 from rest_framework import serializers, exceptions
 from rest_framework.exceptions import ValidationError
-from urllib3 import request
-
 from ..models.records import Records
 from ..models.rivalues import RecordIndicatorValues
 from pfbase.dictionary.models.elements import Elements
