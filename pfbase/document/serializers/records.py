@@ -1,5 +1,7 @@
 from rest_framework import serializers, exceptions
 from rest_framework.exceptions import ValidationError
+from urllib3 import request
+
 from ..models.records import Records
 from ..models.rivalues import RecordIndicatorValues
 from pfbase.dictionary.models.elements import Elements
@@ -129,10 +131,21 @@ class CommonSerializer(serializers.Serializer):
         return super().to_internal_value(data)
 
 
+class CustomField(serializers.Field):
+    def to_representation(self, value):
+        # Output the value as it is
+        return value
+
+    def to_internal_value(self, data):
+        # Allow only strings, integers, and booleans
+        if isinstance(data, (str, int, bool)):
+            return data
+        raise serializers.ValidationError("Value must be an integer, string, or boolean.")
+
 class IndicatorSerializer(CommonSerializer):
     id = serializers.IntegerField(required=False)
     code = serializers.CharField(max_length=50, required=False)
-    value = serializers.CharField(max_length=100, required=False, allow_null=True)
+    value = CustomField(required=False, allow_null=True)
     type = serializers.CharField(max_length=10)
 
 class IndicatorUpdateSerializer(CommonSerializer):
