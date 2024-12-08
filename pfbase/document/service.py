@@ -81,16 +81,19 @@ class RecordService:
             idc_code = item.get('code')
 
             if type_value == marker.reference[1]:
-                if not value.isdigit():
-                    raise WrongType("Invalid type value")
+                if not isinstance(value, int):
+                    if not value.isdigit():
+                        raise WrongType("Invalid type value")
                 stm_models.ListValues.objects.get(id=value)
             elif type_value == marker.reference[0]:
-                if not value.isdigit():
-                    raise WrongType("Invalid type value")
+                if not isinstance(value, int):
+                    if not value.isdigit():
+                        raise WrongType("Invalid type value")
                 dct_models.Elements.objects.get(id=value)
             elif type_value == marker.reference[2]:
-                if not value.isdigit():
-                    raise WrongType("Invalid type value")
+                if not isinstance(value, int):
+                    if not value.isdigit():
+                        raise WrongType("Invalid type value")
                 Records.objects.get(id=value)
             if idc_id:
                 indicator = DcmIndicators.objects.get(id=idc_id, type_value=type_value)
