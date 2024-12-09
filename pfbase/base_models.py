@@ -71,6 +71,9 @@ class IndicatorValueBase(models.Model):
         null=True, blank=True, verbose_name='Логическое значение')
     value_reference = models.PositiveBigIntegerField(
         null=True, blank=True, verbose_name='Внешний ключ')
+    value_list = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name="Внешний ключ списка"
+    )
     index_sort = models.PositiveBigIntegerField(
         blank=True, verbose_name='Индекс сортировки')
     active = models.BooleanField(

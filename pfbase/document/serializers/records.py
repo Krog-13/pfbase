@@ -1,3 +1,4 @@
+from django.db.models import IntegerField
 from rest_framework import serializers, exceptions
 from rest_framework.exceptions import ValidationError
 from ..models.records import Records
@@ -144,7 +145,16 @@ class IndicatorSerializer(CommonSerializer):
     id = serializers.IntegerField(required=False)
     code = serializers.CharField(max_length=50, required=False)
     value = CustomField(required=False, allow_null=True)
-    type = serializers.CharField(max_length=10)
+    value_str = serializers.CharField(required=False, allow_null=True)
+    value_int = serializers.IntegerField(required=False, allow_null=True)
+    value_reference = serializers.IntegerField(required=False, allow_null=True)
+    value_float = serializers.FloatField(required=False, allow_null=True)
+    value_text = serializers.CharField(required=False, allow_null=True)
+    value_json = serializers.JSONField(required=False, allow_null=True)
+    value_datetime = serializers.DateTimeField(required=False, allow_null=True)
+    value_bool = serializers.BooleanField(required=False, allow_null=True)
+    value_list = serializers.IntegerField(required=False, allow_null=True)
+    type = serializers.CharField(max_length=10, required=False)
 
 class IndicatorUpdateSerializer(CommonSerializer):
     id = serializers.IntegerField(required=True)
