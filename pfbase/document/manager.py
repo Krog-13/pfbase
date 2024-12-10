@@ -47,7 +47,7 @@ class RecordsManager(models.Manager):
                 ).filter(last_status=value)
 
             if key not in ["NUMBER", "DCM_CODE", "active", "organization_id", "parent_id", "page", "lang",
-                           "status", "date", "STATUS", "code_status", "record_date", "author_id", "engineer"]:
+                           "status", "date", "STATUS", "code_status", "record_date", "author_id"]:
                 from .models import DcmIndicators
                 indic = DcmIndicators.objects.get(code=key)
                 if indic.type_value == IndicatorType.STRING:
