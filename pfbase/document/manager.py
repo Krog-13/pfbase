@@ -47,7 +47,7 @@ class RecordsManager(models.Manager):
                 ).filter(last_status=value)
 
             if key not in ["NUMBER", "DCM_CODE", "active", "organization_id", "parent_id", "page", "lang",
-                           "status", "date", "STATUS", "code_status", "record_date", "author_id"]:
+                           "status", "date", "STATUS", "code_status", "record_date", "author_id", "engineer"]:
                 from .models import DcmIndicators
                 indic = DcmIndicators.objects.get(code=key)
                 if indic.type_value == IndicatorType.STRING:
@@ -73,11 +73,16 @@ class RecordsManager(models.Manager):
                             record_values__value_datetime__minute=parsed_value.minute
                         )
                 elif indic.type_value == IndicatorType.DATE:
-                    parsed_value = give_date_format(value, "date")
-                    if parsed_value:
+                    values = value.split(",")
+                    if len(values) == 2:
                         queryset = queryset.filter(
                             record_values__indicator__code=key,
-                            record_values__value_datetime__date=parsed_value.date()
+                            record_values__value_datetime__date__range=(values[0], values[1])
+                        )
+                    else:
+                        queryset = queryset.filter(
+                            record_values__indicator__code=key,
+                            record_values__value_datetime__date=(values[0])
                         )
                 elif indic.type_value == IndicatorType.DATETIME:
                     datetime_only = datetime.strptime(value, "%Y-%m-%d %H:%M")
