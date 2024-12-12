@@ -73,35 +73,59 @@ class RecordService:
         else:
             self.document = Documents.objects.get(code=self.code)
 
+    def check_exist_reference(self, type_value, value):
+        if type_value == marker.reference[1]:
+            if not isinstance(value, int):
+                if not value.isdigit():
+                    raise WrongType("Invalid type value")
+            stm_models.ListValues.objects.get(id=value)
+        elif type_value == marker.reference[0]:
+            if not isinstance(value, int):
+                if not value.isdigit():
+                    raise WrongType("Invalid type value")
+            dct_models.Elements.objects.get(id=value)
+        elif type_value == marker.reference[2]:
+            if not isinstance(value, int):
+                if not value.isdigit():
+                    raise WrongType("Invalid type value")
+            Records.objects.get(id=value)
+
     def create_riv(self, record, indicator_values):
         for item in indicator_values:
-            value = item['value']
-            type_value = item['type']
+            value = item.get('value')
+            value_str = item.get('value_str')
+            value_int = item.get('value_int')
+            value_reference = item.get('value_reference')
+            value_list = item.get('value_list')
+            value_json = item.get('value_json')
+            value_float = item.get('value_float')
+            value_text = item.get('value_text')
+            value_datetime = item.get('value_datetime')
+            value_bool = item.get('value_bool')
+            type_value = item.get('type')
             idc_id = item.get('id')
             idc_code = item.get('code')
 
-            if type_value == marker.reference[1]:
-                if not isinstance(value, int):
-                    if not value.isdigit():
-                        raise WrongType("Invalid type value")
-                stm_models.ListValues.objects.get(id=value)
-            elif type_value == marker.reference[0]:
-                if not isinstance(value, int):
-                    if not value.isdigit():
-                        raise WrongType("Invalid type value")
-                dct_models.Elements.objects.get(id=value)
-            elif type_value == marker.reference[2]:
-                if not isinstance(value, int):
-                    if not value.isdigit():
-                        raise WrongType("Invalid type value")
-                Records.objects.get(id=value)
+            if value:
+                self.check_exist_reference(type_value, value)
             if idc_id:
-                indicator = DcmIndicators.objects.get(id=idc_id, type_value=type_value)
+                indicator = DcmIndicators.objects.get(id=idc_id)
             else:
-                indicator = DcmIndicators.objects.get(code=idc_code, type_value=type_value)
+                indicator = DcmIndicators.objects.get(code=idc_code)
 
             rv = record.record_values.create(indicator=indicator)
-            result = self.separate_value(rv, type_value, value)
+            if value:
+                result = self.separate_value(rv, type_value, value)
+            else:
+                result = self.separate_value_any(rv,
+                                                 value_str=value_str,
+                                                 value_int=value_int,
+                                                 value_reference=value_reference,
+                                                 value_json=value_json,
+                                                 value_float=value_float,
+                                                 value_text=value_text,
+                                                 value_datetime=value_datetime,
+                                                 value_bool=value_bool)
             if not result:
                 raise WrongType("Invalid type value")
             rv.save()
@@ -368,6 +392,12 @@ class RecordService:
             record_iv.value_datetime = date
         else:
             return False
+        return True
+
+    def separate_value_any(self, record_iv, **kwargs):
+        for key, value in kwargs.items():
+            if value:
+                setattr(record_iv, f"{key}", value)
         return True
 
     @staticmethod
