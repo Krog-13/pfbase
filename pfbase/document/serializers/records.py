@@ -1,4 +1,3 @@
-from django.db.models import IntegerField
 from rest_framework import serializers, exceptions
 from rest_framework.exceptions import ValidationError
 from ..models.records import Records
