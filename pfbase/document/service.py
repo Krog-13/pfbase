@@ -121,7 +121,6 @@ class RecordService:
                                                  value_str=value_str,
                                                  value_int=value_int,
                                                  value_reference=value_reference,
-                                                 value_list=value_list,
                                                  value_json=value_json,
                                                  value_float=value_float,
                                                  value_text=value_text,
