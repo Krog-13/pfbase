@@ -96,7 +96,6 @@ class RecordService:
             value_str = item.get('value_str')
             value_int = item.get('value_int')
             value_reference = item.get('value_reference')
-            value_list = item.get('value_list')
             value_json = item.get('value_json')
             value_float = item.get('value_float')
             value_text = item.get('value_text')
