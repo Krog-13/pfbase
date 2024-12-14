@@ -96,7 +96,6 @@ class RecordService:
             value_str = item.get('value_str')
             value_int = item.get('value_int')
             value_reference = item.get('value_reference')
-            value_list = item.get('value_list')
             value_json = item.get('value_json')
             value_float = item.get('value_float')
             value_text = item.get('value_text')
@@ -105,8 +104,7 @@ class RecordService:
             type_value = item.get('type')
             idc_id = item.get('id')
             idc_code = item.get('code')
-
-            if value:
+            if value is not None:
                 self.check_exist_reference(type_value, value)
             if idc_id:
                 indicator = DcmIndicators.objects.get(id=idc_id)
@@ -114,7 +112,7 @@ class RecordService:
                 indicator = DcmIndicators.objects.get(code=idc_code)
 
             rv = record.record_values.create(indicator=indicator)
-            if value:
+            if value is not None:
                 result = self.separate_value(rv, type_value, value)
             else:
                 result = self.separate_value_any(rv,
