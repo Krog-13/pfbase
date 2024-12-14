@@ -105,16 +105,19 @@ class ElementService:
         idc_code = indicator.get('code')
 
         if type_value == marker.reference[1]:
-            if not some_value.isdigit():
-                raise WrongType("Invalid type value")
+            if not isinstance(some_value, int):
+                if not some_value.isdigit():
+                    raise WrongType("Invalid type value")
             stm_models.ListValues.objects.get(id=some_value)
         elif type_value == marker.reference[0]:
-            if not some_value.isdigit():
-                raise WrongType("Invalid type value")
+            if not isinstance(some_value, int):
+                if not some_value.isdigit():
+                    raise WrongType("Invalid type value")
             Elements.objects.get(id=some_value)
         elif type_value == marker.reference[2]:
-            if not some_value.isdigit():
-                raise WrongType("Invalid type value")
+            if not isinstance(some_value, int):
+                if not some_value.isdigit():
+                    raise WrongType("Invalid type value")
             dcm_models.Records.objects.get(id=some_value)
 
         if idc_id:

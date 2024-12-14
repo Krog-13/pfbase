@@ -7,7 +7,6 @@ from ..dictionary import models as dct_models
 from .models import Records, DcmIndicators, Documents, RecordIndicatorValues, RecordHistory
 from django.db.models import Case, When, IntegerField
 from django.utils import timezone
-from uuid import uuid4
 
 
 Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json', 'file', 'user'])
