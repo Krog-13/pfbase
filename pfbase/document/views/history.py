@@ -19,7 +19,7 @@ class RecordHistoryAPIView(ModelViewSet):
     """
     Представление истории
     """
-    queryset = RecordHistory.objects.all().order_by('-id')
+    queryset = RecordHistory.objects.all().order_by('-created_at')
     serializer_class = RHistorySerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
@@ -29,7 +29,18 @@ class RecordHistoryAPIView(ModelViewSet):
         """
         Получения истории по :record_id
         """
-        values = self.get_queryset().filter(record_id=record_id)
+        values = self.get_queryset().filter(record_id=record_id)[:20]
+
+        if_paginate = request.query_params.get('paginate', False)
+        if if_paginate:
+            serializer = self.serializer_class(values, many=True, context={'request': request})
+            return Response(serializer.data)
+        page = self.paginate_queryset(values)
+        if page is not None:
+            serializer = self.serializer_class(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+
+
         if not values:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(values, many=True, context={'request': request})

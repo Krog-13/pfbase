@@ -5,6 +5,10 @@ from rest_framework import serializers, exceptions
 
 
 class RHistorySerializer(serializers.ModelSerializer):
+    author = serializers.CharField(source="author.username")
+    status = serializers.JSONField(source="status.short_name")
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+
     class Meta:
         model = RecordHistory
         fields = "__all__"
