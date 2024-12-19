@@ -5,13 +5,17 @@ from rest_framework import serializers, exceptions
 
 
 class RHistorySerializer(serializers.ModelSerializer):
-    author = serializers.CharField(source="author.username")
+    author = serializers.CharField(source="author.first_name")
     status = serializers.JSONField(source="status.short_name")
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+    full_name = serializers.SerializerMethodField()
 
     class Meta:
         model = RecordHistory
         fields = "__all__"
+
+    def get_full_name(self, obj):
+        return f"{obj.author.first_name} {obj.author.last_name}"
 
 
 class HistoryPackPostSerializer(serializers.Serializer):
