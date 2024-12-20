@@ -172,4 +172,3 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     def save(self, user):
         user.set_password(self.validated_data["password"])
         user.save()
-

@@ -1,4 +1,5 @@
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.shortcuts import redirect
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet, ViewSet
@@ -17,6 +18,8 @@ from django.core.mail import send_mail
 from rest_framework.generics import CreateAPIView, get_object_or_404, UpdateAPIView
 from django.contrib.auth.models import Permission
 from ...permissions import IsOwnerOrReadOnly
+from django.views.generic import TemplateView
+from rest_framework.parsers import FormParser, JSONParser
 
 
 class UserAPIView(ModelViewSet):
@@ -113,11 +116,15 @@ class PasswordResetView(APIView):
             )
             user.email_user("Password Reset Request", f"Click the link to reset your password: {reset_url}",
                             "SMAX_SED@kmg.kz")
-            return Response({"message": "Password reset link sent."}, status=status.HTTP_200_OK)
+            return Response({"message": "Password reset link sent", "link": reset_url}, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PasswordResetConfirmView(APIView):
+class PasswordResetConfirmView(APIView, TemplateView):
+    parser_classes = [FormParser, JSONParser]
+    template_name = 'reset.html'
+
     def post(self, request, uid, token):
         try:
             user = User.objects.get(pk=uid)
@@ -130,5 +137,6 @@ class PasswordResetConfirmView(APIView):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user)
+            return redirect("/login")
             return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
