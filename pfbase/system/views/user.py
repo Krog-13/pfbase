@@ -20,6 +20,7 @@ from django.contrib.auth.models import Permission
 from ...permissions import IsOwnerOrReadOnly
 from django.views.generic import TemplateView
 from rest_framework.parsers import FormParser, JSONParser
+from django.conf import settings
 
 
 class UserAPIView(ModelViewSet):
@@ -115,8 +116,8 @@ class PasswordResetView(APIView):
                 reverse("password-reset-confirm", kwargs={"uid": user.id, "token": token})
             )
             user.email_user("Password Reset Request", f"Click the link to reset your password: {reset_url}",
-                            "SMAX_SED@kmg.kz")
-            return Response({"message": "Password reset link sent", "link": reset_url}, status=status.HTTP_200_OK)
+                            settings.EMAIL_HOST_USER)
+            return Response({"message": "Password reset link sent"}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
