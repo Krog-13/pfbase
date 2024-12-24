@@ -1,3 +1,5 @@
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.shortcuts import redirect
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet, ViewSet
@@ -6,13 +8,19 @@ from pfbase.pagination import CustomPagination
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from ..serializers.user import UserSerializer, RegistrationUserSerializer, RolesSerializer, \
-    PermissionSerializer, AuthTokenSerializer, ChangePasswordSerializer
+    PermissionSerializer, AuthTokenSerializer, ChangePasswordSerializer, PasswordResetSerializer, \
+    PasswordResetConfirmSerializer
 from ..models.user import User
 from rest_framework.views import APIView
 from django.contrib.auth.models import Group
+from django.urls import reverse
+from django.core.mail import send_mail
 from rest_framework.generics import CreateAPIView, get_object_or_404, UpdateAPIView
 from django.contrib.auth.models import Permission
 from ...permissions import IsOwnerOrReadOnly
+from django.views.generic import TemplateView
+from rest_framework.parsers import FormParser, JSONParser
+from django.conf import settings
 
 
 class UserAPIView(ModelViewSet):
@@ -71,6 +79,7 @@ class CustomAuthToken(ObtainAuthToken):
             "email": user.email,
             "fio": fio,
             "user_id": user.pk,
+            "organization": user.organization.code,
             "roles": roles,
         })
 
@@ -96,4 +105,40 @@ class ChangePasswordViewSet(UpdateAPIView):
             serializer.save(obj)
             obj.save()
             return Response({"message": "Пароль изменен успешно"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetView(APIView):
+    def post(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
+        if serializer.is_valid():
+            user, token = serializer.save()
+            reset_url = request.build_absolute_uri(
+                reverse("password-reset-confirm", kwargs={"uid": user.id, "token": token})
+            )
+            user.email_user("Password Reset Request", f"Click the link to reset your password: {reset_url}",
+                            settings.EMAIL_HOST_USER)
+            return Response({"message": "Password reset link sent"}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetConfirmView(APIView, TemplateView):
+    parser_classes = [FormParser, JSONParser]
+    template_name = 'reset.html'
+
+    def post(self, request, uid, token):
+        try:
+            user = User.objects.get(pk=uid)
+            token_generator = PasswordResetTokenGenerator()
+            if not token_generator.check_token(user, token):
+                return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+        except User.DoesNotExist:
+            return Response({"error": "Invalid user."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user)
+            return redirect("/login")
+            return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

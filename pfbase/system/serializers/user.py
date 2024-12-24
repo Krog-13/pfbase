@@ -1,4 +1,5 @@
-from django.contrib.auth.models import Group, User, Permission
+from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
@@ -140,3 +141,34 @@ class ChangePasswordSerializer(serializers.Serializer):
         obj.set_password(self.validated_data['new_password'])
         obj.save()
         return obj
+
+
+# User password reset
+class PasswordResetSerializer(serializers.Serializer):
+    """Password reset with OTP JWT"""
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        try:
+            self.user = User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User email does not exist")
+        return value
+
+    def save(self, **kwargs):
+        token_generator = PasswordResetTokenGenerator()
+        token = token_generator.make_token(self.user)
+        return self.user, token
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        if data["password"] != data["confirm_password"]:
+            raise serializers.ValidationError("Password do not match")
+        return data
+
+    def save(self, user):
+        user.set_password(self.validated_data["password"])
+        user.save()

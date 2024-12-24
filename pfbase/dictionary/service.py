@@ -1,3 +1,4 @@
+import json
 from django.db import transaction
 from collections import namedtuple
 from pfbase.exception import WrongType
@@ -280,6 +281,8 @@ def upload_file(uploaded_file):
                                     continue
                             if ind_type == "date":
                                 value = value.strftime("%Y-%m-%d")
+                            if ind_type == "json":
+                                value = json.loads(value)
                             if indicator_entry:
                                 indicators_list.append({
                                     "id": indicator_entry,
