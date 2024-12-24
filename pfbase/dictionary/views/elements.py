@@ -31,16 +31,9 @@ class ElementsAPIView(AbstractModelAPIView):
         org = user.organization
         dictionary = elements.Dictionaries.objects.get(pk=pk)
         params = request.GET.copy()
-
-        indicator = Elements.objects.get(code=user.id)
-        profile_iv = indicator.element_values.all().filter(indicator__code="TRS_PROFILE_PU").first()
-        if not profile_iv:
-            params["DICT_CODE"] = dictionary.code
-            params["organization_id"] = [org.id]
-            indicators = elements.Elements.objects.getByFilter(params)
-        else:
-            indicators = self.queryset.filter(id=profile_iv.value_reference)
-
+        params["DICT_CODE"] = dictionary.code
+        params["organization_id"] = [org.id]
+        indicators = elements.Elements.objects.getByFilter(params)
         if_paginate = request.query_params.get('paginate', False)
         if if_paginate:
             serializer = EIGetSerializer(indicators, many=True, context={'request': request})
