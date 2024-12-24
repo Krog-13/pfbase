@@ -79,6 +79,7 @@ class CustomAuthToken(ObtainAuthToken):
             "email": user.email,
             "fio": fio,
             "user_id": user.pk,
+            "organization": user.organization.code,
             "roles": roles,
         })
 
