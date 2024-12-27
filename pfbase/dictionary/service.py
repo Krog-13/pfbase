@@ -16,7 +16,7 @@ import openpyxl
 
 Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
 marker = Typing(int="int", float="float", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
-                bool="bool", reference=["dct", "list", "dcm", "user"])
+                bool="bool", reference=["dct", "list", "dcm", "user", "org"])
 
 
 class ElementService:

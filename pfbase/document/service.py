@@ -11,7 +11,7 @@ from django.utils import timezone
 
 Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json', 'file', 'user'])
 marker = Typing(int="int", float="float", str="str", text="text", json='json', file="file", user="user",
-                datetime=["datetime", "date", "time"], bool="bool", reference=["dct", "list", "dcm", "user"])
+                datetime=["datetime", "date", "time"], bool="bool", reference=["dct", "list", "dcm", "user", "org"])
 
 
 class RecordService:
