@@ -8,6 +8,18 @@ from django.db.models import Q
 
 
 class RecordsManager(models.Manager):
+    def getByDocument(self, documentId: int):
+        return self.get(document=documentId)
+
+    def getById(self, id: int):
+        return self.get(id=id).code
+
+    def getByCode(self, code: str):
+        return self.get(code=code).id
+
+    def getAll(self):
+        return self.all()
+
     def getByFilter(self, params):
         output = self.findByQuery(params)
         return output
@@ -96,6 +108,45 @@ class RecordsManager(models.Manager):
                         record_values__value_datetime__minute=minute_only
                     )
         return queryset
+
+
+class DcmIndicatorsManager(models.Manager):
+    def getByDocument(self, documentId: int):
+        return self.get(document=documentId)
+
+    def getById(self, id: int):
+        return self.get(id=id).code
+
+    def getByCode(self, code: str):
+        return self.get(code=code).id
+
+    def getAll(self):
+        return self.all()
+
+
+class RecordIndicatorValueManager(models.Manager):
+    def getByIndicator(self, indicatorId: int):
+        return self.get(indicator=indicatorId)
+
+    def getById(self, id: int):
+        return self.get(id=id).code
+
+    def getAll(self):
+        return self.all()
+
+
+class RecordHistoryManager(models.Manager):
+    def getById(self, id: int):
+        return self.get(id=id).code
+
+    def getRecord(self, recordId: int):
+        return self.filter(record=recordId).code
+
+    def getByRecordAndStatus(self, recordId: int, statusId: int):
+        return self.filter(record=recordId, status=statusId).code
+
+    def getAll(self):
+        return self.all()
 
 
 def give_date_format(date_str, type_value):
