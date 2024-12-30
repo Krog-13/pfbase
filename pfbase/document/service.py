@@ -245,16 +245,38 @@ class RecordService:
 
     def record_update_iv(self, indicators, record):
         for indicator in indicators:
+            value_str = indicator.get('value_str')
+            value_int = indicator.get('value_int')
+            value_reference = indicator.get('value_reference')
+            value_json = indicator.get('value_json')
+            value_float = indicator.get('value_float')
+            value_text = indicator.get('value_text')
+            value_datetime = indicator.get('value_datetime')
+            value_bool = indicator.get('value_bool')
             type_value = indicator.get('type')
             code = indicator.get('code')
             id = indicator.get('id')
+            some_value = indicator.get('value')
+            
+            if some_value is not None:
+                self.check_exist_reference(type_value, some_value)
             try:
-                rv = record.record_values.get(id=id, indicator__type_value=type_value)
+                rv = record.record_values.get(id=id)
             except RecordIndicatorValues.DoesNotExist:
                 record_indicator = DcmIndicators.objects.get(code=code, type_value=type_value)
                 rv = record.record_values.create(indicator=record_indicator)
-            some_value = indicator.get('value')
-            result = self.separate_value(rv, type_value, some_value)
+            if some_value is not None:
+                result = self.separate_value(rv, type_value, some_value)
+            else:
+                result = self.separate_value_any(rv,
+                                                 value_str=value_str,
+                                                 value_int=value_int,
+                                                 value_reference=value_reference,
+                                                 value_json=value_json,
+                                                 value_float=value_float,
+                                                 value_text=value_text,
+                                                 value_datetime=value_datetime,
+                                                 value_bool=value_bool)
             if not result:
                 raise WrongType("Invalid type value")
             rv.save()
