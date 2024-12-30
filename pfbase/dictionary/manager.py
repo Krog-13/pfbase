@@ -6,12 +6,15 @@ from ..base_models import IndicatorType
 
 
 class ElementManager(models.Manager):
-    def getByCode(self, code):
+    def getByCode(self, code: str):
         return self.get(code=code).id
 
-    def getById(self, id):
+    def getById(self, id: int):
         return self.get(id=id).code
     
+    def getByDictionary(self, dictionary_id: int):
+        return self.filter(dictionary_id=dictionary_id)
+
     def getByFilter(self, params):
         output = self.findByQuery(params)
         return output
@@ -89,7 +92,43 @@ class ElementManager(models.Manager):
                         element_values__value_datetime__minute=minute_only
                     )
         return queryset
-    
+
+
+class IndicatorsManager(models.Manager):
+    def getByCode(self, code: str):
+        return self.get(code=code).id
+
+    def getById(self, id: int):
+        return self.get(id=id).code
+
+    def getByDictionary(self, dictionaryId: int):
+        return self.filter(dictionary_id=dictionaryId)
+
+
+class ElementsIndicatorValueManager(models.Manager):
+    def getById(self, id: int):
+        return self.get(id=id).code
+
+    def getByIndicator(self, indicatorId: int):
+        return self.filter(indicator=indicatorId)
+
+    def getAll(self):
+        return self.all()
+
+
+class ElementHistoryManager(models.Manager):
+    def getByElement(self, element: int):
+        return self.get(element=element)
+
+    def getById(self, id: int):
+        return self.get(id=id).code
+
+    def getByElementAndStatus(self, elementId: int, statusId: int):
+        return self.filter(element=elementId, statusId=statusId)
+
+    def getAll(self):
+        return self.all()
+
 
 def give_date_format(date_str, type_value):
     """

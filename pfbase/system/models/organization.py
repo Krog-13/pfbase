@@ -1,5 +1,6 @@
 from pfbase.base_models import default_name, CommonManager
 from django.db import models
+from pfbase.system.manager import OrganizationManager
 
 
 class Organization(models.Model):
@@ -21,7 +22,7 @@ class Organization(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    objects = CommonManager()
+    objects = OrganizationManager()
 
     def __str__(self):
         return self.short_name.get("ru", "No name")

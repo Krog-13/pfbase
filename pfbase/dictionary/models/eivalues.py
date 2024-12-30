@@ -4,7 +4,7 @@ from django.db import models
 from .indicators import DctIndicators
 from .elements import Elements
 import json
-
+from pfbase.dictionary.manager import ElementsIndicatorValueManager
 
 class ElementIndicatorValues(IndicatorValueBase):
     """
@@ -21,6 +21,8 @@ class ElementIndicatorValues(IndicatorValueBase):
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    objects = ElementsIndicatorValueManager()
+
 
     class Meta:
         db_table = '"dct\".\"element_indicator_values"'

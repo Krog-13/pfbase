@@ -1,4 +1,5 @@
-from pfbase.base_models import IndicatorBase, CommonManager
+from pfbase.base_models import IndicatorBase
+from pfbase.dictionary.manager import IndicatorsManager
 from pfbase import config
 from django.db import models
 from .dictionaries import Dictionaries
@@ -15,7 +16,7 @@ class DctIndicators(IndicatorBase):
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    objects = CommonManager()
+    objects = IndicatorsManager()
 
     def __str__(self):
         return self.short_name.get("ru", "No name")
