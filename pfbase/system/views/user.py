@@ -74,17 +74,25 @@ class CustomAuthToken(ObtainAuthToken):
         token, created = Token.objects.get_or_create(user=user)
         roles = [gp.name for gp in user.groups.all()]
         fio = user.first_name +" "+ user.last_name
-        return Response({
-            "token": token.key,
-            "email": user.email,
-            "fio": fio,
-            "user_id": user.pk,
-            "organization": user.organization.code,
-            "organization_id": user.organization.id,
-            "organization_name": user.organization.short_name, #Временно так сделал потом надо будет переделать
-            "roles": roles,
-        })
-
+        if user.organization:
+            return Response({
+                "token": token.key,
+                "email": user.email,
+                "fio": fio,
+                "user_id": user.pk,
+                "organization": user.organization.code,
+                "organization_id": user.organization.id,
+                "organization_name": user.organization.short_name, #Временно так сделал потом надо будет переделать
+                "roles": roles,
+            })
+        else:
+            return Response({
+                "token": token.key,
+                "email": user.email,
+                "fio": fio,
+                "user_id": user.pk,
+                "roles": roles,
+            })
 
 class UserLogout(APIView):
     permission_classes = (IsAuthenticated,)
