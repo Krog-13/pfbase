@@ -10,7 +10,7 @@ from ..document import models as dcm_models
 from rest_framework import status
 from rest_framework.response import Response
 from .models import dictionaries, indicators
-from ..system.models import organization
+from ..system.models import organization, ListValues
 import openpyxl
 
 
@@ -272,12 +272,19 @@ def upload_file(uploaded_file):
                             if not ind_type:
                                 continue
                             indicator_entry = indicators.DctIndicators.objects.getByCode(ind_code)
-                            if ind_type == "dct" or ind_type == "dcm" or ind_type == "list":
+                            if ind_type == "dct" or ind_type == "dcm":
                                 try:
                                     element_id = Elements.objects.getByCode(value)
                                     if element_id:
                                         value = element_id
                                 except Elements.DoesNotExist:
+                                    continue
+                            if ind_type == "list":
+                                try:
+                                    list_id = ListValues.objects.getByCode(value)
+                                    if list_id:
+                                        value = list_id
+                                except ListValues.DoesNotExist:
                                     continue
                             if ind_type == "date":
                                 value = value.strftime("%Y-%m-%d")

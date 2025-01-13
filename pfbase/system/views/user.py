@@ -80,6 +80,7 @@ class CustomAuthToken(ObtainAuthToken):
             "fio": fio,
             "user_id": user.pk,
             "organization": user.organization.code,
+            "organization_id": user.organization.id,
             "organization_name": user.organization.short_name, #Временно так сделал потом надо будет переделать
             "roles": roles,
         })
