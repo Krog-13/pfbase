@@ -76,6 +76,8 @@ class RecordsManager(models.Manager):
                     queryset = queryset.filter(record_values__indicator__code=key, record_values__value_reference=value)
                 elif indic.type_value == IndicatorType.DOCUMENT:
                     queryset = queryset.filter(record_values__indicator__code=key, record_values__value_reference=value)
+                elif indic.type_value == IndicatorType.ORGANIZATION:
+                    queryset = queryset.filter(record_values__indicator__code=key, record_values__value_reference=value)
                 elif indic.type_value == IndicatorType.TIME:
                     parsed_value = give_date_format(value, "time")
                     if parsed_value:
