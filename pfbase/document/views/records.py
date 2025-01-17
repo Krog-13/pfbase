@@ -27,15 +27,18 @@ class RecordAPIView(ModelViewSet):
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
 
-    @action(detail=False, methods=['get'], url_path='bydocument/(?P<pk>\d+)')
+    @action(detail=False, methods=['get'], url_path='bydocument/(?P<pk>\w+)')
     def bydocument(self, request, pk=None):
         """
         Получения записей по :pk Document
         """
-        indicators = self.get_queryset().filter(document_id=pk)
+        if pk.isdigit():
+            indicators = self.get_queryset().filter(document_id=pk)
+        else:
+            indicators = self.get_queryset().filter(document__code=pk)
         if not indicators:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = self.serializer_class(indicators, many=True)
+        serializer = self.serializer_class(indicators, many=True, context={'request': request})
         return Response(serializer.data)
 
 
