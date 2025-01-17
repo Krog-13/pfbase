@@ -22,12 +22,15 @@ class IndicatorsAPIView(AbstractModelAPIView):
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
 
-    @action(detail=False, methods=['get'], url_path='bydictionary/(?P<pk>\d+)')
+    @action(detail=False, methods=['get'], url_path='bydictionary/(?P<pk>\w+)')
     def bydictionary(self, request, pk=None):
         """
         Получения индикаторов по :pk Dictionaries
         """
-        indicators = self.get_queryset().filter(dictionary_id=pk)
+        if pk.isdigit():
+            indicators = self.get_queryset().filter(dictionary_id=pk)
+        else:
+            indicators = self.get_queryset().filter(dictionary__code=pk)
         if not indicators:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(indicators, many=True, context={'request': request})
