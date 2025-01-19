@@ -27,6 +27,8 @@ class RecordsManager(models.Manager):
     def findByQuery(self, params):
         queryset = self.all()
         for key, value in params.items():
+            if key == "id":
+                queryset = queryset.filter(id=value)
             if key == "author_id":
                 queryset = queryset.filter(author_id__in=value)
             if key == "NUMBER":
@@ -59,7 +61,7 @@ class RecordsManager(models.Manager):
                 ).filter(last_status=value)
 
             if key not in ["NUMBER", "DCM_CODE", "active", "organization_id", "parent_id", "page", "lang",
-                           "status", "date", "STATUS", "code_status", "record_date", "author_id"]:
+                           "status", "date", "STATUS", "code_status", "record_date", "author_id", "id"]:
                 from .models import DcmIndicators
                 indic = DcmIndicators.objects.get(code=key)
                 if indic.type_value == IndicatorType.STRING:
@@ -75,6 +77,8 @@ class RecordsManager(models.Manager):
                 elif indic.type_value == IndicatorType.LIST:
                     queryset = queryset.filter(record_values__indicator__code=key, record_values__value_reference=value)
                 elif indic.type_value == IndicatorType.DOCUMENT:
+                    queryset = queryset.filter(record_values__indicator__code=key, record_values__value_reference=value)
+                elif indic.type_value == IndicatorType.ORGANIZATION:
                     queryset = queryset.filter(record_values__indicator__code=key, record_values__value_reference=value)
                 elif indic.type_value == IndicatorType.TIME:
                     parsed_value = give_date_format(value, "time")

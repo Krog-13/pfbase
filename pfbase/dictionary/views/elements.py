@@ -22,16 +22,19 @@ class ElementsAPIView(AbstractModelAPIView):
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
 
-    @action(detail=False, methods=['get'], url_path='bydictionary/(?P<pk>\d+)')
+    @action(detail=False, methods=['get'], url_path='bydictionary/(?P<pk>\w+)')
     def bydictionary(self, request, pk=None):
         """
         Получения элементов по :pk ABCDictionary
         """
         user = request.user
         org = user.organization
-        dictionary = elements.Dictionaries.objects.get(pk=pk)
         params = request.GET.copy()
-        params["DICT_CODE"] = dictionary.code
+        if pk.isdigit():
+            dictionary = elements.Dictionaries.objects.get(pk=pk)
+            params["DICT_CODE"] = dictionary.code
+        else:
+            params["DICT_CODE"] = pk
         organization_id = params.get("organization_id")
         if organization_id:
             params["organization_id"] = [organization_id]
