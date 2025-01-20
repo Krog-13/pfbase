@@ -25,6 +25,7 @@ class RecordSerializer(serializers.ModelSerializer):
 class RIValueSerializer(serializers.ModelSerializer):
     # shortname = serializers.JSONField(source='indicator.short_name')
     short_name = serializers.SerializerMethodField(source='indicator.short_name')
+    full_name = serializers.SerializerMethodField(source='indicator.full_name')
     type_value = serializers.CharField(source='indicator.type_value')
     type_extend = serializers.CharField(source='indicator.type_extend')
     code = serializers.CharField(source='indicator.code')
@@ -32,7 +33,7 @@ class RIValueSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RecordIndicatorValues
-        fields = 'id', 'short_name', 'code', 'type_value', 'type_extend', 'value_reference', 'value'
+        fields = 'id', 'short_name', 'full_name', 'code', 'type_value', 'type_extend', 'value_reference', 'value'
 
     # def get_short_name(self, obj):
     #     query_params = self.context['request'].query_params
@@ -48,6 +49,16 @@ class RIValueSerializer(serializers.ModelSerializer):
         obj.indicator.short_name = {}
         obj.indicator.short_name[lang] = short_name
         return obj.indicator.short_name
+
+    def get_full_name(self, obj):
+        query_params = self.context['request'].query_params
+        lang = query_params.get('lang')
+        if not lang or lang not in ["ru", "en", "kk"]:
+            return obj.indicator.full_name
+        full_name = obj.indicator.full_name.get(lang, None)
+        obj.indicator.full_name = {}
+        obj.indicator.full_name[lang] = full_name
+        return obj.indicator.full_name
 
     def get_value_name(self, obj):
         query_params = self.context['request'].query_params
