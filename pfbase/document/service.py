@@ -362,6 +362,7 @@ class RecordService:
         parent_id = validated_data.get('parent_id')
         number = validated_data.get('number')
         date = validated_data.get('date')
+        status_id = validated_data.get('status_id')
         if parent_id:
             parent_record = Records.objects.get(id=parent_id)
             record.parent = parent_record
@@ -369,7 +370,7 @@ class RecordService:
             record.number = number
         if date:
             record.date = date
-        record.user = user
+        record.author = user
         record.save()
 
         if not indicators:
@@ -377,12 +378,14 @@ class RecordService:
 
         for indicator in indicators:
             type_value = indicator.get('type')
-            rv = record.record_value.get(id=indicator.get('id'), indicator__type_value=type_value)
+            rv = record.record_values.get(id=indicator.get('id'), indicator__type_value=type_value)
             some_value = indicator.get('value')
             result = self.separate_value(rv, type_value, some_value)
             if not result:
                 raise WrongType("Invalid type value")
             rv.save()
+        if status_id:
+            self.create_history(record, status_id, user)
         return record
 
     def separate_value(self, record_iv, type_value, value):
@@ -553,3 +556,15 @@ class HistoryService:
                     action="update",
                     author=user)
         return True
+
+    @transaction.atomic
+    def create_history(self, user, validate_data):
+        """
+        Create Record History
+        """
+        RecordHistory.objects.create(
+            record_id=validate_data.get("record_id"),
+            status_id=validate_data.get("status_id"),
+            comment=validate_data.get("comment"),
+            action="update",
+            author=user)
