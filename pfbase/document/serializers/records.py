@@ -169,7 +169,7 @@ class IndicatorSerializer(CommonSerializer):
 class IndicatorUpdateSerializer(CommonSerializer):
     id = serializers.IntegerField(required=True)
     value = serializers.CharField(max_length=100, required=True)
-
+    type = serializers.CharField(max_length=100, required=True)
 
 class RecordFormDataSerializer(serializers.Serializer):
     file = serializers.FileField(required=True)

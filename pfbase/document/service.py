@@ -377,7 +377,7 @@ class RecordService:
 
         for indicator in indicators:
             type_value = indicator.get('type')
-            rv = record.record_value.get(id=indicator.get('id'), indicator__type_value=type_value)
+            rv = record.record_values.get(id=indicator.get('id'), indicator__type_value=type_value)
             some_value = indicator.get('value')
             result = self.separate_value(rv, type_value, some_value)
             if not result:
