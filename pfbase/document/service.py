@@ -362,6 +362,7 @@ class RecordService:
         parent_id = validated_data.get('parent_id')
         number = validated_data.get('number')
         date = validated_data.get('date')
+        status_id = validated_data.get('status_id')
         if parent_id:
             parent_record = Records.objects.get(id=parent_id)
             record.parent = parent_record
@@ -383,6 +384,8 @@ class RecordService:
             if not result:
                 raise WrongType("Invalid type value")
             rv.save()
+        if status_id:
+            self.create_history(record, status_id, user)
         return record
 
     def separate_value(self, record_iv, type_value, value):

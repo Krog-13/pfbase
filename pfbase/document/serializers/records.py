@@ -230,6 +230,7 @@ class RecordUpdateSerializer(CommonSerializer):
     date = serializers.DateField(required=False)
     parent_id = serializers.IntegerField(required=False)
     record_id = serializers.IntegerField(required=True)
+    status_id = serializers.IntegerField(required=False)
     indicators = IndicatorUpdateSerializer(many=True, required=False)
 
     def update(self, instance, validated_data):
