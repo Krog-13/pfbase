@@ -553,3 +553,15 @@ class HistoryService:
                     action="update",
                     author=user)
         return True
+
+    @transaction.atomic
+    def create_history(self, user, validate_data):
+        """
+        Create Record History
+        """
+        RecordHistory.objects.create(
+            record_id=validate_data.get("record_id"),
+            status_id=validate_data.get("status_id"),
+            comment=validate_data.get("comment"),
+            action="update",
+            author=user)
