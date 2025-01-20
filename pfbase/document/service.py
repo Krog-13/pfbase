@@ -370,7 +370,7 @@ class RecordService:
             record.number = number
         if date:
             record.date = date
-        record.user = user
+        record.author = user
         record.save()
 
         if not indicators:
