@@ -585,3 +585,4 @@ class HistoryService:
             comment=validate_data.get("comment"),
             action="update",
             author=user)
+        return True
