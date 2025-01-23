@@ -217,7 +217,7 @@ class RecordService:
     def validate_update_data(self, request_data):
         main = request_data['main']
 
-        self.number = main.get('number', None)
+        self.number = main.get('number', "0000")
         self.date_string = main.get('date', None)
         self.record_id = main['record_id']
         self.status_id = main.get('status_id', None)
@@ -230,10 +230,11 @@ class RecordService:
             self.date = None
 
     def validate_update_sub_data(self, sub):
-
-        self.sub_number = sub.get('number', None)
+        self.sub_number = sub.get('number', "0000")
         self.date_string = sub.get('date', None)
-        self.sub_record_id = sub['record_id']
+        self.sub_record_id = sub.get('record_id', None)
+        self.sub_code = sub.get('code', None)
+        self.sub_document_id = sub.get('document_id', None)
         self.sub_status_id = sub.get('status_id', None)
         self.sub_indicators = sub.get('indicators', [])
 
@@ -242,6 +243,11 @@ class RecordService:
             self.sub_date = timezone.make_aware(naive_datetime)
         else:
             self.sub_date = None
+
+        if self.sub_document_id:
+            self.document = Documents.objects.get(id=self.sub_document_id)
+        if self.sub_code:
+            self.document = Documents.objects.get(code=self.sub_code)
 
     def record_update_iv(self, indicators, record):
         for indicator in indicators:
@@ -326,21 +332,32 @@ class RecordService:
         Update Record with their Indicators
         """
         self.validate_update_data(request_data)
-        record = Records.objects.get(id=self.record_id)
+        main_record = Records.objects.get(id=self.record_id)
         if self.number:
-            record.number = self.number
+            main_record.number = self.number
         if self.date:
-            record.date = self.date
-        record.user = user
-        record.save()
-        self.record_update_iv(self.main_indicators, record)
+            main_record.date = self.date
+        main_record.user = user
+        main_record.save()
+        self.record_update_iv(self.main_indicators, main_record)
         subs = request_data.get('subs', [])
         if self.status_id:
-            self.create_history(record, self.status_id, user)
+            self.create_history(main_record, self.status_id, user)
 
         for sub in subs:
             self.validate_update_sub_data(sub)
-            record = Records.objects.get(id=self.sub_record_id)
+            try:
+                if self.sub_record_id:
+                    record = Records.objects.get(id=self.sub_record_id)
+                else:
+                    record =  Records.objects.create(
+                    number=self.number,
+                    parent=main_record,
+                    date=datetime.now(),
+                    author=user,
+                    document=self.document)
+            except Records.DoesNotExist:
+                raise
             if self.sub_number:
                 record.number = self.sub_number
             if self.sub_date:
@@ -568,3 +585,4 @@ class HistoryService:
             comment=validate_data.get("comment"),
             action="update",
             author=user)
+        return True

@@ -30,7 +30,7 @@ class RecordsManager(models.Manager):
             if key == "id":
                 queryset = queryset.filter(id=value)
             if key == "author_id":
-                queryset = queryset.filter(Q(author_id__in=value) | Q(author_id=value))
+                queryset = queryset.filter(author_id__in=value)
             if key == "NUMBER":
                 queryset = queryset.filter(Q(number=value) | Q(number__icontains=value))
             if key == "DCM_CODE":

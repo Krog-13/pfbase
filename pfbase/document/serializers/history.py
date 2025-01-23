@@ -27,7 +27,7 @@ class HistoryPostSerializer(serializers.Serializer):
         if not user:
             user = self.context['user']
         try:
-            return HistoryService().create_record_history(user, request_data)
+            return HistoryService().create_history(user, request_data)
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
         except KeyError as e:
