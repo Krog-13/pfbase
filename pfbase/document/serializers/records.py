@@ -65,15 +65,18 @@ class RIValueSerializer(serializers.ModelSerializer):
         lang = query_params.get('lang', 'ru')
         if obj.indicator.type_value == 'dct':
             element = Elements.objects.filter(id=obj.value_reference).first()
-            return element.short_name.get(lang)
+            return element.short_name.get(lang) if element else None
         elif obj.indicator.type_value == 'list':
             record = ListValues.objects.filter(id=obj.value_reference).first()
             return record.short_name.get(lang)
+        elif obj.indicator.type_value == 'dcm':
+            rec = Records.objects.filter(id=obj.value_reference).first()
+            return rec.short_name.get(lang)
 
     def get_value(self, obj):
         value_fields = [
             'value_int', 'value_text', 'value_datetime', 'value_float',
-            'value_bool', 'value_str', 'value_json']
+            'value_bool', 'value_str', 'value_json', 'value_reference']
         for field in value_fields:
             if obj.indicator.type_value in ['dct', 'list']:
                 return self.get_value_name(obj)
