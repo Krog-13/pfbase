@@ -14,8 +14,8 @@ class DocumentAdmin(admin.ModelAdmin):
     """
     Abstract Documents in the admin panel
     """
-    fields = ("name", "description", "code", "parent")
-    list_display = ("get_name", "code", "parent", "id")
+    fields = ("name", "description", "code", "type", "index_sort", "parent")
+    list_display = ("get_name", "code", "type", "parent", "index_sort", "id")
     search_fields = ('get_name', 'id')
 
     def get_name(self, obj):

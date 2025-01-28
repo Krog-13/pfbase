@@ -27,6 +27,7 @@ class Documents(models.Model):
     type = models.CharField(
         choices=DocumentType.choices, max_length=4,
         verbose_name='Тип абстракции', default=DocumentType.MAIN)
+    index_sort = models.PositiveIntegerField(blank=True, null=True, verbose_name='Индекс сортировки')
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
