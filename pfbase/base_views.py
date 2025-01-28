@@ -33,6 +33,6 @@ class AbstractModelAPIView(ModelViewSet):
         queryset = self.get_queryset().filter(Q(dictionary__code=dct_code) if dct_code else Q(),
                                               parent_id=parent_id,
                                               name__ru__icontains=search
-                                              )
+                                              ).order_by("index_sort")
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
