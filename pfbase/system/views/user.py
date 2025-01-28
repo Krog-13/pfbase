@@ -71,7 +71,8 @@ class CustomAuthToken(ObtainAuthToken):
                                            context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-        token, created = Token.objects.get_or_create(user=user)
+        Token.objects.filter(user=user).delete()
+        token = Token.objects.create(user=user)
         roles = [gp.name for gp in user.groups.all()]
         fio = user.first_name +" "+ user.last_name
         if user.organization:
@@ -82,7 +83,7 @@ class CustomAuthToken(ObtainAuthToken):
                 "user_id": user.pk,
                 "organization": user.organization.code,
                 "organization_id": user.organization.id,
-                "organization_name": user.organization.short_name, #Временно так сделал потом надо будет переделать
+                "organization_name": user.organization.short_name,  # Временно так сделал потом надо будет переделать
                 "roles": roles,
             })
         else:
