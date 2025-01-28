@@ -13,6 +13,8 @@ class LVAdmin(admin.ModelAdmin):
     List Value in admin panel
     """
     list_display = ('list', 'code', 'id')
+    list_filter = ("list", )
+
 
     def save_model(self, request, obj, form, change):
         if not obj.pk:
