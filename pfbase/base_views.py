@@ -30,7 +30,6 @@ class AbstractModelAPIView(ModelViewSet):
         """
         dct_code = request.query_params.get('dct_code')
         search = request.query_params.get('search', '')
-        print(self.basename)
         if self.basename == "elements":
             queryset = self.get_queryset().filter(Q(dictionary__code=dct_code) if dct_code else Q(),
                                                   parent_id=parent_id,
