@@ -30,9 +30,23 @@ class AbstractModelAPIView(ModelViewSet):
         """
         dct_code = request.query_params.get('dct_code')
         search = request.query_params.get('search', '')
-        queryset = self.get_queryset().filter(Q(dictionary__code=dct_code) if dct_code else Q(),
-                                              parent_id=parent_id,
-                                              name__ru__icontains=search
-                                              ).order_by("index_sort")
+        print(self.basename)
+        if self.basename == "elements":
+            queryset = self.get_queryset().filter(Q(dictionary__code=dct_code) if dct_code else Q(),
+                                                  parent_id=parent_id,
+                                                  short_name__ru__icontains=search
+                                                  )
+        elif self.basename == "dictionaries":
+            queryset = self.get_queryset().filter(Q(dictionary__code=dct_code) if dct_code else Q(),
+                                                  parent_id=parent_id,
+                                                  name__ru__icontains=search
+                                                  )
+        elif self.basename == "documents":
+            queryset = self.get_queryset().filter(Q(dictionary__code=dct_code) if dct_code else Q(),
+                                                  parent_id=parent_id,
+                                                  name__ru__icontains=search
+                                                  ).order_by("index_sort")
+        else:
+            queryset = self.get_queryset().filter(Q(dictionary__code=dct_code) if dct_code else Q())
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
