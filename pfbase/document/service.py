@@ -9,9 +9,10 @@ from django.db.models import Case, When, IntegerField
 from django.utils import timezone
 
 
-Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json', 'file', 'user'])
+Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json', 'file', 'user', 'array_int', 'array_str'])
 marker = Typing(int="int", float="float", str="str", text="text", json='json', file="file", user="user",
-                datetime=["datetime", "date", "time"], bool="bool", reference=["dct", "list", "dcm", "user", "org"])
+                datetime=["datetime", "date", "time"], bool="bool", reference=["dct", "list", "dcm", "user", "org"], array_int=["dct", "dcm", "list", "user", "org"],
+                array_str=["str", "text", "bool", "file", "date", "time", "dct"])
 
 
 class RecordService:
@@ -91,7 +92,34 @@ class RecordService:
 
     def create_riv(self, record, indicator_values):
         for item in indicator_values:
-            value = item.get('value')
+            value = item['value']
+            type_value = item['type']
+            idc_id = item.get('id')
+            idc_code = item.get('code')
+            # ToDo complete check exists that value
+            #self.check_exist_reference(type_value, value)
+            if idc_id:
+                indicator = DcmIndicators.objects.get(id=idc_id)
+                is_multiple = indicator.is_multiple
+            else:
+                indicator = DcmIndicators.objects.get(code=idc_code)
+                is_multiple = indicator.is_multiple
+            if is_multiple:
+                rv = record.record_values.create(indicator=indicator)
+                result = self.separate_multiple_value(rv, type_value, value)
+                if not result:
+                    raise WrongType("Invalid type value")
+                rv.save()
+            else:
+                rv = record.record_values.create(indicator=indicator)
+                result = self.separate_value(rv, type_value, value)
+                if not result:
+                    raise WrongType("Invalid type value")
+                rv.save()
+        return True
+
+    def create_any_riv(self, record, indicator_values):
+        for item in indicator_values:
             value_str = item.get('value_str')
             value_int = item.get('value_int')
             value_reference = item.get('value_reference')
@@ -100,29 +128,23 @@ class RecordService:
             value_text = item.get('value_text')
             value_datetime = item.get('value_datetime')
             value_bool = item.get('value_bool')
-            type_value = item.get('type')
             idc_id = item.get('id')
             idc_code = item.get('code')
-            if value is not None:
-                self.check_exist_reference(type_value, value)
             if idc_id:
                 indicator = DcmIndicators.objects.get(id=idc_id)
             else:
                 indicator = DcmIndicators.objects.get(code=idc_code)
 
             rv = record.record_values.create(indicator=indicator)
-            if value is not None:
-                result = self.separate_value(rv, type_value, value)
-            else:
-                result = self.separate_value_any(rv,
-                                                 value_str=value_str,
-                                                 value_int=value_int,
-                                                 value_reference=value_reference,
-                                                 value_json=value_json,
-                                                 value_float=value_float,
-                                                 value_text=value_text,
-                                                 value_datetime=value_datetime,
-                                                 value_bool=value_bool)
+            result = self.separate_value_any(rv,
+                                             value_str=value_str,
+                                             value_int=value_int,
+                                             value_reference=value_reference,
+                                             value_json=value_json,
+                                             value_float=value_float,
+                                             value_text=value_text,
+                                             value_datetime=value_datetime,
+                                             value_bool=value_bool)
             if not result:
                 raise WrongType("Invalid type value")
             rv.save()
@@ -169,20 +191,6 @@ class RecordService:
                     self.create_history(sub_record, status_id, user)
         return main_record
 
-    # DRAFT SAVE FILE WITH DATA FROM FORM-DATA
-    def create_record_form(self, user, request_data):
-        """
-        Form data with Rocord and File
-        """
-        pass
-        # file = request_data.get('file')
-        # if file:
-        #     file_id = uuid4().hex
-        #     file_data = f"{file.name},{file_id}"
-        #     minio.save_file_minio(file, file_id)
-        # data = request_data.get('data')
-        # self.create_record_iv(user, data)
-
     @transaction.atomic
     def create_record_iv(self, user, validated_data):
         """
@@ -207,9 +215,40 @@ class RecordService:
             organization_id=organization_id,
             document=document)
 
+        if status_id:
+            self.create_history(record, status_id, user)
         if not indicators:
             return record
         self.create_riv(record, indicators)
+        return record
+
+    @transaction.atomic
+    def create_record_any_iv(self, user, validated_data):
+        """
+        Create Record with their Indicators
+        """
+        document_id = validated_data.get('document_id')
+        code = validated_data.get('code')
+        indicators = validated_data.get('indicators')
+        parent_id = validated_data.get('parent_id')
+        status_id = validated_data.get('status_id')
+        organization_id = validated_data.get('organization_id', user.organization_id)
+        if document_id:
+            document = Documents.objects.get(id=document_id)
+        else:
+            document = Documents.objects.get(code=code)
+        parent_r = Records.objects.get(id=parent_id) if parent_id else None
+        record = Records.objects.create(
+            number=validated_data.get('number'),
+            date=validated_data.get('date'),
+            parent=parent_r,
+            author=user,
+            organization_id=organization_id,
+            document=document)
+
+        if not indicators:
+            return record
+        self.create_any_riv(record, indicators)
         if status_id:
             self.create_history(record, status_id, user)
         return record
@@ -404,6 +443,15 @@ class RecordService:
         if status_id:
             self.create_history(record, status_id, user)
         return record
+
+    def separate_multiple_value(self, record_iv, type_value, value):
+        if type_value in marker.array_int:
+            record_iv.value_array_int = value
+        if type_value in marker.array_str:
+            record_iv.value_array_str = value
+        else:
+            return False
+        return True
 
     def separate_value(self, record_iv, type_value, value):
         if type_value == marker.int:

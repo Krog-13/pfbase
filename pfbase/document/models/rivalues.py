@@ -35,6 +35,10 @@ class RecordIndicatorValues(IndicatorValueBase):
             return str(self.value_bool)
         elif self.value_reference:
             return str(self.value_reference)
+        elif self.value_array_str:
+            return "Array of string"
+        elif self.value_array_int:
+            return "Array of integer"
         elif self.value_json:
             return "JSON data"
         else:

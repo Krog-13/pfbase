@@ -1,6 +1,7 @@
 """
 Abstract base models
 """
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from .config import default_name
 import json
@@ -45,6 +46,8 @@ class IndicatorBase(models.Model):
         max_length=128, null=True, blank=True, verbose_name='Расширения типа')
     is_filtered = models.BooleanField(
         default=False, blank=True, verbose_name='Добавить в фильтр')
+    is_multiple = models.BooleanField(
+        default=False, blank=True, verbose_name="Множественный выбор")
 
     class Meta:
         abstract = True
@@ -71,6 +74,12 @@ class IndicatorValueBase(models.Model):
         null=True, blank=True, verbose_name='Логическое значение')
     value_reference = models.PositiveBigIntegerField(
         null=True, blank=True, verbose_name='Внешний ключ')
+    value_array_int = ArrayField(
+        models.PositiveIntegerField(),
+        blank=True, default=list, verbose_name="Список Int")
+    value_array_str = ArrayField(
+        models.CharField(max_length=128),
+        blank=True, default=list, verbose_name="Список Str")
     index_sort = models.PositiveBigIntegerField(
         blank=True, verbose_name='Индекс сортировки')
     active = models.BooleanField(
