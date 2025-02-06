@@ -150,7 +150,7 @@ class CustomField(serializers.Field):
 
     def to_internal_value(self, data):
         # Allow only strings, integers, and booleans
-        if isinstance(data, (str, int, bool, list)):
+        if isinstance(data, (str, int, bool, list, dict)):
             return data
         raise serializers.ValidationError("Value must be an integer, string, or boolean.")
 
