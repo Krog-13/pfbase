@@ -28,17 +28,14 @@ class RIValueSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField(source='indicator.full_name')
     type_value = serializers.CharField(source='indicator.type_value')
     type_extend = serializers.CharField(source='indicator.type_extend')
+    is_multiple = serializers.CharField(source='indicator.is_multiple')
     code = serializers.CharField(source='indicator.code')
     value = serializers.SerializerMethodField()
 
     class Meta:
         model = RecordIndicatorValues
-        fields = 'id', 'short_name', 'full_name', 'code', 'type_value', 'type_extend', 'value_reference', 'value'
+        fields = 'id', 'short_name', 'full_name', 'code', 'type_value', 'type_extend', 'is_multiple', 'value_reference', 'value'
 
-    # def get_short_name(self, obj):
-    #     query_params = self.context['request'].query_params
-    #     lang = query_params.get('lang', 'ru')
-    #     return obj.indicator.short_name.get(lang)
 
     def get_short_name(self, obj):
         query_params = self.context['request'].query_params
@@ -64,6 +61,8 @@ class RIValueSerializer(serializers.ModelSerializer):
         query_params = self.context['request'].query_params
         lang = query_params.get('lang', 'ru')
         if obj.indicator.type_value == 'dct':
+            if obj.indicator.is_multiple:
+                return obj.value_array_int
             element = Elements.objects.filter(id=obj.value_reference).first()
             return element.short_name.get(lang) if element else None
         elif obj.indicator.type_value == 'list':
@@ -71,16 +70,17 @@ class RIValueSerializer(serializers.ModelSerializer):
             return record.short_name.get(lang)
         elif obj.indicator.type_value == 'dcm':
             rec = Records.objects.filter(id=obj.value_reference).first()
-            return rec.short_name.get(lang)
+            return rec.number
 
     def get_value(self, obj):
         value_fields = [
             'value_int', 'value_text', 'value_datetime', 'value_float',
-            'value_bool', 'value_str', 'value_json', 'value_reference']
+            'value_bool', 'value_str', 'value_json', 'value_array_str']
         for field in value_fields:
-            if obj.indicator.type_value in ['dct', 'list']:
+            if obj.indicator.type_value in ['dct', 'list', 'dcm', 'user', 'org']:
                 return self.get_value_name(obj)
-            if value := getattr(obj, field, None):
+            value = getattr(obj, field, None)
+            if value is not None:
                 return value
         return None
 
@@ -150,14 +150,20 @@ class CustomField(serializers.Field):
 
     def to_internal_value(self, data):
         # Allow only strings, integers, and booleans
-        if isinstance(data, (str, int, bool, dict)):
+        if isinstance(data, (str, int, bool, list, dict)):
             return data
         raise serializers.ValidationError("Value must be an integer, string, or boolean.")
 
+
 class IndicatorSerializer(CommonSerializer):
     id = serializers.IntegerField(required=False)
+    value = CustomField(required=True)
     code = serializers.CharField(max_length=50, required=False)
-    value = CustomField(required=False, allow_null=True)
+    type = serializers.CharField(max_length=10, required=False)
+
+class IndicatorAnySerializer(CommonSerializer):
+    id = serializers.IntegerField(required=False)
+    code = serializers.CharField(max_length=50, required=False)
     value_str = serializers.CharField(required=False, allow_null=True)
     value_int = serializers.IntegerField(required=False, allow_null=True)
     value_reference = serializers.IntegerField(required=False, allow_null=True)
@@ -184,10 +190,8 @@ class RecordFormDataSerializer(serializers.Serializer):
             user = self.context['user']
         try:
             pass
-            return RecordService().create_record_form(user, validated_data)
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
-
 
 class RecordPostSerializer(CommonSerializer):
     number = serializers.CharField(required=False, default="0000")
@@ -200,12 +204,31 @@ class RecordPostSerializer(CommonSerializer):
     organization_id = serializers.IntegerField(required=False)
 
     def create(self, validated_data):
-
         user = self.context['request'].user
         if not user:
             user = self.context['user']
         try:
             return RecordService().create_record_iv(user, validated_data)
+        except ValidationError as e:
+            raise exceptions.ValidationError({"error": str(e)})
+
+
+class RecordAnyPostSerializer(CommonSerializer):
+    number = serializers.CharField(required=False, default="0000")
+    date = serializers.DateTimeField(required=False, default=datetime.datetime.now())
+    document_id = serializers.IntegerField(required=False)
+    code = serializers.CharField(required=False)
+    parent_id = serializers.IntegerField(required=False)
+    indicators = IndicatorAnySerializer(many=True, required=False)
+    status_id = serializers.IntegerField(required=False)
+    organization_id = serializers.IntegerField(required=False)
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        if not user:
+            user = self.context['user']
+        try:
+            return RecordService().create_record_any_iv(user, validated_data)
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
 

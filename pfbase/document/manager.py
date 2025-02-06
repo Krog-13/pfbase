@@ -31,6 +31,8 @@ class RecordsManager(models.Manager):
                 queryset = queryset.filter(id=value)
             if key == "author_id":
                 queryset = queryset.filter(author_id__in=value)
+            if key == "own_id":
+                queryset = queryset.filter(author_id=value)
             if key == "NUMBER":
                 queryset = queryset.filter(Q(number=value) | Q(number__icontains=value))
             if key == "DCM_CODE":
@@ -61,9 +63,12 @@ class RecordsManager(models.Manager):
                 ).filter(last_status=value)
 
             if key not in ["NUMBER", "DCM_CODE", "active", "organization_id", "parent_id", "page", "lang",
-                           "status", "date", "STATUS", "code_status", "record_date", "author_id", "id"]:
+                           "status", "date", "STATUS", "code_status", "record_date", "author_id", "author_one_id", "id"]:
                 from .models import DcmIndicators
-                indic = DcmIndicators.objects.get(code=key)
+                try:
+                    indic = DcmIndicators.objects.get(code=key)
+                except DcmIndicators.DoesNotExist:
+                    continue
                 if indic.type_value == IndicatorType.STRING:
                     queryset = queryset.filter(record_values__indicator__code=key, record_values__value_str=value)
                 elif indic.type_value == IndicatorType.INTEGER:

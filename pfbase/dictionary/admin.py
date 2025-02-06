@@ -48,8 +48,8 @@ class ElementAdmin(admin.ModelAdmin):
     """
     Elements in admin panel
     """
-    fields = ("short_name", "full_name", "dictionary", "organization", "code", "parent", "active")
-    list_display = ('get_short_name', 'dictionary', "code", "parent", 'id')
+    fields = ("short_name", "full_name", "dictionary", "organization", "code", "index_sort", "parent", "active")
+    list_display = ('get_short_name', 'dictionary', "code", "parent", "index_sort", "id")
     list_filter = ("dictionary", "author")
 
     search_fields = ('id',)

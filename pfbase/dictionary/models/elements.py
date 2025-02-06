@@ -26,6 +26,8 @@ class Elements(models.Model):
     organization = models.ForeignKey(
         to="Organization", on_delete=models.SET_NULL, blank=True, null=True,
         verbose_name='Организация', related_name="elements")
+    index_sort = models.PositiveBigIntegerField(
+        blank=True, null=True, verbose_name='Индекс сортировки')
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

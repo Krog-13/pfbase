@@ -40,9 +40,9 @@ class IndicatorAdmin(admin.ModelAdmin):
     """
     Indicator in the admin panel
     """
-    fields = ("document", ("short_name", "full_name", "type_value", "type_extend"), "code",
+    fields = ("document", ("short_name", "full_name", "type_value", "type_extend", "is_multiple"), "code",
               "active")
-    list_display = ("get_name", "code", "type_value", "document", "index_sort", "id")
+    list_display = ("get_name", "code", "type_value", "document", "index_sort", "is_multiple", "id")
     search_fields = ('name', 'id')
     list_filter = ("document", "author")
 
@@ -75,7 +75,8 @@ class RecordIndicatorValueAdmin(admin.ModelAdmin):
     """
     Record-Indicator Value in the admin panel
     """
-    fields = (("value_int", "value_float", "value_str", "value_text", "value_json"), "value_datetime", "value_reference",
+    fields = (("value_int", "value_float", "value_str", "value_text", "value_json"), ("value_array_int", "value_array_str"),
+              "value_datetime", "value_reference",
               "index_sort", "record", "indicator", "active")
     list_display = ("some_value", "type_value", "indicator", "record", "index_sort", "id")
     search_fields = (
@@ -100,6 +101,10 @@ class RecordIndicatorValueAdmin(admin.ModelAdmin):
             return obj.value_reference
         elif obj.value_bool:
             return obj.value_bool
+        elif obj.value_array_int:
+            return "Array of int"
+        elif obj.value_array_str:
+            return "Array of str"
         elif obj.value_json:
             return "JSON data"
         else:
