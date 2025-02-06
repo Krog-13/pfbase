@@ -302,9 +302,10 @@ class RecordService:
             code = indicator.get('code')
             id = indicator.get('id')
             some_value = indicator.get('value')
-            
-            if some_value is not None:
-                self.check_exist_reference(type_value, some_value)
+
+            # ToDo check list, int e.t.c
+            # if some_value is not None:
+            #     self.check_exist_reference(type_value, some_value)
             try:
                 rv = record.record_values.get(id=id)
             except RecordIndicatorValues.DoesNotExist:
