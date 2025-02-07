@@ -111,7 +111,7 @@ class RIGetSerializer(serializers.ModelSerializer):
     indicator_value = RIValueSerializer(source="record_values", many=True, read_only=True)
     status = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
-    organization_name = serializers.JSONField(source="organization.short_name")
+    organization_detail = serializers.SerializerMethodField()
 
     class Meta:
         model = Records
@@ -128,6 +128,12 @@ class RIGetSerializer(serializers.ModelSerializer):
         if children_qs.exists():
             return True
         return False
+
+    def get_organization_detail(self, obj):
+        org_id = obj.organization.id if obj.organization else None
+        short_name = obj.organization.short_name if obj.organization else None
+        return {"id": org_id,
+                "short_name": short_name}
 
 
 class CommonSerializer(serializers.Serializer):
