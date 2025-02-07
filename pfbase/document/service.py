@@ -474,10 +474,11 @@ class RecordService:
         elif type_value == marker.json:
             record_iv.value_json = value
         elif type_value in marker.datetime:
-            date = self.give_date_format(value, type_value)
-            if not date:
-                return False
-            record_iv.value_datetime = date
+            if value:
+                date = self.give_date_format(value, type_value)
+                record_iv.value_datetime = date
+            else:
+                record_iv.value_datetime = None
         else:
             return False
         return True
