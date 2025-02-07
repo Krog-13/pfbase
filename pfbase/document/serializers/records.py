@@ -247,7 +247,7 @@ class RecordPackPostSerializer(serializers.Serializer):
             raise exceptions.ValidationError({"error": str(e)})
         except KeyError as e:
             raise exceptions.ValidationError({"error": str(e)})
-        except KeyError as e:
+        except Exception as e:
             raise exceptions.ValidationError({"error": str(e)})
 
 
