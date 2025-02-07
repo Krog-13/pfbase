@@ -111,6 +111,7 @@ class RIGetSerializer(serializers.ModelSerializer):
     indicator_value = RIValueSerializer(source="record_values", many=True, read_only=True)
     status = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
+    organization_name = serializers.JSONField(source="organization.short_name")
 
     class Meta:
         model = Records
