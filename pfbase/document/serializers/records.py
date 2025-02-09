@@ -219,6 +219,19 @@ class RecordPostSerializer(CommonSerializer):
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
 
+class RecordListPostSerializer(serializers.Serializer):
+    records = serializers.ListField(required=True)
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        if not user:
+            user = self.context['user']
+        try:
+            return RecordService().create_record_list(user, validated_data)
+        except ValidationError as e:
+            raise exceptions.ValidationError({"error": str(e)})
+
+
 
 class RecordAnyPostSerializer(CommonSerializer):
     number = serializers.CharField(required=False, default="0000")
