@@ -164,7 +164,7 @@ class CustomField(serializers.Field):
 
 class IndicatorSerializer(CommonSerializer):
     id = serializers.IntegerField(required=False)
-    value = CustomField(required=True)
+    value = CustomField(required=True, allow_null=True)
     code = serializers.CharField(max_length=50, required=False)
     type = serializers.CharField(max_length=10, required=False)
 
