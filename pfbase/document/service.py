@@ -192,6 +192,40 @@ class RecordService:
         return main_record
 
     @transaction.atomic
+    def create_record_list(self, user, validated_data):
+        """
+        Created list of Records
+        """
+        self.validate_records_data(validated_data)
+        for record_data in self.records:
+            document_id = record_data.get('document_id')
+            code = record_data.get('code')
+            indicators = record_data.get('indicators')
+            parent_id = record_data.get('parent_id')
+            status_id = record_data.get('status_id')
+            organization_id = record_data.get('organization_id', user.organization_id)
+            if document_id:
+                document = Documents.objects.get(id=document_id)
+            else:
+                document = Documents.objects.get(code=code)
+            parent_r = Records.objects.get(id=parent_id) if parent_id else None
+            record = Records.objects.create(
+                number=record_data.get('number'),
+                date=record_data.get('date'),
+                parent=parent_r,
+                author=user,
+                organization_id=organization_id,
+                document=document)
+
+            if status_id:
+                self.create_history(record, status_id, user)
+            if not indicators:
+                return record
+            self.create_riv(record, indicators)
+            return record
+
+
+    @transaction.atomic
     def create_record_iv(self, user, validated_data):
         """
         Create Record with their Indicators
@@ -328,7 +362,7 @@ class RecordService:
             rv.save()
         return True
 
-    def validate_records_update_data(self, records):
+    def validate_records_data(self, records):
         self.records = records['records']
 
     def validate_record_update_data(self, record):
@@ -350,7 +384,7 @@ class RecordService:
         """
         Update Record with their Indicators
         """
-        self.validate_records_update_data(request_data)
+        self.validate_records_data(request_data)
         for record in self.records:
             self.validate_record_update_data(record)
             record = Records.objects.get(id=self.record_id)
@@ -474,10 +508,11 @@ class RecordService:
         elif type_value == marker.json:
             record_iv.value_json = value
         elif type_value in marker.datetime:
-            date = self.give_date_format(value, type_value)
-            if not date:
-                return False
-            record_iv.value_datetime = date
+            if value:
+                date = self.give_date_format(value, type_value)
+                record_iv.value_datetime = date
+            else:
+                record_iv.value_datetime = None
         else:
             return False
         return True

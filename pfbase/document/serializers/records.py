@@ -111,6 +111,7 @@ class RIGetSerializer(serializers.ModelSerializer):
     indicator_value = RIValueSerializer(source="record_values", many=True, read_only=True)
     status = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
+    organization_detail = serializers.SerializerMethodField()
 
     class Meta:
         model = Records
@@ -127,6 +128,12 @@ class RIGetSerializer(serializers.ModelSerializer):
         if children_qs.exists():
             return True
         return False
+
+    def get_organization_detail(self, obj):
+        org_id = obj.organization.id if obj.organization else None
+        short_name = obj.organization.short_name if obj.organization else None
+        return {"id": org_id,
+                "short_name": short_name}
 
 
 class CommonSerializer(serializers.Serializer):
@@ -157,7 +164,7 @@ class CustomField(serializers.Field):
 
 class IndicatorSerializer(CommonSerializer):
     id = serializers.IntegerField(required=False)
-    value = CustomField(required=True)
+    value = CustomField(required=True, allow_null=True)
     code = serializers.CharField(max_length=50, required=False)
     type = serializers.CharField(max_length=10, required=False)
 
@@ -211,6 +218,19 @@ class RecordPostSerializer(CommonSerializer):
             return RecordService().create_record_iv(user, validated_data)
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
+
+class RecordListPostSerializer(serializers.Serializer):
+    records = serializers.ListField(required=True)
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        if not user:
+            user = self.context['user']
+        try:
+            return RecordService().create_record_list(user, validated_data)
+        except ValidationError as e:
+            raise exceptions.ValidationError({"error": str(e)})
+
 
 
 class RecordAnyPostSerializer(CommonSerializer):
