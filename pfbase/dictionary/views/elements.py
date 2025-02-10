@@ -4,13 +4,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from pfbase.base_views import AbstractModelAPIView
 from pfbase.pagination import CustomPagination
-from ..serializers.elements import EIGetSerializer, EIPostSerializer, EIUpdateSerializer
-from ..models import elements, dictionaries, indicators
-from ..models import Elements
-from ...system.models import organization
+from ..serializers.elements import EIGetSerializer, EIPostSerializer, EIUpdateSerializer, EIListPostSerializer
+from ..models import elements, Elements
 from rest_framework.parsers import MultiPartParser, FormParser
-from ..service import find_driver, upload_file
-import openpyxl
+from ..service import find_driver, upload_file, ExcelUpload
+
 
 
 class ElementsAPIView(AbstractModelAPIView):
@@ -143,3 +141,39 @@ class FileUploadView(views.APIView):
             return Response({"message": "No elements found in the file"}, status=status.HTTP_400_BAD_REQUEST)
         
         return Response({"message": "All elements processed successfully"}, status=status.HTTP_201_CREATED)
+
+class FileUploadElementsView(views.APIView):
+    """
+    Upload excel file with elements
+    """
+    parser_classes = (MultiPartParser, FormParser)
+    def post(self, request):
+        user = request.user
+        excel_file = request.FILES.get("file")
+        update = request.data.get("update")
+        if not excel_file:
+            return Response({"error": "No file uploaded"}, status=400)
+        excel_upload = ExcelUpload(excel_file, user, update)
+        update = excel_upload.start_upload()
+        if update == "false":
+            return Response({"message": "All elements created successfully"}, status=status.HTTP_201_CREATED)
+        elif update == "true":
+            return Response({"message": "All elements updated successfully"}, status=status.HTTP_200_OK)
+        return Response({"warning": "Set parma update or create"}, status=400)
+
+
+        # for data in excel_upload.start_upload():
+        #     if update == "true":
+        #         element_code = data["code"]
+        #         element = Elements.objects.get(code=element_code)
+        #         serializer = EIUpdateSerializer(element, data=data, context={'request': request})
+        #         if serializer.is_valid():
+        #             serializer.update(element, serializer.validated_data)
+        #     elif update == "false":
+        #         serializer = EIPostSerializer(data=data, context={'request': request})
+        #         if serializer.is_valid():
+        #             serializer.save()
+        #     else:
+        #         return Response({"warning": "Set parma update or create"}, status=400)
+        #
+        # return Response({"message": "All elements processed successfully"}, status=status.HTTP_201_CREATED)
