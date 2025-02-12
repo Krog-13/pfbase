@@ -247,7 +247,7 @@ class ExcelUpload:
             elif item.startswith("IDC"):
                 self.mapping[idx] = f"indicators_{item}"
 
-        for row in self.sheet.iter_rows(min_row=2):
+        for row in self.sheet.iter_rows(min_row=2, values_only=True):
             self.output = {"code": None,
                            "dct_code": self.dct_code,
                            "parent_id": None,
