@@ -73,16 +73,19 @@ class RIValueSerializer(serializers.ModelSerializer):
             return rec.number
 
     def get_value(self, obj):
-        value_fields = [
-            'value_int', 'value_text', 'value_datetime', 'value_float',
-            'value_bool', 'value_str', 'value_json', 'value_array_str']
-        for field in value_fields:
-            if obj.indicator.type_value in ['dct', 'list', 'dcm', 'user', 'org']:
-                return self.get_value_name(obj)
-            value = getattr(obj, field, None)
-            if value is not None:
-                return value
-        return None
+        type_value = obj.indicator.type_value
+        is_multiple = obj.indicator.is_multiple
+        if type_value in ["dct", "list", "dcm", "user", "org"]:
+            return self.get_value_name(obj)
+        mapping = {"str": "value_str", "text": "value_text", "date": "value_datetime",
+                   "datetime": "value_datetime", "file": "value_str", "bool": "value_bool", "time": "value_datetime"}
+        mapping_multiple = {"str": "value_array_str", "text": "value_array_str",
+                            "int": "value_array_int", "file": "value_array_str"}
+        if is_multiple:
+            value = getattr(obj, mapping_multiple[type_value], None)
+        else:
+            value = getattr(obj, mapping[type_value], None)
+        return value
 
 
 class RecordsSerializer(serializers.ModelSerializer):
