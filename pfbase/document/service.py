@@ -481,9 +481,9 @@ class RecordService:
 
     def separate_multiple_value(self, record_iv, type_value, value):
         if type_value in marker.array_int:
-            record_iv.value_array_int = value
+            record_iv.value_array_int = value if value else []
         if type_value in marker.array_str:
-            record_iv.value_array_str = value
+            record_iv.value_array_str = value if value else []
         else:
             return False
         return True
