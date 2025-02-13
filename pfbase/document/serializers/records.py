@@ -4,8 +4,11 @@ from ..models.records import Records
 from ..models.rivalues import RecordIndicatorValues
 from pfbase.dictionary.models.elements import Elements
 from pfbase.system.models.listvalues import ListValues
+from pfbase.system.models.user import User
 from ..service import RecordService
 import datetime
+
+from ...system.models import Organization
 
 
 class RecordSerializer(serializers.ModelSerializer):
@@ -71,7 +74,13 @@ class RIValueSerializer(serializers.ModelSerializer):
         elif obj.indicator.type_value == 'dcm':
             rec = Records.objects.filter(id=obj.value_reference).first()
             return rec.number
-
+        elif obj.indicator.type_value == 'user':
+            usr = User.objects.filter(id=obj.value_reference).first()
+            return f"{usr.first_name} {usr.last_name}"
+        elif obj.indicator.type_value == 'org':
+            org = Organization.objects.filter(id=obj.value_reference).first()
+            return org.short_name.get(lang)
+        
     def get_value(self, obj):
         type_value = obj.indicator.type_value
         is_multiple = obj.indicator.is_multiple
