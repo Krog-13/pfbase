@@ -345,8 +345,13 @@ class RecordService:
             except RecordIndicatorValues.DoesNotExist:
                 record_indicator = DcmIndicators.objects.get(code=code, type_value=type_value)
                 rv = record.record_values.create(indicator=record_indicator)
+
             if some_value is not None:
-                result = self.separate_value(rv, type_value, some_value)
+                is_multiple = rv.indicator.is_multiple
+                if is_multiple:
+                    result = self.separate_multiple_value(rv, type_value, some_value)
+                else:
+                    result = self.separate_value(rv, type_value, some_value)
             else:
                 result = self.separate_value_any(rv,
                                                  value_str=value_str,
@@ -471,7 +476,10 @@ class RecordService:
             type_value = indicator.get('type')
             rv = record.record_values.get(id=indicator.get('id'), indicator__type_value=type_value)
             some_value = indicator.get('value')
-            result = self.separate_value(rv, type_value, some_value)
+            if rv.indicator.is_multiple:
+                result = self.separate_multiple_value(rv, type_value, some_value)
+            else:
+                result = self.separate_value(rv, type_value, some_value)
             if not result:
                 raise WrongType("Invalid type value")
             rv.save()
