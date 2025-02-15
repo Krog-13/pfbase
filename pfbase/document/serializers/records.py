@@ -196,7 +196,7 @@ class IndicatorAnySerializer(CommonSerializer):
 
 class IndicatorUpdateSerializer(CommonSerializer):
     id = serializers.IntegerField(required=True)
-    value = serializers.CharField(max_length=100, required=True)
+    value = CustomField(required=True, allow_null=True)
     type = serializers.CharField(max_length=100, required=True)
 
 class RecordFormDataSerializer(serializers.Serializer):
