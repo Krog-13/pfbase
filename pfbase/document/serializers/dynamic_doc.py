@@ -4,7 +4,6 @@ from rest_framework import serializers
 from pfbase.document.models.dynamic_doc import *
 from pfbase.dictionary.models import *
 from pfbase.dictionary.serializers.dynamic_dict import DynamicDictionarySerializer
-
 from pfbase.document.models.documents import Documents
 from pfbase.system.models.listvalues import ListValues
 from pfbase.system.models.organization import Organization
@@ -22,18 +21,17 @@ def DynamicSerializer(document_code):
         document = Documents.objects.get(code=document_code)
     except ObjectDoesNotExist:
         raise ValueError(f"Документ с кодом '{document_code}' не найден")
-
     dynamic_model = DynamicModel(document_code)
 
     class DynamicRecordSerializer(serializers.ModelSerializer):
-
         class Meta:
             model = dynamic_model
             fields = '__all__'
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            base_fields = {'id', 'number', 'date', 'active', 'organization', 'parent', 'author'}
+            base_fields = {'id', 'number', 'date', 'active', 'organization', 'parent'}
+            self.fields["author"].required = False
             for field_name, field in self.fields.items():
                 if field_name not in base_fields:
                     field.required = False
@@ -66,12 +64,13 @@ def DynamicSerializer(document_code):
                             validate_reference_field(ref_id, Documents, "Документ")
                         except serializers.ValidationError as e:
                             errors[field_key] = e.detail
-
             if errors:
                 raise serializers.ValidationError(errors)
             return data
 
         def create(self, validated_data):
+            if not validated_data.get('author'):
+                validated_data['author'] = self.context.get("request").user
             if not validated_data.get('date'):
                 validated_data['date'] = datetime.datetime.now()
             return dynamic_model.objects.create(**validated_data)
@@ -81,36 +80,25 @@ def DynamicSerializer(document_code):
 
         def to_representation(self, instance):
             rep = super().to_representation(instance)
-
             if instance.author:
-                rep['author'] = {
-                    'id': instance.author.id,
-                    'username': instance.author.username,
-                }
+                rep['author'] = {'id': instance.author.id, 'username': instance.author.username}
             else:
                 rep['author'] = None
-
             if instance.organization:
-                rep['organization'] = {
-                    'id': instance.organization.id,
-                    'name': instance.organization.short_name,
-                }
+                rep['organization'] = {'id': instance.organization.id, 'name': instance.organization.short_name}
             else:
                 rep['organization'] = None
-
             if instance.parent:
-                rep['parent'] = {
-                    'id': instance.parent.id,
-                    'number': instance.parent.number,
-                    'date': instance.parent.date,
-                }
+                rep['parent'] = {'id': instance.parent.id, 'number': instance.parent.number, 'date': instance.parent.date}
             else:
                 rep['parent'] = None
 
             indicators_dict = document.indicators.filter(type_value=IndicatorType.DICTIONARY)
             element_ids = [rep.get(ind.code) for ind in indicators_dict if rep.get(ind.code) is not None]
+
             elements = Elements.objects.filter(pk__in=element_ids)
             elements_map = {str(el.pk): el for el in elements}
+
             for indicator in indicators_dict:
                 field_key = indicator.code
                 element_id = rep.get(field_key)
@@ -125,7 +113,6 @@ def DynamicSerializer(document_code):
                             rep[field_key] = {"error": f"Элемент справочника с pk {element_id} не найден."}
                     except Exception as e:
                         rep[field_key] = {"error": str(e)}
-
             other_types = [IndicatorType.LIST, IndicatorType.USER, IndicatorType.ORGANIZATION, IndicatorType.DOCUMENT]
             for indicator in document.indicators.filter(type_value__in=other_types):
                 field_key = indicator.code
@@ -134,36 +121,17 @@ def DynamicSerializer(document_code):
                     try:
                         if indicator.type_value == IndicatorType.LIST:
                             obj = ListValues.objects.get(pk=ref_id)
-                            rep[field_key] = {
-                                'id': obj.id,
-                                'code': obj.code,
-                                'short_name': obj.short_name,
-                                'full_name': obj.full_name,
-                            }
+                            rep[field_key] = {'id': obj.id, 'code': obj.code, 'short_name': obj.short_name, 'full_name': obj.full_name}
                         elif indicator.type_value == IndicatorType.USER:
                             obj = User.objects.get(pk=ref_id)
-                            rep[field_key] = {
-                                'id': obj.id,
-                                'username': obj.username,
-                                'email': obj.email,
-                            }
+                            rep[field_key] = {'id': obj.id, 'username': obj.username, 'email': obj.email}
                         elif indicator.type_value == IndicatorType.ORGANIZATION:
                             obj = Organization.objects.get(pk=ref_id)
-                            rep[field_key] = {
-                                'id': obj.id,
-                                'short_name': obj.short_name,
-                                'full_name': obj.full_name,
-                            }
+                            rep[field_key] = {'id': obj.id, 'short_name': obj.short_name, 'full_name': obj.full_name}
                         elif indicator.type_value == IndicatorType.DOCUMENT:
                             obj = Documents.objects.get(pk=ref_id)
-                            rep[field_key] = {
-                                'id': obj.id,
-                                'name': obj.name,
-                                'code': obj.code,
-                            }
+                            rep[field_key] = {'id': obj.id, 'name': obj.name, 'code': obj.code}
                     except ObjectDoesNotExist:
                         rep[field_key] = {"error": f"Объект для {indicator.get_type_value_display()} с ID {ref_id} не найден."}
-
             return rep
-
     return DynamicRecordSerializer

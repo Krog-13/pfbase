@@ -1,3 +1,5 @@
+import datetime
+from django.db import models
 from django.db.models import Subquery, OuterRef
 from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
 from pfbase.document.models.rivalues import *
@@ -67,6 +69,18 @@ INDICATOR_TO_VALUE_FIELD = {
 }
 
 
+def get_target_field(indicator):
+    if indicator.is_multiple:
+        if indicator.type_value in [IndicatorType.STRING, IndicatorType.TEXT, IndicatorType.FILE]:
+            return 'value_array_str'
+        elif indicator.type_value in [IndicatorType.INTEGER, IndicatorType.FLOAT]:
+            return 'value_array_int'
+        else:
+            return INDICATOR_TO_VALUE_FIELD.get(indicator.type_value, 'value_str')
+    else:
+        return INDICATOR_TO_VALUE_FIELD.get(indicator.type_value, 'value_str')
+
+
 class DynamicModelManager(models.Manager):
     def __init__(self, document, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -74,7 +88,6 @@ class DynamicModelManager(models.Manager):
 
     def get_queryset(self):
         qs = Records.objects.filter(document=self.document)
-
         for indicator in self.document.indicators.all():
             value_field = INDICATOR_TO_VALUE_FIELD.get(indicator.type_value, 'value_str')
             subquery = RecordIndicatorValues.objects.filter(
@@ -90,13 +103,11 @@ class DynamicModelManager(models.Manager):
             if field in kwargs:
                 record_fields[field] = kwargs.pop(field)
         record_fields['document'] = self.document
-
         record = Records.objects.create(**record_fields)
-
         for indicator in self.document.indicators.all():
             if indicator.code in kwargs:
                 value = kwargs[indicator.code]
-                target_field = INDICATOR_TO_VALUE_FIELD.get(indicator.type_value, 'value_str')
+                target_field = get_target_field(indicator)
                 indicator_value_data = {
                     'record': record,
                     'indicator': indicator,
@@ -111,11 +122,10 @@ class DynamicModelManager(models.Manager):
             if field in kwargs:
                 setattr(instance, field, kwargs.pop(field))
         instance.save()
-
         for indicator in self.document.indicators.all():
             if indicator.code in kwargs:
                 value = kwargs[indicator.code]
-                target_field = INDICATOR_TO_VALUE_FIELD.get(indicator.type_value, 'value_str')
+                target_field = get_target_field(indicator)
                 try:
                     indicator_value = RecordIndicatorValues.objects.get(record=instance, indicator=indicator)
                     setattr(indicator_value, target_field, value)
@@ -138,7 +148,6 @@ def DynamicModel(document_code):
         document = Documents.objects.get(code=document_code)
     except ObjectDoesNotExist:
         raise ValueError(f"Документ с кодом '{document_code}' не найден")
-
     dynamic_fields = {
         'id': models.AutoField(primary_key=True),
         'number': models.CharField(max_length=255, verbose_name="Номер", null=True),
@@ -155,7 +164,6 @@ def DynamicModel(document_code):
         if field_class == models.CharField:
             field_kwargs.setdefault('max_length', 255)
         dynamic_fields[indicator.code] = field_class(**field_kwargs)
-
     dynamic_fields['objects'] = DynamicModelManager(document)
     dynamic_fields['__module__'] = __name__
 
@@ -164,7 +172,7 @@ def DynamicModel(document_code):
         db_table = document.code
 
     dynamic_fields['Meta'] = Meta
-
     model_name = f"{document.code.capitalize()}DynamicModel"
     dynamic_model = type(model_name, (models.Model,), dynamic_fields)
+
     return dynamic_model
