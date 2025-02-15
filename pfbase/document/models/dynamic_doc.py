@@ -139,19 +139,16 @@ def DynamicModel(document_code):
     except ObjectDoesNotExist:
         raise ValueError(f"Документ с кодом '{document_code}' не найден")
 
-    # Добавляем базовые поля, включая поля ForeignKey, чтобы они стали доступны в сериалайзере
     dynamic_fields = {
         'id': models.AutoField(primary_key=True),
         'number': models.CharField(max_length=255, verbose_name="Номер", null=True),
         'date': models.DateTimeField(verbose_name="Дата", null=True),
         'active': models.BooleanField(default=True, verbose_name="Активный"),
-        # Добавляем поля, которые есть в модели Records
         'parent': models.ForeignKey('self', null=True, blank=True, related_name="children", on_delete=models.CASCADE, verbose_name='Родительская запись'),
         'author': models.ForeignKey("User", on_delete=models.CASCADE, verbose_name='Автор'),
         'organization': models.ForeignKey("Organization", on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Организация'),
     }
 
-    # Добавляем динамические поля на основе индикаторов
     for indicator in document.indicators.all():
         field_class = get_field_class_for_indicator(indicator)
         field_kwargs = {'null': True, 'blank': True, 'verbose_name': indicator.short_name.get("ru", indicator.code)}
