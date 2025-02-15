@@ -58,7 +58,7 @@ INDICATOR_TO_VALUE_FIELD = {
     IndicatorType.TIME: 'value_datetime',
     IndicatorType.JSON: 'value_json',
     IndicatorType.FILE: 'value_str',
-    IndicatorType.LIST: 'value_json',
+    IndicatorType.LIST: 'value_reference',
     IndicatorType.DICTIONARY: 'value_reference',
     IndicatorType.DOCUMENT: 'value_reference',
     IndicatorType.CALCULATE: 'value_str',

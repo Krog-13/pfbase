@@ -21,27 +21,53 @@ def DynamicSerializer(document_code):
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            base_fields = {'id', 'number', 'date', 'active'}
+            base_fields = {'id', 'number', 'date', 'active', 'organization'}
             for field_name, field in self.fields.items():
                 if field_name not in base_fields:
                     field.required = False
 
         def create(self, validated_data):
-            return dynamic_model.objects.create(date=datetime.datetime.now(), **validated_data)
+            if not validated_data.get('date'):
+                validated_data['date'] = datetime.datetime.now()
+            return dynamic_model.objects.create(**validated_data)
 
         def update(self, instance, validated_data):
             return dynamic_model.objects.update_instance(instance, **validated_data)
 
         def to_representation(self, instance):
             rep = super().to_representation(instance)
-            indicators = document.indicators.filter(type_value=IndicatorType.DICTIONARY)
 
+            if instance.author:
+                rep['author'] = {
+                    'id': instance.author.id,
+                    'username': instance.author.username,
+                }
+            else:
+                rep['author'] = None
+
+            if instance.organization:
+                rep['organization'] = {
+                    'id': instance.organization.id,
+                    'name': instance.organization.short_name,
+                }
+            else:
+                rep['organization'] = None
+
+            if instance.parent:
+                rep['parent'] = {
+                    'id': instance.parent.id,
+                    'number': instance.parent.number,
+                    'date': instance.parent.date,
+                }
+            else:
+                rep['parent'] = None
+
+            indicators = document.indicators.filter(type_value=IndicatorType.DICTIONARY)
             element_ids = [
                 rep.get(indicator.code)
                 for indicator in indicators
                 if rep.get(indicator.code) is not None
             ]
-
             elements = Elements.objects.filter(pk__in=element_ids)
             elements_map = {str(element.pk): element for element in elements}
 
