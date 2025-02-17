@@ -460,6 +460,7 @@ class RecordService:
         indicators = validated_data.get('indicators')
         parent_id = validated_data.get('parent_id')
         number = validated_data.get('number')
+        organization_id = validated_data.get('organization_id')
         date = validated_data.get('date')
         status_id = validated_data.get('status_id')
         if parent_id:
@@ -469,6 +470,8 @@ class RecordService:
             record.number = number
         if date:
             record.date = date
+        if organization_id:
+            record.organization_id = organization_id
         record.author = user
         record.save()
 
