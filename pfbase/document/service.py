@@ -293,7 +293,7 @@ class RecordService:
         self.number = main.get('number', "0000")
         self.date_string = main.get('date', None)
         self.record_id = main['record_id']
-        self.organization_id = main['organization_id']
+        self.organization_id = main.get('organization_id')
         self.status_id = main.get('status_id', None)
         self.main_indicators = main.get('indicators', [])
 
