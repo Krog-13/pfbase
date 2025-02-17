@@ -293,6 +293,7 @@ class RecordService:
         self.number = main.get('number', "0000")
         self.date_string = main.get('date', None)
         self.record_id = main['record_id']
+        self.organization_id = main['organization_id']
         self.status_id = main.get('status_id', None)
         self.main_indicators = main.get('indicators', [])
 
@@ -416,6 +417,8 @@ class RecordService:
             main_record.number = self.number
         if self.date:
             main_record.date = self.date
+        if self.organization_id:
+            main_record.organization_id = self.organization_id
         main_record.user = user
         main_record.save()
         self.record_update_iv(self.main_indicators, main_record)
