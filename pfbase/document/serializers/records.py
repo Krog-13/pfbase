@@ -120,6 +120,7 @@ class RecordsSerializer(serializers.ModelSerializer):
 
 
 class RIGetSerializer(serializers.ModelSerializer):
+    code = serializers.CharField(source="document.code", required=False)
     indicator_value = RIValueSerializer(source="record_values", many=True, read_only=True)
     status = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
