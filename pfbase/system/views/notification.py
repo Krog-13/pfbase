@@ -13,3 +13,10 @@ class NotificationAPIView(ModelViewSet):
     serializer_class = NotificationSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Return only the notifications belonging to the authenticated user.
+        """
+        user = self.request.user
+        return Notification.objects.filter(receiver_user=user).order_by('-id')
