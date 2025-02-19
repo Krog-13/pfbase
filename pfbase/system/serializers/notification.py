@@ -9,3 +9,9 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = "__all__"
+
+class NotificationShortSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Notification
+        fields = "title", "message", "is_read", "type_notification"
