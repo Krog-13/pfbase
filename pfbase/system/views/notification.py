@@ -1,3 +1,4 @@
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 from pfbase.pagination import CustomPagination
@@ -13,6 +14,13 @@ class NotificationAPIView(ModelViewSet):
     serializer_class = NotificationSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
+
+    def get_object(self):
+        """
+        Возвращает конкретное уведомление, проверяя, принадлежит ли оно текущему пользователю.
+        """
+        obj = get_object_or_404(Notification, id=self.kwargs["pk"])
+        return obj
 
     def get_queryset(self):
         """
