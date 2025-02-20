@@ -38,7 +38,7 @@ class NotificationAPIView(ModelViewSet):
         Return short notification
         """
         count = request.query_params.get("count", self._default_count)
-        notification = self.get_queryset().filter(receiver_user=request.user)[:int(count)]
+        notification = self.get_queryset().filter(receiver_user=request.user, is_read=False)[:int(count)]
         serializer = NotificationShortSerializer(notification, many=True)
         return Response(serializer.data)
 
