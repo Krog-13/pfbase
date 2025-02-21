@@ -12,9 +12,11 @@ class LVAdmin(admin.ModelAdmin):
     """
     List Value in admin panel
     """
-    list_display = ('list', 'code', 'id')
+    list_display = ('list', 'code', 'get_name', 'id')
     list_filter = ("list", )
 
+    def get_name(self, obj):
+        return obj.short_name.get("ru", obj.code)
 
     def save_model(self, request, obj, form, change):
         if not obj.pk:

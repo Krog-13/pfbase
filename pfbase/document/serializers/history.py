@@ -20,7 +20,7 @@ class RHistorySerializer(serializers.ModelSerializer):
 class HistoryPostSerializer(serializers.Serializer):
     record_id = serializers.IntegerField(required=True)
     status_id = serializers.IntegerField(required=True)
-    comment = serializers.CharField(required=False)
+    comment = serializers.CharField(required=False, allow_null=True)
 
     def create(self, request_data):
         user = self.context['request'].user

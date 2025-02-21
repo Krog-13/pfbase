@@ -50,7 +50,10 @@ class ElementManager(models.Manager):
             if key not in ["short_name", "paginate", "full_name", "DICT_CODE", "CODE", "active", "organization_id",
                            "parent_id", "page"]:
                 from .models import DctIndicators
-                indic = DctIndicators.objects.get(code=key)
+                try:
+                    indic = DctIndicators.objects.get(code=key)
+                except DctIndicators.DoesNotExist:
+                    continue
                 if indic.type_value == IndicatorType.STRING:
                     queryset = queryset.filter(element_values__indicator__code=key,element_values__value_str=value)
                 elif indic.type_value == IndicatorType.INTEGER:
