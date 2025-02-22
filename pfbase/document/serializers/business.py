@@ -1,11 +1,11 @@
 import datetime
 from pfbase.dictionary.models import *
-from pfbase.document.models.dynamic_doc import *
+from pfbase.document.models.business import *
 from pfbase.document.models.documents import Documents
 from pfbase.system.models.listvalues import ListValues
 from pfbase.system.models.organization import Organization
 from pfbase.system.models.user import User
-from pfbase.dictionary.serializers.dynamic_dict import *
+from pfbase.dictionary.serializers.business import *
 
 
 def validate_reference_field(value, model_cls, field_label):
@@ -25,6 +25,9 @@ def BusinessSerializer(document_code):
     class BusinessRecordSerializer(serializers.ModelSerializer):
         list_values = ListValues.objects.all()
         organization_values = Organization.objects.all()
+
+        # Это место нужно переделать. На текущий момент загружаются все пользователи.
+        # Сделано было чтоб уменьшить обращения в базу. Теперь внизу в цикле они вытягиваются как справочники
         user_values = User.objects.all()
 
         indicators_dict = document.indicators.filter(type_value=IndicatorType.DICTIONARY)

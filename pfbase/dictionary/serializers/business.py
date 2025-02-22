@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from pfbase.dictionary.models.dynamic_dict import BusinessDictionaryModel
+from pfbase.dictionary.models.business import BusinessDictionaryModel
 
 _dynamic_serializer_cache = {}
 

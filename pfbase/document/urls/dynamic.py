@@ -1,7 +1,7 @@
 from django.urls import path
-from ..views.dynamic import *
+from ..views.business import BusinessApiView
 
 dynamic_router_urlpatterns = [
-    path("dcm/dynamic_router/<str:model_code>/", DynamicApiView.as_view()),
-    path("dcm/dynamic_router/<str:model_code>/<int:record_id>/", DynamicApiView.as_view()),
+    path("dcm/business_router/<str:model_code>/", BusinessApiView.as_view()),
+    path("dcm/business_router/<str:model_code>/<int:record_id>/", BusinessApiView.as_view()),
 ]

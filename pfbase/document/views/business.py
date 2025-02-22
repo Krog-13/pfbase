@@ -1,18 +1,18 @@
 from rest_framework import views
 from rest_framework.response import Response
-from pfbase.document.serializers.dynamic_doc import *
+from pfbase.document.serializers.business import *
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
 """
-Данный класс яляется лишь примером для использования Бизнес моделей и Бизнес сериалайзера.
+Данный класс яляется лишь примером для использования Бизнес-моделей и Бизнес-сериалайзера.
 Пример служит для более легкого ориентирования в при кодинге.
 """
 
 
-class DynamicApiView(views.APIView):
+class BusinessApiView(views.APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     permission_classes = (IsAuthenticated, IsAdminUser)
 

@@ -1,4 +1,4 @@
-from pfbase.document.models.dynamic_doc import *
+from pfbase.document.models.business import *
 from pfbase.dictionary.models import *
 from pfbase.business_values_fields import INDICATOR_TO_VALUE_FIELD, MAPPING
 
