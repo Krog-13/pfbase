@@ -1,30 +1,9 @@
-from django.db import models
-from django.db.models import OuterRef, Subquery
-from django.core.exceptions import ObjectDoesNotExist
 from pfbase.document.models.dynamic_doc import *
 from pfbase.dictionary.models import *
-
-DICT_INDICATOR_TO_VALUE_FIELD = {
-    IndicatorType.STRING: 'value_str',
-    IndicatorType.TEXT: 'value_text',
-    IndicatorType.INTEGER: 'value_int',
-    IndicatorType.FLOAT: 'value_float',
-    IndicatorType.BOOLEAN: 'value_bool',
-    IndicatorType.DATETIME: 'value_datetime',
-    IndicatorType.DATE: 'value_datetime',
-    IndicatorType.TIME: 'value_datetime',
-    IndicatorType.JSON: 'value_json',
-    IndicatorType.FILE: 'value_str',
-    IndicatorType.LIST: 'value_json',
-    IndicatorType.DICTIONARY: 'value_reference',
-    IndicatorType.DOCUMENT: 'value_reference',
-    IndicatorType.CALCULATE: 'value_str',
-    IndicatorType.USER: 'value_reference',
-    IndicatorType.ORGANIZATION: 'value_reference',
-}
+from pfbase.business_values_fields import INDICATOR_TO_VALUE_FIELD, MAPPING
 
 
-class DynamicDictionaryElementsManager(models.Manager):
+class BusinessDictionaryElementsManager(models.Manager):
     def __init__(self, dictionary, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dictionary = dictionary
@@ -34,7 +13,7 @@ class DynamicDictionaryElementsManager(models.Manager):
         qs = Elements.objects.filter(dictionary=self.dictionary)
         annotations = {}
         for indicator in indicators:
-            value_field = DICT_INDICATOR_TO_VALUE_FIELD.get(indicator.type_value, 'value_str')
+            value_field = INDICATOR_TO_VALUE_FIELD.get(indicator.type_value, 'value_str')
             subquery = ElementIndicatorValues.objects.filter(
                 element=OuterRef('pk'),
                 indicator=indicator,
@@ -44,36 +23,18 @@ class DynamicDictionaryElementsManager(models.Manager):
 
 
 def get_field_class_for_indicator(indicator):
-    mapping = {
-        IndicatorType.STRING: models.CharField,
-        IndicatorType.TEXT: models.TextField,
-        IndicatorType.INTEGER: models.IntegerField,
-        IndicatorType.FLOAT: models.FloatField,
-        IndicatorType.BOOLEAN: models.BooleanField,
-        IndicatorType.DATETIME: models.DateTimeField,
-        IndicatorType.DATE: models.DateTimeField,
-        IndicatorType.TIME: models.DateTimeField,
-        IndicatorType.JSON: models.JSONField,
-        IndicatorType.FILE: models.CharField,
-        IndicatorType.LIST: models.JSONField,
-        IndicatorType.DICTIONARY: models.JSONField,
-        IndicatorType.DOCUMENT: models.PositiveBigIntegerField,
-        IndicatorType.CALCULATE: models.CharField,
-        IndicatorType.USER: models.PositiveBigIntegerField,
-        IndicatorType.ORGANIZATION: models.PositiveBigIntegerField,
-    }
-    field_class = mapping.get(indicator.type_value)
+    field_class = MAPPING.get(indicator.type_value)
     if not field_class:
         raise Exception(f"Тип индикатора {indicator.type_value} не поддерживается")
     return field_class
 
 
-_dynamic_model_cache = {}
+_business_model_cache = {}
 
 
-def DynamicDictionaryModel(dictionary_code):
-    if dictionary_code in _dynamic_model_cache:
-        return _dynamic_model_cache[dictionary_code]
+def BusinessDictionaryModel(dictionary_code):
+    if dictionary_code in _business_model_cache:
+        return _business_model_cache[dictionary_code]
     try:
         dictionary = Dictionaries.objects.get(id=dictionary_code)
     except ObjectDoesNotExist:
@@ -98,7 +59,7 @@ def DynamicDictionaryModel(dictionary_code):
             field_kwargs.setdefault('max_length', 255)
         dynamic_fields[indicator.code] = field_class(**field_kwargs)
 
-    dynamic_fields['objects'] = DynamicDictionaryElementsManager(dictionary)
+    dynamic_fields['objects'] = BusinessDictionaryElementsManager(dictionary)
     dynamic_fields['__module__'] = __name__
 
     class Meta:
@@ -107,7 +68,7 @@ def DynamicDictionaryModel(dictionary_code):
 
     dynamic_fields['Meta'] = Meta
 
-    model_name = f"{dictionary.code.capitalize()}DynamicModel"
+    model_name = f"{dictionary.code.capitalize()}_BusinessModel"
     dynamic_model = type(model_name, (models.Model,), dynamic_fields)
-    _dynamic_model_cache[dictionary_code] = dynamic_model
+    _business_model_cache[dictionary_code] = dynamic_model
     return dynamic_model

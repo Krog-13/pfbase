@@ -1,16 +1,16 @@
 from rest_framework import serializers
-from pfbase.dictionary.models.dynamic_dict import DynamicDictionaryModel
+from pfbase.dictionary.models.dynamic_dict import BusinessDictionaryModel
 
 _dynamic_serializer_cache = {}
 
 
-def DynamicDictionarySerializer(dictionary_code):
+def BusinessDictionarySerializer(dictionary_code):
     if dictionary_code in _dynamic_serializer_cache:
         return _dynamic_serializer_cache[dictionary_code]
 
-    dynamic_model = DynamicDictionaryModel(dictionary_code)
+    dynamic_model = BusinessDictionaryModel(dictionary_code)
 
-    class DynamicDictionaryElementSerializer(serializers.ModelSerializer):
+    class BusinessDictionaryElementSerializer(serializers.ModelSerializer):
         class Meta:
             model = dynamic_model
             fields = '__all__'
@@ -31,5 +31,5 @@ def DynamicDictionarySerializer(dictionary_code):
             instance.save()
             return instance
 
-    _dynamic_serializer_cache[dictionary_code] = DynamicDictionaryElementSerializer
-    return DynamicDictionaryElementSerializer
+    _dynamic_serializer_cache[dictionary_code] = BusinessDictionaryElementSerializer
+    return BusinessDictionaryElementSerializer

@@ -1,13 +1,11 @@
 import datetime
-from django.core.exceptions import ObjectDoesNotExist
-from rest_framework import serializers
-from pfbase.document.models.dynamic_doc import *
 from pfbase.dictionary.models import *
-from pfbase.dictionary.serializers.dynamic_dict import DynamicDictionarySerializer
+from pfbase.document.models.dynamic_doc import *
 from pfbase.document.models.documents import Documents
 from pfbase.system.models.listvalues import ListValues
 from pfbase.system.models.organization import Organization
 from pfbase.system.models.user import User
+from pfbase.dictionary.serializers.dynamic_dict import *
 
 
 def validate_reference_field(value, model_cls, field_label):
@@ -16,14 +14,34 @@ def validate_reference_field(value, model_cls, field_label):
     return value
 
 
-def DynamicSerializer(document_code):
+def BusinessSerializer(document_code):
     try:
         document = Documents.objects.get(code=document_code)
     except ObjectDoesNotExist:
         raise ValueError(f"Документ с кодом '{document_code}' не найден")
-    dynamic_model = DynamicModel(document_code)
 
-    class DynamicRecordSerializer(serializers.ModelSerializer):
+    dynamic_model = BusinessModel(document_code)
+
+    class BusinessRecordSerializer(serializers.ModelSerializer):
+        list_values = ListValues.objects.all()
+        organization_values = Organization.objects.all()
+        user_values = User.objects.all()
+
+        indicators_dict = document.indicators.filter(type_value=IndicatorType.DICTIONARY)
+
+        grouped_list_values = {}
+        grouped_organization_values = {}
+        grouped_user_values = {}
+
+        for element in list_values:
+            grouped_list_values.setdefault(element.id, []).append(element)
+
+        for element in organization_values:
+            grouped_organization_values.setdefault(element.id, []).append(element)
+
+        for element in user_values:
+            grouped_user_values.setdefault(element.id, []).append(element)
+
         class Meta:
             model = dynamic_model
             fields = '__all__'
@@ -38,6 +56,7 @@ def DynamicSerializer(document_code):
 
         def validate(self, data):
             errors = {}
+
             for indicator in document.indicators.filter(
                 type_value__in=[IndicatorType.LIST, IndicatorType.USER, IndicatorType.ORGANIZATION, IndicatorType.DOCUMENT]
             ):
@@ -80,6 +99,7 @@ def DynamicSerializer(document_code):
 
         def to_representation(self, instance):
             rep = super().to_representation(instance)
+
             if instance.author:
                 rep['author'] = {'id': instance.author.id, 'username': instance.author.username}
             else:
@@ -93,19 +113,19 @@ def DynamicSerializer(document_code):
             else:
                 rep['parent'] = None
 
-            indicators_dict = document.indicators.filter(type_value=IndicatorType.DICTIONARY)
-            element_ids = [rep.get(ind.code) for ind in indicators_dict if rep.get(ind.code) is not None]
+            element_ids = [rep.get(ind.code) for ind in self.indicators_dict if rep.get(ind.code) is not None]
 
             elements = Elements.objects.filter(pk__in=element_ids)
             elements_map = {str(el.pk): el for el in elements}
 
-            for indicator in indicators_dict:
+            for indicator in self.indicators_dict:
                 field_key = indicator.code
                 element_id = rep.get(field_key)
+
                 if element_id:
                     dictionary_code = indicator.type_extend
                     try:
-                        DictSerializerClass = DynamicDictionarySerializer(dictionary_code)
+                        DictSerializerClass = BusinessDictionarySerializer(dictionary_code)
                         element = elements_map.get(str(element_id))
                         if element:
                             rep[field_key] = DictSerializerClass(element).data
@@ -113,25 +133,36 @@ def DynamicSerializer(document_code):
                             rep[field_key] = {"error": f"Элемент справочника с pk {element_id} не найден."}
                     except Exception as e:
                         rep[field_key] = {"error": str(e)}
+
             other_types = [IndicatorType.LIST, IndicatorType.USER, IndicatorType.ORGANIZATION, IndicatorType.DOCUMENT]
+
             for indicator in document.indicators.filter(type_value__in=other_types):
                 field_key = indicator.code
                 ref_id = rep.get(field_key)
                 if ref_id:
                     try:
                         if indicator.type_value == IndicatorType.LIST:
-                            obj = ListValues.objects.get(pk=ref_id)
-                            rep[field_key] = {'id': obj.id, 'code': obj.code, 'short_name': obj.short_name, 'full_name': obj.full_name}
+                            objs = self.grouped_list_values.get(ref_id, [])
+                            if objs:
+                                obj = objs[0]
+                                rep[field_key] = {'id': obj.id, 'code': obj.code, 'short_name': obj.short_name, 'full_name': obj.full_name}
                         elif indicator.type_value == IndicatorType.USER:
-                            obj = User.objects.get(pk=ref_id)
-                            rep[field_key] = {'id': obj.id, 'username': obj.username, 'email': obj.email}
+                            objs = self.grouped_user_values.get(ref_id, [])
+                            if objs:
+                                obj = objs[0]
+                                rep[field_key] = {'id': obj.id, 'username': obj.username, 'email': obj.email}
                         elif indicator.type_value == IndicatorType.ORGANIZATION:
-                            obj = Organization.objects.get(pk=ref_id)
-                            rep[field_key] = {'id': obj.id, 'short_name': obj.short_name, 'full_name': obj.full_name}
+                            objs = self.grouped_organization_values.get(ref_id, [])
+                            if objs:
+                                obj = objs[0]
+                                rep[field_key] = {'id': obj.id, 'short_name': obj.short_name, 'full_name': obj.full_name}
                         elif indicator.type_value == IndicatorType.DOCUMENT:
                             obj = Documents.objects.get(pk=ref_id)
                             rep[field_key] = {'id': obj.id, 'name': obj.name, 'code': obj.code}
                     except ObjectDoesNotExist:
                         rep[field_key] = {"error": f"Объект для {indicator.get_type_value_display()} с ID {ref_id} не найден."}
             return rep
-    return DynamicRecordSerializer
+
+    return BusinessRecordSerializer
+
+
