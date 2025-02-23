@@ -18,16 +18,16 @@ class BusinessApiView(views.APIView):
 
     def get(self, request, model_code):
 
-        dynamic_model = BusinessModel(model_code)
-        InvoiceSerializer = BusinessSerializer(model_code)
+        dynamic_model = BusinessDocumentModel(model_code)
+        InvoiceSerializer = BusinessDocumentModelSerializer(model_code)
 
         qs = dynamic_model.objects.all().select_related('author', 'organization', 'parent', 'document')
 
         return Response({"count": qs.count(), "data": InvoiceSerializer(qs, many=True).data})
 
     def post(self, request, model_code):
-        InvoiceSerializer = BusinessSerializer(model_code)
-        dynamic_model = BusinessModel(model_code)
+        InvoiceSerializer = BusinessDocumentModelSerializer(model_code)
+        dynamic_model = BusinessDocumentModel(model_code)
         serializer = InvoiceSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -40,8 +40,8 @@ class BusinessApiView(views.APIView):
             return Response(serializer.errors, status=400)
 
     def put(self, request, model_code, record_id):
-        InvoiceSerializer = BusinessSerializer(model_code)
-        dynamic_model = BusinessModel(model_code)
+        InvoiceSerializer = BusinessDocumentModelSerializer(model_code)
+        dynamic_model = BusinessDocumentModel(model_code)
 
         instance = get_object_or_404(dynamic_model.objects.all(), id=record_id)
 
@@ -57,7 +57,7 @@ class BusinessApiView(views.APIView):
             return Response(serializer.errors, status=400)
 
     def delete(self, request, model_code, record_id):
-        dynamic_model = BusinessModel(model_code)
+        dynamic_model = BusinessDocumentModel(model_code)
         instance = get_object_or_404(dynamic_model.objects.all(), id=record_id)
 
         with transaction.atomic():

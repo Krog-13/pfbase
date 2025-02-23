@@ -26,7 +26,7 @@ def get_target_field(indicator):
         return INDICATOR_TO_VALUE_FIELD.get(indicator.type_value, 'value_str')
 
 
-class BusinessModelManager(models.Manager):
+class BusinessDocumentModelManager(models.Manager):
     def __init__(self, document, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.document = document
@@ -91,7 +91,7 @@ class BusinessModelManager(models.Manager):
 _BUSINESS_MODEL_CACHE = {}
 
 
-def BusinessModel(document_code):
+def BusinessDocumentModel(document_code):
     if document_code in _BUSINESS_MODEL_CACHE:
         return _BUSINESS_MODEL_CACHE[document_code]
 
@@ -117,7 +117,7 @@ def BusinessModel(document_code):
             field_kwargs.setdefault('max_length', 255)
         dynamic_fields[indicator.code] = field_class(**field_kwargs)
 
-    dynamic_fields['objects'] = BusinessModelManager(document)
+    dynamic_fields['objects'] = BusinessDocumentModelManager(document)
     dynamic_fields['__module__'] = __name__
 
     class Meta:

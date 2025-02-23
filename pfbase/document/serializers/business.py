@@ -14,15 +14,15 @@ def validate_reference_field(value, model_cls, field_label):
     return value
 
 
-def BusinessSerializer(document_code):
+def BusinessDocumentModelSerializer(document_code):
     try:
         document = Documents.objects.get(code=document_code)
     except ObjectDoesNotExist:
         raise ValueError(f"Документ с кодом '{document_code}' не найден")
 
-    dynamic_model = BusinessModel(document_code)
+    dynamic_model = BusinessDocumentModel(document_code)
 
-    class BusinessRecordSerializer(serializers.ModelSerializer):
+    class BusinessDocumentModelRecordSerializer(serializers.ModelSerializer):
         list_values = ListValues.objects.all()
         organization_values = Organization.objects.all()
 
@@ -166,6 +166,6 @@ def BusinessSerializer(document_code):
                         rep[field_key] = {"error": f"Объект для {indicator.get_type_value_display()} с ID {ref_id} не найден."}
             return rep
 
-    return BusinessRecordSerializer
+    return BusinessDocumentModelRecordSerializer
 
 
