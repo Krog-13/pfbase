@@ -88,12 +88,12 @@ class BusinessDocumentModelManager(models.Manager):
         instance.delete()
 
 
-_BUSINESS_MODEL_CACHE = {}
+_BUSINESS_DOCUMENT_MODEL_CACHE = {}
 
 
 def BusinessDocumentModel(document_code):
-    if document_code in _BUSINESS_MODEL_CACHE:
-        return _BUSINESS_MODEL_CACHE[document_code]
+    if document_code in _BUSINESS_DOCUMENT_MODEL_CACHE:
+        return _BUSINESS_DOCUMENT_MODEL_CACHE[document_code]
 
     try:
         document = Documents.objects.get(code=document_code)
@@ -126,9 +126,9 @@ def BusinessDocumentModel(document_code):
 
     dynamic_fields['Meta'] = Meta
     model_name = f"{document.code.capitalize()}_BusinessModel"
-    dynamic_model = type(model_name, (models.Model,), dynamic_fields)
-    parent_field = dynamic_model._meta.get_field('parent')
-    parent_field.remote_field.model = dynamic_model
+    business_model = type(model_name, (models.Model,), dynamic_fields)
+    parent_field = business_model._meta.get_field('parent')
+    parent_field.remote_field.model = business_model
 
     for indicator in document.indicators.all():
         field_name = indicator.code
@@ -136,7 +136,7 @@ def BusinessDocumentModel(document_code):
         def getter(self, field_name=field_name):
             return self.__dict__.get(field_name)
 
-        setattr(dynamic_model, field_name, property(getter))
+        setattr(business_model, field_name, property(getter))
 
-    _BUSINESS_MODEL_CACHE[document_code] = dynamic_model
-    return dynamic_model
+    _BUSINESS_DOCUMENT_MODEL_CACHE[document_code] = business_model
+    return business_model

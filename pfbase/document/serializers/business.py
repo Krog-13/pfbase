@@ -49,6 +49,19 @@ def BusinessDocumentModelSerializer(document_code):
             model = dynamic_model
             fields = '__all__'
 
+        def get_filtered_data(self, *field_names):
+            """
+            Возвращает данные сериализатора, содержащие только указанные поля.
+            Если self.data – это словарь, возвращает словарь, если список – список словарей.
+            """
+            data = self.data
+            if isinstance(data, dict):
+                return {field: data.get(field) for field in field_names}
+            elif isinstance(data, list):
+                return [{field: item.get(field) for field in field_names} for item in data]
+            return data
+
+
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             base_fields = {'id', 'number', 'date', 'active', 'organization', 'parent'}

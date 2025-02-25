@@ -12,55 +12,54 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 """
 
 
-class BusinessApiView(views.APIView):
+class BusinessModelApiView(views.APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     permission_classes = (IsAuthenticated, IsAdminUser)
 
     def get(self, request, model_code):
 
-        dynamic_model = BusinessDocumentModel(model_code)
-        InvoiceSerializer = BusinessDocumentModelSerializer(model_code)
+        business_model = BusinessDocumentModel(model_code)
+        BusinessSerializer = BusinessDocumentModelSerializer(model_code).get_filtered_data('author', 'organization')
+        qs = business_model.objects.all().select_related('author', 'organization', 'parent', 'document')
 
-        qs = dynamic_model.objects.all().select_related('author', 'organization', 'parent', 'document')
-
-        return Response({"count": qs.count(), "data": InvoiceSerializer(qs, many=True).data})
+        return Response({"count": qs.count(), "data": BusinessSerializer(qs, many=True).data})
 
     def post(self, request, model_code):
-        InvoiceSerializer = BusinessDocumentModelSerializer(model_code)
-        dynamic_model = BusinessDocumentModel(model_code)
-        serializer = InvoiceSerializer(data=request.data)
+        BusinessSerializer = BusinessDocumentModelSerializer(model_code)
+        business_model = BusinessDocumentModel(model_code)
+        serializer = BusinessSerializer(data=request.data)
 
         if serializer.is_valid():
             with transaction.atomic():
                 # Можете логику number сами придумать
                 record = serializer.save(author=request.user, number="IND_12")
-                qs = dynamic_model.objects.get(id=record.id)
-            return Response(InvoiceSerializer(qs, many=False, partial=True).data, status=200)
+                qs = business_model.objects.get(id=record.id)
+            return Response(BusinessSerializer(qs, many=False, partial=True).data, status=200)
         else:
             return Response(serializer.errors, status=400)
 
     def put(self, request, model_code, record_id):
-        InvoiceSerializer = BusinessDocumentModelSerializer(model_code)
-        dynamic_model = BusinessDocumentModel(model_code)
+        BusinessSerializer = BusinessDocumentModelSerializer(model_code)
+        business_model = BusinessDocumentModel(model_code)
 
-        instance = get_object_or_404(dynamic_model.objects.all(), id=record_id)
+        instance = get_object_or_404(business_model.objects.all(), id=record_id)
 
-        serializer = InvoiceSerializer(instance, data=request.data, partial=True)
+        serializer = BusinessSerializer(instance, data=request.data, partial=True)
 
         if serializer.is_valid():
             with transaction.atomic():
                 # Можете логику number сами придумать
                 record = serializer.save(author=request.user, number="IND_12")
-                qs = dynamic_model.objects.get(id=record.id)
-            return Response(InvoiceSerializer(qs, many=False).data, status=200)
+                qs = business_model.objects.get(id=record.id)
+            return Response(BusinessSerializer(qs, many=False).data, status=200)
         else:
             return Response(serializer.errors, status=400)
 
     def delete(self, request, model_code, record_id):
-        dynamic_model = BusinessDocumentModel(model_code)
-        instance = get_object_or_404(dynamic_model.objects.all(), id=record_id)
+        business_model = BusinessDocumentModel(model_code)
+        instance = get_object_or_404(business_model.objects.all(), id=record_id)
 
         with transaction.atomic():
-            dynamic_model.objects.delete_instance(instance)
+            business_model.objects.delete_instance(instance)
 
         return Response(status=204)

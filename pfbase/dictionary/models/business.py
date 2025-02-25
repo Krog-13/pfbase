@@ -29,11 +29,12 @@ def get_field_class_for_indicator(indicator):
     return field_class
 
 
-_BUSINESS_MODEL_CACHE = {}
+_BUSINESS_DICTIONARY_MODEL_CACHE = {}
+
 
 def BusinessDictionaryModel(dictionary_code):
-    if dictionary_code in _BUSINESS_MODEL_CACHE:
-        return _BUSINESS_MODEL_CACHE[dictionary_code]
+    if dictionary_code in _BUSINESS_DICTIONARY_MODEL_CACHE:
+        return _BUSINESS_DICTIONARY_MODEL_CACHE[dictionary_code]
     try:
         dictionary = Dictionaries.objects.get(id=dictionary_code)
     except ObjectDoesNotExist:
@@ -68,6 +69,6 @@ def BusinessDictionaryModel(dictionary_code):
     dynamic_fields['Meta'] = Meta
 
     model_name = f"{dictionary.code.capitalize()}_BusinessModel"
-    dynamic_model = type(model_name, (models.Model,), dynamic_fields)
-    _BUSINESS_MODEL_CACHE[dictionary_code] = dynamic_model
-    return dynamic_model
+    business_model = type(model_name, (models.Model,), dynamic_fields)
+    _BUSINESS_DICTIONARY_MODEL_CACHE[dictionary_code] = business_model
+    return business_model

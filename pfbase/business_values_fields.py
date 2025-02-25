@@ -52,7 +52,7 @@ MAPPING = {
         IndicatorType.JSON: models.JSONField,
         IndicatorType.FILE: models.CharField,
         IndicatorType.LIST: models.JSONField,
-        IndicatorType.DICTIONARY: models.JSONField,
+        IndicatorType.DICTIONARY: models.PositiveBigIntegerField,
         IndicatorType.DOCUMENT: models.PositiveBigIntegerField,
         IndicatorType.CALCULATE: models.CharField,
         IndicatorType.USER: models.PositiveBigIntegerField,
