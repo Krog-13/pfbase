@@ -262,19 +262,20 @@ class ExcelUpload:
                 key = self.mapping[cell.col_idx]
                 if key.startswith("short_name"):
                     lang = key[-2:]
-                    short_name_default[lang] = cell.value
+                    short_name_default[lang] = cell.value if cell.value else ""
                     self.output["short_name"] = short_name_default
                 elif key.startswith("full_name"):
                     lang = key[-2:]
-                    full_name_default[lang] = cell.value
+                    full_name_default[lang] = cell.value if cell.value else ""
                     self.output["full_name"] = full_name_default
                 elif key == "parent_id":
                     if cell.value:
                         parent_id = Elements.objects.getByCode(cell.value)
                         self.output["parent_id"] = parent_id
                 elif key == "organization_id":
-                    org_id = Organization.objects.getByCode(cell.value)
-                    self.output["organization_id"] = org_id
+                    if cell.value:
+                        org_id = Organization.objects.getByCode(cell.value)
+                        self.output["organization_id"] = org_id
                 elif key.startswith("indicators"):
                     idc = key.split(".")
                     idc_type = idc[2].lower()
