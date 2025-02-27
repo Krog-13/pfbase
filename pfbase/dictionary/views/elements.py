@@ -5,12 +5,10 @@ from rest_framework.response import Response
 from pfbase.base_views import AbstractModelAPIView
 from pfbase.pagination import CustomPagination
 from ..serializers.elements import EIGetSerializer, EIPostSerializer, EIUpdateSerializer
-from ..models import elements, dictionaries, indicators
-from ..models import Elements
-from ...system.models import organization
+from ..models import elements, Elements
 from rest_framework.parsers import MultiPartParser, FormParser
-from ..service import find_driver, upload_file
-import openpyxl
+from ..service import find_driver, upload_file, ExcelUpload
+from pfbase.exception import ExcelFormatError, WrongType
 
 
 class ElementsAPIView(AbstractModelAPIView):
@@ -143,3 +141,34 @@ class FileUploadView(views.APIView):
             return Response({"message": "No elements found in the file"}, status=status.HTTP_400_BAD_REQUEST)
         
         return Response({"message": "All elements processed successfully"}, status=status.HTTP_201_CREATED)
+
+class FileUploadElementsView(views.APIView):
+    """
+    Upload excel file with elements
+    """
+    parser_classes = (MultiPartParser, FormParser)
+    def post(self, request):
+        user = request.user
+        excel_file = request.FILES.get("file")
+        trigger_param = request.data.get("trigger")
+        if not excel_file:
+            return Response({"error": "No file was uploaded. Please select a file and try again"}, status=400)
+        try:
+            excel_upload = ExcelUpload(excel_file, user, trigger_param)
+            excel_upload.check_format(excel_file)
+            is_updated = excel_upload.start_upload()
+        except ExcelFormatError:
+            return Response({"error": "Invalid file format. Please upload an Excel file (.xls or .xlsx)."},
+                            status=400)
+        except Elements.DoesNotExist:
+            return Response({"error": "Element does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+        except WrongType:
+            return Response({"error": "Wrong type value or value format"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        if is_updated == "create":
+            return Response({"message": "All elements created successfully"}, status=status.HTTP_201_CREATED)
+        elif is_updated == "update":
+            return Response({"message": "All elements updated successfully"}, status=status.HTTP_200_OK)
+        elif is_updated == "create_update":
+            return Response({"message": "All elements created or updated successfully"}, status=status.HTTP_200_OK)
+
+        return Response({"warning": "Set params update!"}, status=400)
