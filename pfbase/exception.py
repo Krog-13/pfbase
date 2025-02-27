@@ -11,3 +11,7 @@ class AccessDenied(Exception):
 class WrongType(Exception):
     """Wrong type for indicator value"""
     pass
+
+class ExcelFormatError(Exception):
+    """Invalid excel file format"""
+    pass

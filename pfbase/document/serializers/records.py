@@ -120,6 +120,7 @@ class RecordsSerializer(serializers.ModelSerializer):
 
 
 class RIGetSerializer(serializers.ModelSerializer):
+    code = serializers.CharField(source="document.code", required=False)
     indicator_value = RIValueSerializer(source="record_values", many=True, read_only=True)
     status = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
@@ -196,7 +197,7 @@ class IndicatorAnySerializer(CommonSerializer):
 
 class IndicatorUpdateSerializer(CommonSerializer):
     id = serializers.IntegerField(required=True)
-    value = serializers.CharField(max_length=100, required=True)
+    value = CustomField(required=True, allow_null=True)
     type = serializers.CharField(max_length=100, required=True)
 
 class RecordFormDataSerializer(serializers.Serializer):
@@ -289,6 +290,7 @@ class RecordUpdateSerializer(CommonSerializer):
     parent_id = serializers.IntegerField(required=False)
     record_id = serializers.IntegerField(required=True)
     status_id = serializers.IntegerField(required=False)
+    organization_id = serializers.IntegerField(required=False)
     indicators = IndicatorUpdateSerializer(many=True, required=False)
 
     def update(self, instance, validated_data):

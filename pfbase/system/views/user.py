@@ -151,5 +151,4 @@ class PasswordResetConfirmView(APIView, TemplateView):
         if serializer.is_valid():
             serializer.save(user)
             return redirect("/login")
-            return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

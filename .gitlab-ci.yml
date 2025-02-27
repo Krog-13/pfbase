@@ -1,16 +1,26 @@
 image: python:3.11
 
 stages:
+  - build
   - deploy
 
 before_script:
   - apt-get update && apt-get install -y python3-pip
 
+build:
+  stage: build
+  script:
+    - pip install wheel twine
+    - python3 setup.py sdist bdist_wheel
+  artifacts:
+    paths:
+      - dist/
+
 deploy:
   stage: deploy
   script:
     - pip install twine
-    - ls dist/  #  Проверяем содержимое dist/
+    - ls dist/
     - python3 -m twine upload --repository-url https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/packages/pypi dist/* --username $TWINE_USERNAME --password $TWINE_PASSWORD
   only:
     - master

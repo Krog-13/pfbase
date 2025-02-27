@@ -10,13 +10,16 @@ from ..document import models as dcm_models
 from rest_framework import status
 from rest_framework.response import Response
 from .models import dictionaries, indicators
-from ..system.models import organization, ListValues
+from ..system.models import organization, ListValues, Organization
 import openpyxl
+import mimetypes
+from pfbase.exception import ExcelFormatError
 
 
-Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json'])
-marker = Typing(int="int", float="float", str="str", text="text", json='json', datetime=["datetime", "date", "time"],
-                bool="bool", reference=["dct", "list", "dcm", "user", "org"])
+Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json', 'file', 'user', 'array_int', 'array_str'])
+marker = Typing(int="int", float="float", str="str", text="text", json='json', file="file", user="user",
+                datetime=["datetime", "date", "time"], bool="bool", reference=["dct", "list", "dcm", "user", "org"], array_int=["dct", "dcm", "list", "user", "org"],
+                array_str=["str", "text", "bool", "file", "date", "time", "dct"])
 
 
 class ElementService:
@@ -34,6 +37,7 @@ class ElementService:
         self.short_name = request_data.get('short_name')
         self.full_name = request_data.get('full_name')
         self.code = request_data.get('code')
+        self.dct_code = request_data.get('dct_code')
         self.dictionary_id = request_data.get('dictionary_id')
         self.parent_id = request_data.get('parent_id')
         self.organization_id = request_data.get('organization_id')
@@ -54,8 +58,7 @@ class ElementService:
     @transaction.atomic
     def create_element_iv(self, user, validated_data):
         self.validate_data(validated_data)
-        dictionary = Dictionaries.objects.get(
-            id=self.dictionary_id) if self.dictionary_id else Dictionaries.objects.get(code=self.code)
+        dictionary = Dictionaries.objects.get(id=self.dictionary_id) if self.dictionary_id else Dictionaries.objects.get(code=self.dct_code)
         parent_e = Elements.objects.get(id=self.parent_id) if self.parent_id else None
 
         element = Elements.objects.create(
@@ -77,9 +80,33 @@ class ElementService:
         return element
 
     @transaction.atomic
+    def create_list_element(self, user, validated_data_list):
+        for validated_data in validated_data_list["elements"]:
+            self.validate_data(validated_data)
+            dictionary = Dictionaries.objects.get(
+                id=self.dictionary_id) if self.dictionary_id else Dictionaries.objects.get(code=self.dct_code)
+            parent_e = Elements.objects.get(id=self.parent_id) if self.parent_id else None
+
+            element = Elements.objects.create(
+                short_name=self.short_name,
+                full_name=self.full_name,
+                code=self.code,
+                dictionary=dictionary,
+                author=user,
+                parent=parent_e,
+                organization_id=self.organization_id
+            )
+
+            if not self.indicators:
+                continue
+
+            for indicator in self.indicators:
+                self.create_or_update_indicator_value(element, indicator)
+        return {}
+
+    @transaction.atomic
     def update_element_iv(self, element, user, validated_data):
         self.validate_update_data(validated_data)
-
         if self.parent_id:
             element.parent = Elements.objects.get(id=self.parent_id)
         if self.short_name:
@@ -177,6 +204,188 @@ class ElementService:
                     return timezone.make_aware(parse_datetime)
         except ValueError:
             return False
+
+class ExcelUpload:
+    """
+    Upload excel file Dictionaries
+    """
+    def __init__(self, excel_file, user, trigger):
+        self.excel_file = excel_file
+        self.user = user
+        self.trigger = trigger
+        self.workbook = None
+        self.sheet = None
+        self.dct_code = None
+        self.dct_id = None
+        self.dcm_code = None
+        self.dcm_id = None
+        self.mapping = {}
+        self.output = {}
+        self.element_service = ElementService()
+
+    def start_upload(self):
+        self._check()
+        headers = next(self.sheet.iter_rows(max_row=1, values_only=True))
+        for idx, item in  enumerate(headers, start=1):
+            if item == "CODE":
+                self.mapping[idx] = "code"
+            elif item == "SHORTNAME.RU":
+                self.mapping[idx] = "short_name.ru"
+            elif item == "SHORTNAME.KK":
+                self.mapping[idx] = "short_name.kk"
+            elif item == "SHORTNAME.EN":
+                self.mapping[idx] = "short_name.en"
+            elif item == "FULLNAME.RU":
+                self.mapping[idx] = "full_name.ru"
+            elif item == "FULLNAME.KK":
+                self.mapping[idx] = "full_name.kk"
+            elif item == "FULLNAME.EN":
+                self.mapping[idx] = "full_name.en"
+            elif item == "PARENT.CODE":
+                self.mapping[idx] = "parent_id"
+            elif item.startswith("ORGANIZATION"):
+                self.mapping[idx] = "organization_id"
+            elif item.startswith("IDC"):
+                self.mapping[idx] = f"indicators_{item}"
+
+        for row in self.sheet.iter_rows(min_row=2):
+            self.output = {"code": None,
+                           "dct_code": self.dct_code,
+                           "parent_id": None,
+                           "organization_id": None,
+                           "short_name": {"ru": "", "kk": "", "en": ""},
+                           "full_name": {"ru": "", "kk": "", "en": ""},
+                           "indicators": []}
+            short_name_default = {"ru": "", "kk": "", "en": ""}
+            full_name_default = {"ru": "", "kk": "", "en": ""}
+            for cell in row:
+                key = self.mapping[cell.col_idx]
+                if key.startswith("short_name"):
+                    lang = key[-2:]
+                    short_name_default[lang] = cell.value
+                    self.output["short_name"] = short_name_default
+                elif key.startswith("full_name"):
+                    lang = key[-2:]
+                    full_name_default[lang] = cell.value
+                    self.output["full_name"] = full_name_default
+                elif key == "parent_id":
+                    if cell.value:
+                        parent_id = Elements.objects.getByCode(cell.value)
+                        self.output["parent_id"] = parent_id
+                elif key == "organization_id":
+                    org_id = Organization.objects.getByCode(cell.value)
+                    self.output["organization_id"] = org_id
+                elif key.startswith("indicators"):
+                    idc = key.split(".")
+                    idc_type = idc[2].lower()
+                    try:
+                        converted_value = self._get_optimal_value(idc_type, cell.value)
+                    except json.JSONDecodeError:
+                        continue
+                    row = {"code": idc[1], "value": converted_value, "type": idc_type}
+                    self.output["indicators"].append(row)
+                else:
+                    self.output[key] = cell.value
+            if self.trigger == "create":
+                self.element_service.create_element_iv(self.user, self.output)
+            elif self.trigger == "update":
+                element_code = self.output["code"]
+                element = Elements.objects.filter(code=element_code).first()
+                if not element:
+                    continue
+                self.element_service.update_element_iv(element, self.user, self.output)
+            elif self.trigger == "create_update":
+                element_code = self.output["code"]
+                element = Elements.objects.filter(code=element_code).first()
+                if not element:
+                    self.element_service.create_element_iv(self.user, self.output)
+                else:
+                    self.element_service.update_element_iv(element, self.user, self.output)
+        return self.trigger
+
+    def _check(self):
+        if self.excel_file.name.endswith(".xlsx"):
+            self.dct_code = self.excel_file.name[:-5].split("_", 1)[1]
+
+        self.workbook = openpyxl.load_workbook(self.excel_file, data_only=True)
+        if self.dct_code and self.workbook.active.title == "PF":
+            self.dct_id = Dictionaries.objects.getByCode(code=self.dct_code)
+            self.sheet = self.workbook["PF"]
+            return
+        raise
+
+    def _get_optimal_value(self, type_value, value):
+        """
+        Comparison type of value and get value
+        """
+        if not value:
+            return None
+        if type_value == marker.int:
+            return int(value)
+        elif type_value == marker.float:
+            return float(value)
+        elif type_value == marker.str:
+            return value
+        elif type_value == marker.file:
+            return value
+        elif type_value == marker.user:
+            return value
+        elif type_value == marker.text:
+            return value
+        elif type_value == marker.bool:
+            if value.lower() == "false":
+                return False
+            elif value.lower() == "true":
+                return True
+            return False
+        elif type_value in marker.reference:
+            return self.get_id_by_code(type_value, value)
+        elif type_value == marker.json:
+            return json.loads(value)
+        elif type_value in marker.datetime:
+            return value
+        else:
+            return None
+
+    @staticmethod
+    def get_id_by_code(type_value, code):
+        if type_value == "dct":
+            return Elements.objects.getByCode(code=code)
+        elif type_value == "list":
+            return ListValues.objects.getByCode(code=code)
+
+    @staticmethod
+    def give_date_format(date_str, type_value):
+        """
+        Convert str: datetime, date, time to datetime object
+        """
+        formats = [
+            ("%Y-%m-%d %H:%M", "datetime"),  # "2024-01-01 12:33"
+            ("%Y-%m-%d", "date"),  # "2024-01-01"
+            ("%H:%M", "time")  # "10:23"
+        ]
+        try:
+            for fmt in formats:
+                if type_value == fmt[1]:
+                    parse_datetime = datetime.strptime(date_str, fmt[0])
+                    if type_value == "time":
+                        parse_datetime = datetime.combine(datetime.now().date(), parse_datetime.time())
+                    return timezone.make_aware(parse_datetime)
+        except ValueError:
+            return False
+
+    @staticmethod
+    def check_format(file_object):
+        """Check file MIME type"""
+        # Get the MIME type
+        mime_type, _ = mimetypes.guess_type(file_object.name)
+        # Allowed MIME types for Excel files
+        allowed_mime_types = [
+            "application/vnd.ms-excel",  # .xls
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # .xlsx
+        ]
+        if mime_type not in allowed_mime_types:
+            raise ExcelFormatError
 
 
 def find_driver(queryset, params):

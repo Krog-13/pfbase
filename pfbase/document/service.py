@@ -293,6 +293,7 @@ class RecordService:
         self.number = main.get('number', "0000")
         self.date_string = main.get('date', None)
         self.record_id = main['record_id']
+        self.organization_id = main.get('organization_id')
         self.status_id = main.get('status_id', None)
         self.main_indicators = main.get('indicators', [])
 
@@ -345,8 +346,13 @@ class RecordService:
             except RecordIndicatorValues.DoesNotExist:
                 record_indicator = DcmIndicators.objects.get(code=code, type_value=type_value)
                 rv = record.record_values.create(indicator=record_indicator)
+
             if some_value is not None:
-                result = self.separate_value(rv, type_value, some_value)
+                is_multiple = rv.indicator.is_multiple
+                if is_multiple:
+                    result = self.separate_multiple_value(rv, type_value, some_value)
+                else:
+                    result = self.separate_value(rv, type_value, some_value)
             else:
                 result = self.separate_value_any(rv,
                                                  value_str=value_str,
@@ -411,6 +417,8 @@ class RecordService:
             main_record.number = self.number
         if self.date:
             main_record.date = self.date
+        if self.organization_id:
+            main_record.organization_id = self.organization_id
         main_record.user = user
         main_record.save()
         self.record_update_iv(self.main_indicators, main_record)
@@ -452,6 +460,7 @@ class RecordService:
         indicators = validated_data.get('indicators')
         parent_id = validated_data.get('parent_id')
         number = validated_data.get('number')
+        organization_id = validated_data.get('organization_id')
         date = validated_data.get('date')
         status_id = validated_data.get('status_id')
         if parent_id:
@@ -461,6 +470,8 @@ class RecordService:
             record.number = number
         if date:
             record.date = date
+        if organization_id:
+            record.organization_id = organization_id
         record.author = user
         record.save()
 
@@ -471,7 +482,10 @@ class RecordService:
             type_value = indicator.get('type')
             rv = record.record_values.get(id=indicator.get('id'), indicator__type_value=type_value)
             some_value = indicator.get('value')
-            result = self.separate_value(rv, type_value, some_value)
+            if rv.indicator.is_multiple:
+                result = self.separate_multiple_value(rv, type_value, some_value)
+            else:
+                result = self.separate_value(rv, type_value, some_value)
             if not result:
                 raise WrongType("Invalid type value")
             rv.save()

@@ -29,7 +29,7 @@ class IndicatorAdmin(admin.ModelAdmin):
     """
     Indicators in admin panel
     """
-    fields = ("dictionary", ("short_name", "full_name", "type_value", "type_extend"), "description",
+    fields = ("dictionary", ("short_name", "full_name", "type_value", "type_extend", "is_multiple"), "description",
               ("code", "index_sort"), "active")
     list_display = ("get_name", "code", "type_value", "dictionary", "index_sort", "id")
     list_filter = ("dictionary", "author")
