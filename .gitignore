@@ -18,6 +18,3 @@ nginx
 Dockerfile
 db.sqlite3
 PF_LOG.log
-
-dist/
-dist/*
