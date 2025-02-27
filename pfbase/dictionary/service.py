@@ -12,6 +12,8 @@ from rest_framework.response import Response
 from .models import dictionaries, indicators
 from ..system.models import organization, ListValues, Organization
 import openpyxl
+import mimetypes
+from pfbase.exception import ExcelFormatError
 
 
 Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json', 'file', 'user', 'array_int', 'array_str'])
@@ -207,10 +209,10 @@ class ExcelUpload:
     """
     Upload excel file Dictionaries
     """
-    def __init__(self, excel_file, user, update):
+    def __init__(self, excel_file, user, trigger):
         self.excel_file = excel_file
         self.user = user
-        self.update = update
+        self.trigger = trigger
         self.workbook = None
         self.sheet = None
         self.dct_code = None
@@ -220,7 +222,6 @@ class ExcelUpload:
         self.mapping = {}
         self.output = {}
         self.element_service = ElementService()
-
 
     def start_upload(self):
         self._check()
@@ -247,7 +248,7 @@ class ExcelUpload:
             elif item.startswith("IDC"):
                 self.mapping[idx] = f"indicators_{item}"
 
-        for row in self.sheet.iter_rows(min_row=2, values_only=True):
+        for row in self.sheet.iter_rows(min_row=2):
             self.output = {"code": None,
                            "dct_code": self.dct_code,
                            "parent_id": None,
@@ -277,17 +278,30 @@ class ExcelUpload:
                 elif key.startswith("indicators"):
                     idc = key.split(".")
                     idc_type = idc[2].lower()
-                    converted_value = self._get_optimal_value(idc_type, cell.value)
+                    try:
+                        converted_value = self._get_optimal_value(idc_type, cell.value)
+                    except json.JSONDecodeError:
+                        continue
                     row = {"code": idc[1], "value": converted_value, "type": idc_type}
                     self.output["indicators"].append(row)
                 else:
                     self.output[key] = cell.value
-            # element_code = self.output["code"]
-            if self.update == "false":
+            if self.trigger == "create":
                 self.element_service.create_element_iv(self.user, self.output)
-            elif self.update == "true":
-                self.element_service.update_element_iv(self.user, self.output)
-        return self.update
+            elif self.trigger == "update":
+                element_code = self.output["code"]
+                element = Elements.objects.filter(code=element_code).first()
+                if not element:
+                    continue
+                self.element_service.update_element_iv(element, self.user, self.output)
+            elif self.trigger == "create_update":
+                element_code = self.output["code"]
+                element = Elements.objects.filter(code=element_code).first()
+                if not element:
+                    self.element_service.create_element_iv(self.user, self.output)
+                else:
+                    self.element_service.update_element_iv(element, self.user, self.output)
+        return self.trigger
 
     def _check(self):
         if self.excel_file.name.endswith(".xlsx"):
@@ -301,6 +315,11 @@ class ExcelUpload:
         raise
 
     def _get_optimal_value(self, type_value, value):
+        """
+        Comparison type of value and get value
+        """
+        if not value:
+            return None
         if type_value == marker.int:
             return int(value)
         elif type_value == marker.float:
@@ -324,11 +343,7 @@ class ExcelUpload:
         elif type_value == marker.json:
             return json.loads(value)
         elif type_value in marker.datetime:
-            if value:
-                date = self.give_date_format(value, type_value)
-                return date
-            else:
-                return None
+            return value
         else:
             return None
 
@@ -338,7 +353,6 @@ class ExcelUpload:
             return Elements.objects.getByCode(code=code)
         elif type_value == "list":
             return ListValues.objects.getByCode(code=code)
-
 
     @staticmethod
     def give_date_format(date_str, type_value):
@@ -359,6 +373,20 @@ class ExcelUpload:
                     return timezone.make_aware(parse_datetime)
         except ValueError:
             return False
+
+    @staticmethod
+    def check_format(file_object):
+        """Check file MIME type"""
+        # Get the MIME type
+        mime_type, _ = mimetypes.guess_type(file_object.name)
+        # Allowed MIME types for Excel files
+        allowed_mime_types = [
+            "application/vnd.ms-excel",  # .xls
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # .xlsx
+        ]
+        if mime_type not in allowed_mime_types:
+            raise ExcelFormatError
+
 
 def find_driver(queryset, params):
     output = {"drivers": []}

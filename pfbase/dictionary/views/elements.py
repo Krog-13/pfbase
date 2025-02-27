@@ -4,11 +4,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from pfbase.base_views import AbstractModelAPIView
 from pfbase.pagination import CustomPagination
-from ..serializers.elements import EIGetSerializer, EIPostSerializer, EIUpdateSerializer, EIListPostSerializer
+from ..serializers.elements import EIGetSerializer, EIPostSerializer, EIUpdateSerializer
 from ..models import elements, Elements
 from rest_framework.parsers import MultiPartParser, FormParser
 from ..service import find_driver, upload_file, ExcelUpload
-
+from pfbase.exception import ExcelFormatError, WrongType
 
 
 class ElementsAPIView(AbstractModelAPIView):
@@ -150,30 +150,25 @@ class FileUploadElementsView(views.APIView):
     def post(self, request):
         user = request.user
         excel_file = request.FILES.get("file")
-        update = request.data.get("update")
+        trigger_param = request.data.get("trigger")
         if not excel_file:
-            return Response({"error": "No file uploaded"}, status=400)
-        excel_upload = ExcelUpload(excel_file, user, update)
-        update = excel_upload.start_upload()
-        if update == "false":
+            return Response({"error": "No file was uploaded. Please select a file and try again"}, status=400)
+        try:
+            excel_upload = ExcelUpload(excel_file, user, trigger_param)
+            excel_upload.check_format(excel_file)
+            is_updated = excel_upload.start_upload()
+        except ExcelFormatError:
+            return Response({"error": "Invalid file format. Please upload an Excel file (.xls or .xlsx)."},
+                            status=400)
+        except Elements.DoesNotExist:
+            return Response({"error": "Element does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+        except WrongType:
+            return Response({"error": "Wrong type value or value format"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        if is_updated == "create":
             return Response({"message": "All elements created successfully"}, status=status.HTTP_201_CREATED)
-        elif update == "true":
+        elif is_updated == "update":
             return Response({"message": "All elements updated successfully"}, status=status.HTTP_200_OK)
-        return Response({"warning": "Set parma update or create"}, status=400)
+        elif is_updated == "create_update":
+            return Response({"message": "All elements created or updated successfully"}, status=status.HTTP_200_OK)
 
-
-        # for data in excel_upload.start_upload():
-        #     if update == "true":
-        #         element_code = data["code"]
-        #         element = Elements.objects.get(code=element_code)
-        #         serializer = EIUpdateSerializer(element, data=data, context={'request': request})
-        #         if serializer.is_valid():
-        #             serializer.update(element, serializer.validated_data)
-        #     elif update == "false":
-        #         serializer = EIPostSerializer(data=data, context={'request': request})
-        #         if serializer.is_valid():
-        #             serializer.save()
-        #     else:
-        #         return Response({"warning": "Set parma update or create"}, status=400)
-        #
-        # return Response({"message": "All elements processed successfully"}, status=status.HTTP_201_CREATED)
+        return Response({"warning": "Set params update!"}, status=400)
