@@ -1,5 +1,6 @@
 from django.db import models
 from enum import Enum
+from pfbase.config import default_name
 
 
 class NotificationType(Enum):
@@ -17,8 +18,8 @@ class Notification(models.Model):
     """
     Уведомления
     """
-    title = models.CharField(max_length=128, verbose_name='Заголовок')
-    message = models.TextField(verbose_name='Сообщение')
+    title = models.JSONField(verbose_name='Заголовок', default=default_name, blank=True)
+    message = models.JSONField(verbose_name='Сообщение', default=default_name, blank=True)
     is_read = models.BooleanField(default=False, verbose_name='Прочитано')
     read_at = models.DateTimeField(auto_now=True, blank=True, null=True)
     type_notification = models.CharField(

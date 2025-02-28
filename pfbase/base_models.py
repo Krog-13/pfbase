@@ -48,6 +48,8 @@ class IndicatorBase(models.Model):
         default=False, blank=True, verbose_name='Добавить в фильтр')
     is_multiple = models.BooleanField(
         default=False, blank=True, verbose_name="Множественный выбор")
+    is_required = models.BooleanField(
+        default=False, blank=True, verbose_name="Обязательное поле")
 
     class Meta:
         abstract = True
