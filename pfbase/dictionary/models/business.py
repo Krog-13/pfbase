@@ -36,7 +36,7 @@ def BusinessDictionaryModel(dictionary_code):
     if dictionary_code in _BUSINESS_DICTIONARY_MODEL_CACHE:
         return _BUSINESS_DICTIONARY_MODEL_CACHE[dictionary_code]
     try:
-        dictionary = Dictionaries.objects.get(id=dictionary_code)
+        dictionary = Dictionaries.objects.get(code=dictionary_code)
     except ObjectDoesNotExist:
         raise ValueError(f"Справочник с кодом '{dictionary_code}' не найден")
 
