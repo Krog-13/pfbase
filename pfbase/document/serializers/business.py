@@ -6,12 +6,54 @@ from pfbase.system.models.listvalues import ListValues
 from pfbase.system.models.organization import Organization
 from pfbase.system.models.user import User
 from pfbase.dictionary.serializers.business import *
+from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 
 
 def validate_reference_field(value, model_cls, field_label):
     if not model_cls.objects.filter(pk=value).exists():
         raise serializers.ValidationError(f"{field_label} с ID {value} не найден(а).")
     return value
+
+
+def validate_dictionary_field(value, type_extend):
+    if not Dictionaries.objects.filter(code=type_extend).exists():
+        raise serializers.ValidationError(f"Справочник в индикаторе с ID {type_extend} не найден(а).")
+
+    if not Elements.objects.filter(dictionary__code=type_extend, pk=value).exists():
+        raise serializers.ValidationError(f"Справочник с ID {value} не найден(а).")
+    return value
+
+
+def validate_document_field(value, type_extend):
+    if not Documents.objects.filter(code=type_extend).exists():
+        raise serializers.ValidationError(f"Документ в индикаторе с кодом {type_extend} не найден(а).")
+
+    if not Records.objects.filter(document__code=type_extend, pk=value).exists():
+        raise serializers.ValidationError(f"Запись в документ {type_extend} с ID {value} не найден(а).")
+    return value
+
+
+def validate_list_field(value, type_extend):
+    if not ListValues.objects.filter(list=type_extend).exists():
+        raise serializers.ValidationError(f"ListValue в индикаторе с кодом {type_extend} не найден(а).")
+
+    if not ListValues.objects.filter(list=type_extend, pk=value).exists():
+        raise serializers.ValidationError(f"Запись в ListValue {type_extend} с ID {value} не найден(а).")
+    return value
+
+
+class CustomListSerializer(serializers.ListSerializer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.initial_queryset = self.instance
+
+    def get_details(self, value=True):
+        self.child.is_detail_show = value
+        return self
+
+    def only_fields(self, *fields):
+        self.child._only_fields = set(fields)
+        return self
 
 
 def BusinessDocumentModelSerializer(document_code):
@@ -23,21 +65,39 @@ def BusinessDocumentModelSerializer(document_code):
     dynamic_model = BusinessDocumentModel(document_code)
 
     class BusinessDocumentModelRecordSerializer(serializers.ModelSerializer):
-        list_values = ListValues.objects.all()
-        organization_values = Organization.objects.all()
+        is_detail_show = False
+        dct_loaded = False
+        dictionary_values = None
 
-        # Это место нужно переделать. На текущий момент загружаются все пользователи.
-        # Сделано было чтоб уменьшить обращения в базу. Теперь внизу в цикле они вытягиваются как справочники
+        organization_values = Organization.objects.all()
+        document_values = Documents.objects.all()
+        list_values = ListValues.objects.all()
         user_values = User.objects.all()
 
-        indicators_dict = document.indicators.filter(type_value=IndicatorType.DICTIONARY)
+        other_types = [
+            IndicatorType.LIST,
+            IndicatorType.USER,
+            IndicatorType.ORGANIZATION,
+            IndicatorType.DOCUMENT,
+            IndicatorType.FILE
+        ]
+        precomputed_other_indicators = list(document.indicators.filter(type_value__in=other_types))
 
+        indicators_dict = document.indicators.filter(type_value=IndicatorType.DICTIONARY)
+        other_indicators = precomputed_other_indicators
+
+        other_ind = document.indicators.filter(type_value__in=other_types)
         grouped_list_values = {}
         grouped_organization_values = {}
         grouped_user_values = {}
+        grouped_document_values = {}
 
-        for element in list_values:
-            grouped_list_values.setdefault(element.id, []).append(element)
+        queryset_result = []
+
+        class Meta:
+            model = dynamic_model
+            fields = '__all__'
+            list_serializer_class = CustomListSerializer
 
         for element in organization_values:
             grouped_organization_values.setdefault(element.id, []).append(element)
@@ -45,15 +105,13 @@ def BusinessDocumentModelSerializer(document_code):
         for element in user_values:
             grouped_user_values.setdefault(element.id, []).append(element)
 
-        class Meta:
-            model = dynamic_model
-            fields = '__all__'
+        for element in document_values:
+            grouped_document_values.setdefault(element.id, []).append(element)
+
+        for element in list_values:
+            grouped_list_values.setdefault(element.id, []).append(element)
 
         def get_filtered_data(self, *field_names):
-            """
-            Возвращает данные сериализатора, содержащие только указанные поля.
-            Если self.data – это словарь, возвращает словарь, если список – список словарей.
-            """
             data = self.data
             if isinstance(data, dict):
                 return {field: data.get(field) for field in field_names}
@@ -61,9 +119,9 @@ def BusinessDocumentModelSerializer(document_code):
                 return [{field: item.get(field) for field in field_names} for item in data]
             return data
 
-
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
+            self.initial_queryset = self.instance
             base_fields = {'id', 'number', 'date', 'active', 'organization', 'parent'}
             self.fields["author"].required = False
             for field_name, field in self.fields.items():
@@ -74,14 +132,19 @@ def BusinessDocumentModelSerializer(document_code):
             errors = {}
 
             for indicator in document.indicators.filter(
-                type_value__in=[IndicatorType.LIST, IndicatorType.USER, IndicatorType.ORGANIZATION, IndicatorType.DOCUMENT]
+                type_value__in=[IndicatorType.LIST,
+                                IndicatorType.USER,
+                                IndicatorType.ORGANIZATION,
+                                IndicatorType.DOCUMENT,
+                                IndicatorType.DICTIONARY,
+                                ]
             ):
                 field_key = indicator.code
                 if field_key in data:
                     ref_id = data[field_key]
                     if indicator.type_value == IndicatorType.LIST:
                         try:
-                            validate_reference_field(ref_id, ListValues, "ListValues")
+                            validate_list_field(ref_id, indicator.type_extend)
                         except serializers.ValidationError as e:
                             errors[field_key] = e.detail
                     elif indicator.type_value == IndicatorType.USER:
@@ -96,7 +159,12 @@ def BusinessDocumentModelSerializer(document_code):
                             errors[field_key] = e.detail
                     elif indicator.type_value == IndicatorType.DOCUMENT:
                         try:
-                            validate_reference_field(ref_id, Documents, "Документ")
+                            validate_document_field(ref_id, indicator.type_extend)
+                        except serializers.ValidationError as e:
+                            errors[field_key] = e.detail
+                    elif indicator.type_value == IndicatorType.DICTIONARY:
+                        try:
+                            validate_dictionary_field(ref_id, indicator.type_extend)
                         except serializers.ValidationError as e:
                             errors[field_key] = e.detail
             if errors:
@@ -113,8 +181,37 @@ def BusinessDocumentModelSerializer(document_code):
         def update(self, instance, validated_data):
             return dynamic_model.objects.update_instance(instance, **validated_data)
 
+        def only_fields(self, *fields):
+            self._only_fields = set(fields)
+            return self
+
+        def queryset(self):
+            return self.initial_queryset
+
+        def queryset_bind(self):
+            if len(self.queryset_result) == 0:
+                self.queryset_result = self.queryset()
+
+        def load_dictionary_values(self):
+            if not self.dct_loaded:
+                queryset = self.initial_queryset
+                objects_list = queryset
+                self.dct_loaded = True
+                dct_ids_global = []
+                for obj in objects_list:
+                    for ind_dct in self.indicators_dict:
+                        dct_ids_global.append(getattr(obj, ind_dct.code))
+                self.dictionary_values = Elements.objects.filter(pk__in=dct_ids_global)
+
         def to_representation(self, instance):
+            self.queryset_bind()
+
             rep = super().to_representation(instance)
+
+            if not self.is_detail_show:
+                return rep
+
+            self.load_dictionary_values()
 
             if instance.author:
                 rep['author'] = {'id': instance.author.id, 'username': instance.author.username}
@@ -129,15 +226,11 @@ def BusinessDocumentModelSerializer(document_code):
             else:
                 rep['parent'] = None
 
-            element_ids = [rep.get(ind.code) for ind in self.indicators_dict if rep.get(ind.code) is not None]
-
-            elements = Elements.objects.filter(pk__in=element_ids)
-            elements_map = {str(el.pk): el for el in elements}
+            elements_map = {str(el.pk): el for el in self.dictionary_values}
 
             for indicator in self.indicators_dict:
                 field_key = indicator.code
                 element_id = rep.get(field_key)
-
                 if element_id:
                     dictionary_code = indicator.type_extend
                     try:
@@ -150,18 +243,19 @@ def BusinessDocumentModelSerializer(document_code):
                     except Exception as e:
                         rep[field_key] = {"error": str(e)}
 
-            other_types = [IndicatorType.LIST, IndicatorType.USER, IndicatorType.ORGANIZATION, IndicatorType.DOCUMENT]
-
-            for indicator in document.indicators.filter(type_value__in=other_types):
+            for indicator in self.other_indicators:
                 field_key = indicator.code
+
                 ref_id = rep.get(field_key)
+
                 if ref_id:
                     try:
                         if indicator.type_value == IndicatorType.LIST:
                             objs = self.grouped_list_values.get(ref_id, [])
                             if objs:
                                 obj = objs[0]
-                                rep[field_key] = {'id': obj.id, 'code': obj.code, 'short_name': obj.short_name, 'full_name': obj.full_name}
+                                rep[field_key] = {'id': obj.id, 'code': obj.code, 'short_name': obj.short_name,
+                                                  'full_name': obj.full_name}
                         elif indicator.type_value == IndicatorType.USER:
                             objs = self.grouped_user_values.get(ref_id, [])
                             if objs:
@@ -171,12 +265,15 @@ def BusinessDocumentModelSerializer(document_code):
                             objs = self.grouped_organization_values.get(ref_id, [])
                             if objs:
                                 obj = objs[0]
-                                rep[field_key] = {'id': obj.id, 'short_name': obj.short_name, 'full_name': obj.full_name}
-                        elif indicator.type_value == IndicatorType.DOCUMENT:
-                            obj = Documents.objects.get(pk=ref_id)
-                            rep[field_key] = {'id': obj.id, 'name': obj.name, 'code': obj.code}
+                                rep[field_key] = {'id': obj.id, 'short_name': obj.short_name,
+                                                  'full_name': obj.full_name}
                     except ObjectDoesNotExist:
-                        rep[field_key] = {"error": f"Объект для {indicator.get_type_value_display()} с ID {ref_id} не найден."}
+                        rep[field_key] = {
+                            "error": f"Объект для {indicator.get_type_value_display()} с ID {ref_id} не найден."}
+
+            if hasattr(self, '_only_fields'):
+                rep = {k: v for k, v in rep.items() if k in self._only_fields}
+
             return rep
 
     return BusinessDocumentModelRecordSerializer

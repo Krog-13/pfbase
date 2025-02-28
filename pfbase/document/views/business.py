@@ -5,6 +5,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from pfbase.pagination import CustomPagination
 
 """
 Данный класс яляется лишь примером для использования Бизнес-моделей и Бизнес-сериалайзера.
@@ -15,14 +16,15 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 class BusinessModelApiView(views.APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     permission_classes = (IsAuthenticated, IsAdminUser)
+    pagination_class = CustomPagination
 
     def get(self, request, model_code):
+        BusinessSerializer = BusinessDocumentModelSerializer(model_code)
+        queryset = BusinessDocumentModel(model_code)
+        qs = queryset.objects.all().select_related('author', 'organization', 'parent', 'document').order_by('-id')
 
-        business_model = BusinessDocumentModel(model_code)
-        BusinessSerializer = BusinessDocumentModelSerializer(model_code).get_filtered_data('author', 'organization')
-        qs = business_model.objects.all().select_related('author', 'organization', 'parent', 'document')
-
-        return Response({"count": qs.count(), "data": BusinessSerializer(qs, many=True).data})
+        serializer = BusinessSerializer(qs, many=True)
+        return Response(serializer.data)
 
     def post(self, request, model_code):
         BusinessSerializer = BusinessDocumentModelSerializer(model_code)
@@ -63,3 +65,17 @@ class BusinessModelApiView(views.APIView):
             business_model.objects.delete_instance(instance)
 
         return Response(status=204)
+
+
+class BusinessModelIndListApiView(views.APIView):
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    permission_classes = (IsAuthenticated, IsAdminUser)
+    pagination_class = CustomPagination
+
+    def get(self, request, model_code):
+        BusinessSerializer = BusinessDocumentModelSerializer(model_code)
+        queryset = BusinessDocumentModel(model_code)
+        qs = queryset.objects.all().select_related('author', 'organization', 'parent', 'document')
+
+        serializer = BusinessSerializer(qs, many=True).get_details()
+        return Response(serializer.data)
