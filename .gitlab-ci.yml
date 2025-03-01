@@ -23,4 +23,4 @@ deploy:
     - ls dist/
     - python3 -m twine upload --repository-url https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/packages/pypi dist/* --username $TWINE_USERNAME --password $TWINE_PASSWORD
   only:
-    - master
+    - master-deploy
