@@ -21,8 +21,8 @@ class BusinessModelApiView(views.APIView):
     def get(self, request, model_code):
         BusinessSerializer = BusinessDocumentModelSerializer(model_code)
         queryset = BusinessDocumentModel(model_code)
-        qs = queryset.objects.all().select_related('author', 'organization', 'parent', 'document').order_by('-id')
 
+        qs = queryset.objects.all().select_related('author', 'organization', 'parent', 'document').order_by('-id')
         serializer = BusinessSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -41,21 +41,23 @@ class BusinessModelApiView(views.APIView):
             return Response(serializer.errors, status=400)
 
     def put(self, request, model_code, record_id):
-        BusinessSerializer = BusinessDocumentModelSerializer(model_code)
-        business_model = BusinessDocumentModel(model_code)
+        with transaction.atomic():
+            BusinessSerializer = BusinessDocumentModelSerializer(model_code)
+            business_model = BusinessDocumentModel(model_code)
 
-        instance = get_object_or_404(business_model.objects.all(), id=record_id)
+            instance = get_object_or_404(business_model.objects.all(), id=record_id)
 
-        serializer = BusinessSerializer(instance, data=request.data, partial=True)
+            serializer = BusinessSerializer(instance, data=request.data, partial=True)
 
-        if serializer.is_valid():
-            with transaction.atomic():
-                # Можете логику number сами придумать
-                record = serializer.save(author=request.user, number="IND_12")
-                qs = business_model.objects.get(id=record.id)
-            return Response(BusinessSerializer(qs, many=False).data, status=200)
-        else:
-            return Response(serializer.errors, status=400)
+            if serializer.is_valid():
+                with transaction.atomic():
+                    # Можете логику number сами придумать
+                    record = serializer.save(author=request.user, number="IND_12")
+                    qs = business_model.objects.get(id=record.id)
+
+                return Response(BusinessSerializer(qs, many=False).data, status=200)
+            else:
+                return Response(serializer.errors, status=400)
 
     def delete(self, request, model_code, record_id):
         business_model = BusinessDocumentModel(model_code)

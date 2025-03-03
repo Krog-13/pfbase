@@ -40,9 +40,9 @@ class IndicatorAdmin(admin.ModelAdmin):
     """
     Indicator in the admin panel
     """
-    fields = ("document", ("short_name", "full_name", "type_value", "type_extend", "is_multiple"), "code",
+    fields = ("document", ("short_name", "full_name", "type_value", "type_extend", "is_multiple", ), ("code", "is_required"),
               "active")
-    list_display = ("get_name", "code", "type_value", "document", "index_sort", "is_multiple", "id")
+    list_display = ("get_name", "code", "type_value", "document", "index_sort", "is_multiple", "id", "is_required")
     search_fields = ('name', 'id')
     list_filter = ("document", "author")
 
