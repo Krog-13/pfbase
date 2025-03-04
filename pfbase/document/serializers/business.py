@@ -212,6 +212,12 @@ def BusinessDocumentModelSerializer(document_code):
             self._only_fields = set(fields)
             return self
 
+        def unset_required(self):
+            for indicator in document.indicators.all():
+                if getattr(indicator, 'is_required', False) and indicator.code in self.fields:
+                    self.fields[indicator.code].required = False
+            return self
+
         def queryset(self):
             return self.initial_queryset
 
