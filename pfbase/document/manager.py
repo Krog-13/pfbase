@@ -79,6 +79,8 @@ class RecordsManager(models.Manager):
                     queryset = queryset.filter(record_values__indicator__code=key, record_values__value_bool=value)
                 elif indic.type_value == IndicatorType.DICTIONARY:
                     queryset = queryset.filter(record_values__indicator__code=key, record_values__value_reference=value)
+                elif indic.type_value == IndicatorType.USER:
+                    queryset = queryset.filter(record_values__indicator__code=key, record_values__value_reference=value)
                 elif indic.type_value == IndicatorType.LIST:
                     queryset = queryset.filter(record_values__indicator__code=key, record_values__value_reference=value)
                 elif indic.type_value == IndicatorType.DOCUMENT:
