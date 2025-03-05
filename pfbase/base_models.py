@@ -24,6 +24,8 @@ class IndicatorType(models.TextChoices):
     CALCULATE = 'calc', 'Calculate'
     USER = 'user', 'User'
     ORGANIZATION = 'org', 'Organization'
+    LIST_INTEGERS = 'list_integers', 'List Integers'
+    LIST_STRING = 'list_string', 'List String'
 
 
 class IndicatorBase(models.Model):

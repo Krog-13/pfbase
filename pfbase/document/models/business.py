@@ -4,7 +4,8 @@ from pfbase.document.models.rivalues import *
 from pfbase.document.models.indicators import *
 from pfbase.system.models.user import User
 from pfbase.system.models.organization import Organization
-from pfbase.business_values_fields import IndicatorType, MAPPING, INDICATOR_TO_VALUE_FIELD
+from pfbase.business_values_fields import IndicatorType, MAPPING, INDICATOR_TO_VALUE_FIELD, INDICATOR_FOR_MULTIPLE_STR_UPLOAD, INDICATOR_FOR_MULTIPLE_INT_UPLOAD
+from rest_framework import serializers
 
 
 def get_field_class_for_indicator(indicator):
@@ -16,9 +17,9 @@ def get_field_class_for_indicator(indicator):
 
 def get_target_field(indicator):
     if indicator.is_multiple:
-        if indicator.type_value in [IndicatorType.STRING, IndicatorType.TEXT, IndicatorType.FILE]:
+        if indicator.type_value in INDICATOR_FOR_MULTIPLE_STR_UPLOAD:
             return 'value_array_str'
-        elif indicator.type_value in [IndicatorType.INTEGER, IndicatorType.FLOAT]:
+        elif indicator.type_value in INDICATOR_FOR_MULTIPLE_INT_UPLOAD:
             return 'value_array_int'
         else:
             return INDICATOR_TO_VALUE_FIELD.get(indicator.type_value, 'value_str')
@@ -32,9 +33,10 @@ class BusinessDocumentModelManager(models.Manager):
         self.document = document
 
     def get_queryset(self):
-        qs = Records.objects.filter(document=self.document).select_related('author', 'document', 'parent', 'organization')
+        qs = Records.objects.filter(document=self.document).select_related('author', 'document', 'parent',
+                                                                           'organization')
         for indicator in self.document.indicators.all():
-            value_field = INDICATOR_TO_VALUE_FIELD.get(indicator.type_value, 'value_str')
+            value_field = get_target_field(indicator)
             subquery = RecordIndicatorValues.objects.filter(
                 record=OuterRef('pk'),
                 indicator=indicator,
@@ -53,6 +55,8 @@ class BusinessDocumentModelManager(models.Manager):
             if indicator.code in kwargs:
                 value = kwargs[indicator.code]
                 target_field = get_target_field(indicator)
+                if indicator.is_multiple and indicator.type_value in INDICATOR_FOR_MULTIPLE_STR_UPLOAD:
+                    value = value.split(';')
                 indicator_value_data = {
                     'record': record,
                     'indicator': indicator,
@@ -71,6 +75,7 @@ class BusinessDocumentModelManager(models.Manager):
             if indicator.code in kwargs:
                 value = kwargs[indicator.code]
                 target_field = get_target_field(indicator)
+
                 try:
                     indicator_value = RecordIndicatorValues.objects.get(record=instance, indicator=indicator)
                     setattr(indicator_value, target_field, value)
@@ -79,7 +84,7 @@ class BusinessDocumentModelManager(models.Manager):
                     RecordIndicatorValues.objects.create(
                         record=instance,
                         indicator=indicator,
-                        **{target_field: value}
+                        **{target_field: value},
                     )
         return instance
 

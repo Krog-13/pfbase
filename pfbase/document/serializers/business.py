@@ -5,6 +5,7 @@ from pfbase.document.models.documents import Documents
 from pfbase.system.models.listvalues import ListValues
 from pfbase.system.models.organization import Organization
 from pfbase.system.models.user import User
+from pfbase.system.serializers.common import FileSaveSerializer
 from pfbase.dictionary.serializers.business import *
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 
@@ -56,6 +57,13 @@ class CustomListSerializer(serializers.ListSerializer):
         return self
 
 
+class FileUploadField(serializers.FileField):
+    def to_representation(self, value):
+        if isinstance(value, str):
+            return value
+        return super().to_representation(value)
+
+
 def BusinessDocumentModelSerializer(document_code):
     try:
         document = Documents.objects.get(code=document_code)
@@ -79,7 +87,6 @@ def BusinessDocumentModelSerializer(document_code):
             IndicatorType.USER,
             IndicatorType.ORGANIZATION,
             IndicatorType.DOCUMENT,
-            IndicatorType.FILE
         ]
         precomputed_other_indicators = list(document.indicators.filter(type_value__in=other_types))
 
@@ -111,38 +118,57 @@ def BusinessDocumentModelSerializer(document_code):
         for element in list_values:
             grouped_list_values.setdefault(element.id, []).append(element)
 
-        def get_filtered_data(self, *field_names):
-            data = self.data
-            if isinstance(data, dict):
-                return {field: data.get(field) for field in field_names}
-            elif isinstance(data, list):
-                return [{field: item.get(field) for field in field_names} for item in data]
-            return data
-
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.initial_queryset = self.instance
             base_fields = {'id', 'number', 'date', 'active', 'organization', 'parent'}
             self.fields["author"].required = False
+
             for field_name, field in self.fields.items():
                 if field_name not in base_fields:
                     field.required = False
 
+            for indicator in document.indicators.all():
+                if getattr(indicator, 'is_required', False):
+                    if indicator.code in self.fields:
+                        self.fields[indicator.code].required = True
+
+            for indicator in document.indicators.filter(type_value=IndicatorType.FILE):
+                if indicator.code in self.fields:
+                    self.fields[indicator.code] = FileUploadField(required=getattr(indicator, 'is_required', False))
+
         def validate(self, data):
             errors = {}
-
             for indicator in document.indicators.filter(
-                type_value__in=[IndicatorType.LIST,
-                                IndicatorType.USER,
-                                IndicatorType.ORGANIZATION,
-                                IndicatorType.DOCUMENT,
-                                IndicatorType.DICTIONARY,
-                                ]
+                    type_value__in=[
+                        IndicatorType.LIST,
+                        IndicatorType.USER,
+                        IndicatorType.ORGANIZATION,
+                        IndicatorType.DOCUMENT,
+                        IndicatorType.DICTIONARY,
+                        IndicatorType.FILE
+                    ]
             ):
                 field_key = indicator.code
                 if field_key in data:
                     ref_id = data[field_key]
-                    if indicator.type_value == IndicatorType.LIST:
+                    if indicator.type_value == IndicatorType.FILE:
+                        try:
+                            if not ref_id:
+                                raise serializers.ValidationError(f"Файл для {field_key} не передан.")
+                            if not isinstance(ref_id, (InMemoryUploadedFile, TemporaryUploadedFile)):
+                                raise serializers.ValidationError(f"Значение для {field_key} должно быть файлом.")
+
+                            file_serializer = FileSaveSerializer(data={'file': ref_id})
+                            file_serializer.is_valid(raise_exception=True)
+                            file_data_saved = file_serializer.save()
+                            data[field_key] = file_data_saved
+                        except serializers.ValidationError as e:
+                            errors[field_key] = e.detail
+                        except Exception as e:
+                            errors[field_key] = str(e)
+
+                    elif indicator.type_value == IndicatorType.LIST:
                         try:
                             validate_list_field(ref_id, indicator.type_extend)
                         except serializers.ValidationError as e:
@@ -167,6 +193,7 @@ def BusinessDocumentModelSerializer(document_code):
                             validate_dictionary_field(ref_id, indicator.type_extend)
                         except serializers.ValidationError as e:
                             errors[field_key] = e.detail
+
             if errors:
                 raise serializers.ValidationError(errors)
             return data
@@ -183,6 +210,12 @@ def BusinessDocumentModelSerializer(document_code):
 
         def only_fields(self, *fields):
             self._only_fields = set(fields)
+            return self
+
+        def unset_required(self):
+            for indicator in document.indicators.all():
+                if getattr(indicator, 'is_required', False) and indicator.code in self.fields:
+                    self.fields[indicator.code].required = False
             return self
 
         def queryset(self):

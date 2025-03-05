@@ -1,5 +1,6 @@
 from django.db.models import TextChoices
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 
 
 class IndicatorType(TextChoices):
@@ -19,6 +20,8 @@ class IndicatorType(TextChoices):
     CALCULATE = 'calc', 'Calculate'
     USER = 'user', 'User'
     ORGANIZATION = 'org', 'Organization'
+    LIST_INTEGERS = 'list_integers', 'List Integers'
+    LIST_STRING = 'list_string', 'List String'
 
 
 INDICATOR_TO_VALUE_FIELD = {
@@ -38,6 +41,8 @@ INDICATOR_TO_VALUE_FIELD = {
     IndicatorType.CALCULATE: 'value_str',
     IndicatorType.USER: 'value_reference',
     IndicatorType.ORGANIZATION: 'value_reference',
+    IndicatorType.LIST_INTEGERS: 'value_array_int',
+    IndicatorType.LIST_STRING: 'value_array_str',
 }
 
 MAPPING = {
@@ -57,4 +62,28 @@ MAPPING = {
         IndicatorType.CALCULATE: models.CharField,
         IndicatorType.USER: models.PositiveBigIntegerField,
         IndicatorType.ORGANIZATION: models.PositiveBigIntegerField,
+        IndicatorType.LIST_INTEGERS: lambda **kwargs: ArrayField(models.PositiveIntegerField(), **kwargs),
+        IndicatorType.LIST_STRING: lambda **kwargs: ArrayField(models.CharField(), **kwargs),
     }
+
+INDICATOR_FOR_MULTIPLE_STR_UPLOAD = [
+    IndicatorType.STRING,
+    IndicatorType.TEXT,
+    IndicatorType.DATE,
+    IndicatorType.DATETIME,
+    IndicatorType.FILE,
+    IndicatorType.TIME
+]
+
+INDICATOR_FOR_MULTIPLE_INT_UPLOAD = [
+    IndicatorType.INTEGER,
+    IndicatorType.FLOAT,
+    IndicatorType.BOOLEAN,
+    IndicatorType.DATETIME,
+    IndicatorType.FILE,
+    IndicatorType.LIST,
+    IndicatorType.DICTIONARY,
+    IndicatorType.DOCUMENT,
+    IndicatorType.USER,
+    IndicatorType.ORGANIZATION
+]
