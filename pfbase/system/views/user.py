@@ -19,7 +19,7 @@ from rest_framework.generics import CreateAPIView, get_object_or_404, UpdateAPIV
 from django.contrib.auth.models import Permission
 from ...permissions import IsOwnerOrReadOnly
 from django.views.generic import TemplateView
-from rest_framework.parsers import FormParser, JSONParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from django.conf import settings
 
 
@@ -37,6 +37,7 @@ class RegistrationUserAPIView(CreateAPIView):
     """
     Регистрация нового пользователя
     """
+    parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, *args, **kwargs):
         serializer = RegistrationUserSerializer(data=request.data, context={'request': request})
