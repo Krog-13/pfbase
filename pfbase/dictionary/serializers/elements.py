@@ -123,11 +123,13 @@ class EIPostSerializer(CommonSerializer):
     short_name = serializers.JSONField()
     full_name = serializers.JSONField(required=False)
     dictionary_id = serializers.IntegerField(required=False)
-    dct_code = serializers.CharField(max_length=50, required=False)
+    dictionary_code = serializers.CharField(max_length=50, required=False)
     code = serializers.CharField(max_length=50, required=False)
     parent_id = serializers.IntegerField(required=False, allow_null=True)
+    parent_code = serializers.CharField(required=False, allow_null=True)
     indicators = IndicatorSerializer(many=True, required=False)
     organization_id = serializers.IntegerField(required=False)
+    organization_code = serializers.CharField(required=False)
 
     def create(self, validated_data):
 

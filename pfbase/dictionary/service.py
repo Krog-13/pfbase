@@ -39,8 +39,11 @@ class ElementService:
         self.code = request_data.get('code')
         self.dct_code = request_data.get('dct_code')
         self.dictionary_id = request_data.get('dictionary_id')
+        self.dictionary_code = request_data.get('dictionary_code')
         self.parent_id = request_data.get('parent_id')
+        self.parent_code = request_data.get('parent_code')
         self.organization_id = request_data.get('organization_id')
+        self.organization_code = request_data.get('organization_code')
         self.indicators = request_data.get('indicators', [])
 
         if not self.dictionary_id and not self.code:
@@ -51,15 +54,26 @@ class ElementService:
         self.short_name = request_data.get('short_name')
         self.full_name = request_data.get('full_name')
         self.code = request_data.get('code')
+        self.dictionary_id = request_data.get('dictionary_id')
+        self.dictionary_code = request_data.get('dictionary_code')
         self.parent_id = request_data.get('parent_id')
+        self.parent_code = request_data.get('parent_code')
         self.organization_id = request_data.get('organization_id')
+        self.organization_code = request_data.get('organization_code')
         self.indicators = request_data.get('indicators', [])
 
     @transaction.atomic
     def create_element_iv(self, user, validated_data):
         self.validate_data(validated_data)
-        dictionary = Dictionaries.objects.get(id=self.dictionary_id) if self.dictionary_id else Dictionaries.objects.get(code=self.dct_code)
-        parent_e = Elements.objects.get(id=self.parent_id) if self.parent_id else None
+        dictionary = Dictionaries.objects.get(id=self.dictionary_id) if self.dictionary_id else Dictionaries.objects.get(code=self.dictionary_code)
+        if self.parent_code:
+            parent_e = Elements.objects.get(code=self.parent_code)
+        elif self.parent_id:
+            parent_e = Elements.objects.get(id=self.parent_id)
+        else:
+            parent_e = None
+
+        org = Organization.objects.get(id=self.organization_id) if self.organization_id else Organization.objects.get(code=self.organization_code)
 
         element = Elements.objects.create(
             short_name=self.short_name,
@@ -68,7 +82,7 @@ class ElementService:
             dictionary=dictionary,
             author=user,
             parent=parent_e,
-            organization_id=self.organization_id
+            organization=org
         )
 
         if not self.indicators:
@@ -135,18 +149,21 @@ class ElementService:
         if type_value == marker.reference[1]:
             if not isinstance(some_value, int):
                 if not some_value.isdigit():
-                    raise WrongType("Invalid type value")
-            stm_models.ListValues.objects.get(id=some_value)
+                    some_value = stm_models.ListValues.objects.get(code=some_value).id
+                else:
+                    stm_models.ListValues.objects.get(id=some_value)
         elif type_value == marker.reference[0]:
             if not isinstance(some_value, int):
                 if not some_value.isdigit():
-                    raise WrongType("Invalid type value")
-            Elements.objects.get(id=some_value)
+                    some_value = Elements.objects.get(code=some_value).id
+                else:
+                    Elements.objects.get(id=some_value)
         elif type_value == marker.reference[2]:
             if not isinstance(some_value, int):
                 if not some_value.isdigit():
-                    raise WrongType("Invalid type value")
-            dcm_models.Records.objects.get(id=some_value)
+                    some_value = dcm_models.Records.objects.get(code=some_value).id
+                else:
+                    dcm_models.Records.objects.get(id=some_value)
 
         if idc_id:
             dct_indicator = DctIndicators.objects.get(id=idc_id, type_value=type_value)
@@ -250,7 +267,7 @@ class ExcelUpload:
 
         for row in self.sheet.iter_rows(min_row=2):
             self.output = {"code": None,
-                           "dct_code": self.dct_code,
+                           "dictionary_code": self.dct_code,
                            "parent_id": None,
                            "organization_id": None,
                            "short_name": {"ru": "", "kk": "", "en": ""},
@@ -307,6 +324,7 @@ class ExcelUpload:
     def _check(self):
         if self.excel_file.name.endswith(".xlsx"):
             self.dct_code = self.excel_file.name[:-5].split("_", 1)[1]
+            print(self.dct_code)
 
         self.workbook = openpyxl.load_workbook(self.excel_file, data_only=True)
         if self.dct_code and self.workbook.active.title == "PF":
