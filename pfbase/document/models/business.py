@@ -145,3 +145,4 @@ def BusinessDocumentModel(document_code):
 
     _BUSINESS_DOCUMENT_MODEL_CACHE[document_code] = business_model
     return business_model
+

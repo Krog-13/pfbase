@@ -139,6 +139,15 @@ def BusinessDocumentModelSerializer(document_code):
 
         def validate(self, data):
             errors = {}
+
+            # Проверяет пусто ли поле, если оно обязательное
+            for indicator in document.indicators.filter(is_required=True):
+                field_key = indicator.code
+                if self.instance and field_key in data and data[field_key] in [None, '']:
+                    errors[field_key] = 'Это поле обязательно и не может быть пустым.'
+                elif not self.instance and field_key not in data:
+                    errors[field_key] = 'Это поле обязательно для заполнения.'
+
             for indicator in document.indicators.filter(
                     type_value__in=[
                         IndicatorType.LIST,
@@ -170,27 +179,32 @@ def BusinessDocumentModelSerializer(document_code):
 
                     elif indicator.type_value == IndicatorType.LIST:
                         try:
-                            validate_list_field(ref_id, indicator.type_extend)
+                            if ref_id:
+                                validate_list_field(ref_id, indicator.type_extend)
                         except serializers.ValidationError as e:
                             errors[field_key] = e.detail
                     elif indicator.type_value == IndicatorType.USER:
                         try:
-                            validate_reference_field(ref_id, User, "Пользователь")
+                            if ref_id:
+                                validate_reference_field(ref_id, User, "Пользователь")
                         except serializers.ValidationError as e:
                             errors[field_key] = e.detail
                     elif indicator.type_value == IndicatorType.ORGANIZATION:
                         try:
-                            validate_reference_field(ref_id, Organization, "Организация")
+                            if ref_id:
+                                validate_reference_field(ref_id, Organization, "Организация")
                         except serializers.ValidationError as e:
                             errors[field_key] = e.detail
                     elif indicator.type_value == IndicatorType.DOCUMENT:
                         try:
-                            validate_document_field(ref_id, indicator.type_extend)
+                            if ref_id:
+                                validate_document_field(ref_id, indicator.type_extend)
                         except serializers.ValidationError as e:
                             errors[field_key] = e.detail
                     elif indicator.type_value == IndicatorType.DICTIONARY:
                         try:
-                            validate_dictionary_field(ref_id, indicator.type_extend)
+                            if ref_id:
+                                validate_dictionary_field(ref_id, indicator.type_extend)
                         except serializers.ValidationError as e:
                             errors[field_key] = e.detail
 
@@ -207,6 +221,10 @@ def BusinessDocumentModelSerializer(document_code):
 
         def update(self, instance, validated_data):
             return dynamic_model.objects.update_instance(instance, **validated_data)
+
+        def get_details(self, value=True):
+            self.is_detail_show = value
+            return self
 
         def only_fields(self, *fields):
             self._only_fields = set(fields)
@@ -228,10 +246,11 @@ def BusinessDocumentModelSerializer(document_code):
         def load_dictionary_values(self):
             if not self.dct_loaded:
                 queryset = self.initial_queryset
-                objects_list = queryset
+                if not hasattr(queryset, '__iter__'):
+                    queryset = [queryset]
                 self.dct_loaded = True
                 dct_ids_global = []
-                for obj in objects_list:
+                for obj in queryset:
                     for ind_dct in self.indicators_dict:
                         dct_ids_global.append(getattr(obj, ind_dct.code))
                 self.dictionary_values = Elements.objects.filter(pk__in=dct_ids_global)
