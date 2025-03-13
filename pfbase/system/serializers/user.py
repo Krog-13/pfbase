@@ -86,7 +86,8 @@ class AuthTokenSerializer(serializers.Serializer):
     """
     Custom Serialize for auth token
     """
-    username = serializers.CharField()
+    email = serializers.EmailField(required=False, allow_blank=True)
+    username = serializers.CharField(required=False, allow_blank=True)
     password = serializers.CharField(
         style={'input_type': 'password'},
         trim_whitespace=False,
@@ -98,22 +99,32 @@ class AuthTokenSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
+        email = attrs.get('email')
         username = attrs.get('username')
         password = attrs.get('password')
 
         if username and password:
             user = authenticate(request=self.context.get('request'),
                                 username=username, password=password)
-
-            if not user:
-                msg = 'Неверный email или пароль'
+        elif email and password:
+            try:
+                current_user = User.objects.get(email=email)
+                user = authenticate(request=self.context.get('request'),
+                                    username=current_user.username, password=password)
+            except User.DoesNotExist:
+                msg = 'Пользователь с таким email не найден'
                 raise serializers.ValidationError({"message": msg}, code='authorization')
         else:
-            msg = 'Поле email и пароль обязательны для заполнения'
+            msg = 'Данные для авторизации не указаны'
+            raise serializers.ValidationError({"message": msg}, code='authorization')
+
+        if not user:
+            msg = 'Неверные учетные данные'
             raise serializers.ValidationError({"message": msg}, code='authorization')
 
         attrs['user'] = user
         return attrs
+
 
 class ChangePasswordSerializer(serializers.Serializer):
     """Custom update update"""
