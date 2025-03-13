@@ -22,8 +22,8 @@ class BusinessModelApiView(views.APIView):
         BusinessSerializer = BusinessDocumentModelSerializer(model_code)
         queryset = BusinessDocumentModel(model_code)
 
-        qs = queryset.objects.all().select_related('author', 'organization', 'parent', 'document').order_by('-id')
-        serializer = BusinessSerializer(qs, many=True).only_fields('number', 'TEST_IND_FILE').set_required()
+        qs = queryset.objects.get(id=2076)
+        serializer = BusinessSerializer(qs, many=False).get_details()
         return Response(serializer.data)
 
     def post(self, request, model_code):
