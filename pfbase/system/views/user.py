@@ -20,6 +20,7 @@ from ...permissions import IsOwnerOrReadOnly
 from django.views.generic import TemplateView
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from django.conf import settings
+from django.utils import timezone
 
 
 class UserAPIView(ModelViewSet):
@@ -71,6 +72,10 @@ class CustomAuthToken(ObtainAuthToken):
                                            context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
+        # update last login
+        user.last_login = timezone.now()
+        user.save(update_fields=["last_login"])
+
         Token.objects.filter(user=user).delete()
         token = Token.objects.create(user=user)
         roles = [gp.name for gp in user.groups.all()]
