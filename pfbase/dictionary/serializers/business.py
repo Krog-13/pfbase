@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from pfbase.dictionary.models.business import BusinessDictionaryModel
+import datetime
 
 _dynamic_serializer_cache = {}
 
@@ -22,14 +23,24 @@ def BusinessDictionarySerializer(dictionary_code):
                 if field_name not in base_fields:
                     field.required = False
 
-        def create(self, validated_data):
-            return dynamic_model.objects.create(**validated_data)
+        # def create(self, validated_data):
+        #     return dynamic_model.objects.create(**validated_data)
+
+        # def update(self, instance, validated_data):
+        #     for field in validated_data:
+        #         setattr(instance, field, validated_data[field])
+        #     instance.save()
+        #     return instance
 
         def update(self, instance, validated_data):
-            for field in validated_data:
-                setattr(instance, field, validated_data[field])
-            instance.save()
-            return instance
+            return dynamic_model.objects.update_instance(instance, **validated_data)
+
+        def create(self, validated_data):
+            if not validated_data.get('author'):
+                validated_data['author'] = self.context.get("request").user
+            if not validated_data.get('date'):
+                validated_data['date'] = datetime.datetime.now()
+            return dynamic_model.objects.create(**validated_data)
 
     _dynamic_serializer_cache[dictionary_code] = BusinessDictionaryElementSerializer
     return BusinessDictionaryElementSerializer

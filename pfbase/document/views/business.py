@@ -18,17 +18,24 @@ class BusinessModelApiView(views.APIView):
     permission_classes = (IsAuthenticated, IsAdminUser)
     pagination_class = CustomPagination
 
-    def get(self, request, model_code):
-        BusinessSerializer = BusinessDocumentModelSerializer(model_code)
-        queryset = BusinessDocumentModel(model_code)
+    # def get(self, request, model_code):
+    #     BusinessSerializer = BusinessDocumentModelSerializer(model_code)
+    #     queryset = BusinessDocumentModel(model_code)
+    #
+    #     qs = queryset.objects.get(id=2076)
+    #     serializer = BusinessSerializer(qs, many=False).get_details()
+    #     return Response(serializer.data)
 
-        qs = queryset.objects.get(id=2076)
-        serializer = BusinessSerializer(qs, many=False).get_details()
+    def get(self, request, model_code):
+        BusinessSerializer = BusinessDictionarySerializer(model_code)
+        queryset = BusinessDictionaryModel(model_code)
+        qs = queryset.objects.all()
+        serializer = BusinessSerializer(qs, many=True)
         return Response(serializer.data)
 
     def post(self, request, model_code):
-        BusinessSerializer = BusinessDocumentModelSerializer(model_code)
-        business_model = BusinessDocumentModel(model_code)
+        BusinessSerializer = BusinessDictionarySerializer(model_code)
+        business_model = BusinessDictionaryModel(model_code)
         serializer = BusinessSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -40,10 +47,29 @@ class BusinessModelApiView(views.APIView):
         else:
             return Response(serializer.errors, status=400)
 
+    # def put(self, request, model_code, record_id):
+    #     with transaction.atomic():
+    #         BusinessSerializer = BusinessDocumentModelSerializer(model_code)
+    #         business_model = BusinessDocumentModel(model_code)
+    #
+    #         instance = get_object_or_404(business_model.objects.all(), id=record_id)
+    #
+    #         serializer = BusinessSerializer(instance, data=request.data, partial=True)
+    #
+    #         if serializer.is_valid():
+    #             with transaction.atomic():
+    #                 # Можете логику number сами придумать
+    #                 record = serializer.save(author=request.user, number="IND_12")
+    #                 qs = business_model.objects.get(id=record.id)
+    #
+    #             return Response(BusinessSerializer(qs, many=False).data, status=200)
+    #         else:
+    #             return Response(serializer.errors, status=400)
+
     def put(self, request, model_code, record_id):
         with transaction.atomic():
-            BusinessSerializer = BusinessDocumentModelSerializer(model_code)
-            business_model = BusinessDocumentModel(model_code)
+            BusinessSerializer = BusinessDictionarySerializer(model_code)
+            business_model = BusinessDictionaryModel(model_code)
 
             instance = get_object_or_404(business_model.objects.all(), id=record_id)
 
