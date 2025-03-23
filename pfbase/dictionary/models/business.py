@@ -3,6 +3,18 @@ from pfbase.dictionary.models import *
 from pfbase.business_values_fields import INDICATOR_TO_VALUE_FIELD, MAPPING
 
 
+def get_target_field(indicator):
+    if indicator.is_multiple:
+        if indicator.type_value in INDICATOR_FOR_MULTIPLE_STR_UPLOAD:
+            return 'value_array_str'
+        elif indicator.type_value in INDICATOR_FOR_MULTIPLE_INT_UPLOAD:
+            return 'value_array_int'
+        else:
+            return INDICATOR_TO_VALUE_FIELD.get(indicator.type_value, 'value_str')
+    else:
+        return INDICATOR_TO_VALUE_FIELD.get(indicator.type_value, 'value_str')
+
+
 class BusinessDictionaryElementsManager(models.Manager):
     def __init__(self, dictionary, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -20,6 +32,54 @@ class BusinessDictionaryElementsManager(models.Manager):
             ).values(value_field)[:1]
             annotations[indicator.code] = Subquery(subquery)
         return qs.annotate(**annotations)
+
+    def create(self, **kwargs):
+        element_fields = {}
+        for field in ['active', 'parent', 'author', 'organization']:
+            if field in kwargs:
+                element_fields[field] = kwargs.pop(field)
+        element_fields['dictionary'] = self.dictionary
+        element = Elements.objects.create(**element_fields)
+        for indicator in self.dictionary.indicators.all():
+            if indicator.code in kwargs:
+                value = kwargs[indicator.code]
+                target_field = get_target_field(indicator)
+                if indicator.is_multiple and indicator.type_value in INDICATOR_FOR_MULTIPLE_STR_UPLOAD:
+                    value = value.split(';')
+                indicator_value_data = {
+                    'element': element,
+                    'indicator': indicator,
+                    target_field: value
+                }
+                ElementIndicatorValues.objects.create(**indicator_value_data)
+        return element
+
+    def update_instance(self, instance, **kwargs):
+        element_fields = ['active', 'parent', 'author', 'organization']
+        for field in element_fields:
+            if field in kwargs:
+                setattr(instance, field, kwargs.pop(field))
+        instance.save()
+        for indicator in self.dictionary.indicators.all():
+            if indicator.code in kwargs:
+                value = kwargs[indicator.code]
+                target_field = get_target_field(indicator)
+
+                try:
+                    indicator_value = ElementIndicatorValues.objects.get(element=instance, indicator=indicator)
+                    setattr(indicator_value, target_field, value)
+                    indicator_value.save()
+                except ElementIndicatorValues.DoesNotExist:
+                    ElementIndicatorValues.objects.create(
+                        element=instance,
+                        indicator=indicator,
+                        **{target_field: value},
+                    )
+        return instance
+
+    def delete_instance(self, instance):
+        ElementIndicatorValues.objects.filter(element=instance).delete()
+        instance.delete()
 
 
 def get_field_class_for_indicator(indicator):
