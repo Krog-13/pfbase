@@ -102,6 +102,7 @@ class AuthTokenSerializer(serializers.Serializer):
         email = attrs.get('email')
         username = attrs.get('username')
         password = attrs.get('password')
+        msg = 'Неверные учетные данные'
 
         if username and password:
             user = authenticate(request=self.context.get('request'),
@@ -110,16 +111,20 @@ class AuthTokenSerializer(serializers.Serializer):
             try:
                 current_user = User.objects.get(email=email)
                 user = authenticate(request=self.context.get('request'),
-                                    username=current_user.username, password=password)
+                                    username=current_user.username, email=email, password=password)
+                if not user:
+                    msg = 'Пользователь с таким email не найден в системе'
+
             except User.DoesNotExist:
-                msg = 'Пользователь с таким email не найден'
-                raise serializers.ValidationError({"message": msg}, code='authorization')
+                user = authenticate(request=self.context.get('request'),
+                                    email=email, password=password)
+                if not user:
+                    msg = 'Пользователь с таким email не найден в системе'
         else:
             msg = 'Данные для авторизации не указаны'
             raise serializers.ValidationError({"message": msg}, code='authorization')
 
         if not user:
-            msg = 'Неверные учетные данные'
             raise serializers.ValidationError({"message": msg}, code='authorization')
 
         attrs['user'] = user
