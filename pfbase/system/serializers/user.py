@@ -30,8 +30,7 @@ class RegistrationUserSerializer(serializers.ModelSerializer):
     """
     Сериализатор для регистрации пользователя
     """
-    username = serializers.CharField(min_length=4, max_length=40,
-                                     validators=[UniqueValidator(queryset=User.objects.all())])
+    username = serializers.CharField(min_length=4, max_length=40, required=False)
 
     email = serializers.EmailField(
         required=True,
@@ -44,8 +43,8 @@ class RegistrationUserSerializer(serializers.ModelSerializer):
     password_confirm = serializers.CharField(
         write_only=True, required=True
     )
-    first_name = serializers.CharField(min_length=4, max_length=40, required=True)
-    last_name = serializers.CharField(min_length=4, max_length=40, required=True)
+    first_name = serializers.CharField(min_length=2, max_length=50, required=False, default="fn")
+    last_name = serializers.CharField(min_length=2, max_length=50, required=False, default="ln")
     groups = serializers.ListField(required=False)
     organization_id = serializers.IntegerField(required=False)
     avatar = serializers.ImageField(required=False)
@@ -58,6 +57,8 @@ class RegistrationUserSerializer(serializers.ModelSerializer):
                   "groups", "avatar", "is_active", "is_staff")
 
     def validate(self, attrs):
+        if not attrs.get("username"):
+            attrs["username"] = attrs["email"].split("@", 1)[0] # set username by email
         if attrs["password"] != attrs["password_confirm"]:
             raise serializers.ValidationError(
                 {"message": "Пароли не совпадают"}
