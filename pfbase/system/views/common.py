@@ -1,7 +1,7 @@
 from rest_framework import status, exceptions as exc
 from rest_framework.response import Response
 from rest_framework import views
-from ..serializers.common import FileSaveSerializer, FileGetSerializer
+from ..serializers.common import FileSaveSerializer, FileGetSerializer, FilesSaveSerializer
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 
@@ -22,9 +22,20 @@ class FileAPIView(views.APIView):
 
     def post(self, request):
         """Save file in minio"""
-        serializer = FileSaveSerializer(data=request.data)
-        if serializer.is_valid():
-            file_data = serializer.save()
-            return Response({"message": "File saved in minio storage", "file_data": file_data},
-                            status=status.HTTP_201_CREATED)
-        raise exc.ValidationError(serializer.errors)
+        if request.data.get("file"):
+            serializer = FileSaveSerializer(data=request.data)
+            if serializer.is_valid():
+                file_data = serializer.save()
+                return Response({"message": "File saved in minio storage", "file_data": file_data},
+                                status=status.HTTP_201_CREATED)
+            raise exc.ValidationError(serializer.errors)
+
+        elif request.data.get("files"):
+            serializer = FilesSaveSerializer(data=request.data)
+            if serializer.is_valid():
+                file_data = serializer.save()
+                return Response({"message": "Files saved in minio storage", "file_data": file_data},
+                                status=status.HTTP_201_CREATED)
+            raise exc.ValidationError(serializer.errors)
+        else:
+            raise exc.ValidationError({"message": "Failed to process the uploaded file(s). Please try again or check the file format."})
