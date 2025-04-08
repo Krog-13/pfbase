@@ -290,7 +290,7 @@ class RecordService:
     def validate_update_data(self, request_data):
         main = request_data['main']
 
-        self.number = main.get('number')
+        self.number = main.get('number', '0000')
         self.date_string = main.get('date', None)
         self.record_id = main['record_id']
         self.organization_id = main.get('organization_id')
