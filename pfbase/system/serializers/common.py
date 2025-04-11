@@ -22,6 +22,22 @@ class FileSaveSerializer(serializers.Serializer):
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
 
+class FilesSaveSerializer(serializers.Serializer):
+    files = serializers.ListField(required=True)
+
+    def create(self, validated_data):
+        try:
+            minio = MinioClient()
+            minio.get_client()
+            files = validated_data['files']
+            file_data = []
+            for file in files:
+                file_id = uuid4().hex
+                file_data.append(f"{file.name},{file_id}")
+                minio.save_file_minio(file, file_id)
+            return file_data
+        except ValidationError as e:
+            raise exceptions.ValidationError({"error": str(e)})
 
 class FileGetSerializer(serializers.Serializer):
     file_data = serializers.CharField(required=True)

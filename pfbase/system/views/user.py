@@ -21,6 +21,8 @@ from django.views.generic import TemplateView
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from django.conf import settings
 from django.utils import timezone
+from django.db.utils import IntegrityError
+
 
 
 class UserAPIView(ModelViewSet):
@@ -42,11 +44,15 @@ class RegistrationUserAPIView(CreateAPIView):
     def post(self, request, *args, **kwargs):
         serializer = RegistrationUserSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
-            return Response(
-                {"message": "Пользователь успешно зарегистрирован"},
-                status=status.HTTP_201_CREATED
-            )
+            try:
+                serializer.save()
+                return Response(
+                    {"message": "Пользователь успешно зарегистрирован"}, status=status.HTTP_201_CREATED
+                )
+            except IntegrityError:
+                return Response(
+                    {"message": "Дублирующееся значение ключа нарушает ограничение уникальности"}, status=status.HTTP_400_BAD_REQUEST
+                )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

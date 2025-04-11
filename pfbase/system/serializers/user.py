@@ -5,6 +5,7 @@ from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 from ..models.user import User
 from django.contrib.auth import authenticate
+from django.core.exceptions import ValidationError
 
 
 class PermissionSerializer(serializers.ModelSerializer):
@@ -30,11 +31,18 @@ class RegistrationUserSerializer(serializers.ModelSerializer):
     """
     Сериализатор для регистрации пользователя
     """
+    @staticmethod
+    def unique_email_lowercase(value):
+        lowercase_email = value.lower()
+        if User.objects.filter(email__iexact=lowercase_email).exists():
+            raise ValidationError("Этот email уже зарегистрирован.")
+        return value
+
     username = serializers.CharField(min_length=4, max_length=40, required=False)
 
     email = serializers.EmailField(
         required=True,
-        validators=[UniqueValidator(queryset=User.objects.all())]
+        validators=[unique_email_lowercase]
     )
     password = serializers.CharField(
         write_only=True, required=True,
@@ -67,8 +75,8 @@ class RegistrationUserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = User.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email'],
+            username=validated_data['username'].lower(),
+            email=validated_data['email'].lower(),
             password=validated_data['password'],
             last_name=validated_data['last_name'],
             first_name=validated_data['first_name'],
@@ -81,6 +89,8 @@ class RegistrationUserSerializer(serializers.ModelSerializer):
         user.groups.set(validated_data.get('groups', []))
         user.save()
         return user
+
+
 
 
 class AuthTokenSerializer(serializers.Serializer):
@@ -107,10 +117,10 @@ class AuthTokenSerializer(serializers.Serializer):
 
         if username and password:
             user = authenticate(request=self.context.get('request'),
-                                username=username, password=password)
+                                username=username.lower(), password=password)
         elif email and password:
             try:
-                current_user = User.objects.get(email=email)
+                current_user = User.objects.get(email__iexact=email)
                 user = authenticate(request=self.context.get('request'),
                                     username=current_user.username, email=email, password=password)
                 if not user:
