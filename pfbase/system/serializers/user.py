@@ -66,7 +66,10 @@ class RegistrationUserSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if not attrs.get("username"):
-            attrs["username"] = attrs["email"].split("@", 1)[0] # set username by email
+            local_part, domain = attrs["email"].split("@", 1)
+            first_subdomain = domain.split(".", 1)[0]
+            base_username = f"{local_part}_{first_subdomain}"
+            attrs["username"] = base_username.lower() # set username by email
         if attrs["password"] != attrs["password_confirm"]:
             raise serializers.ValidationError(
                 {"message": "Пароли не совпадают"}
