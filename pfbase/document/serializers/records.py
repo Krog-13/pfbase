@@ -70,7 +70,7 @@ class RIValueSerializer(serializers.ModelSerializer):
             return element.short_name.get(lang) if element else None
         elif obj.indicator.type_value == 'list':
             record = ListValues.objects.filter(id=obj.value_reference).first()
-            return record.short_name.get(lang)
+            return record.short_name.get(lang) if record else None
         elif obj.indicator.type_value == 'dcm':
             rec = Records.objects.filter(id=obj.value_reference).first()
             return rec.number
