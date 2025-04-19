@@ -69,9 +69,13 @@ class RIValueSerializer(serializers.ModelSerializer):
             element = Elements.objects.filter(id=obj.value_reference).first()
             return element.short_name.get(lang) if element else None
         elif obj.indicator.type_value == 'list':
+            if obj.indicator.is_multiple:
+                return obj.value_array_int
             record = ListValues.objects.filter(id=obj.value_reference).first()
-            return record.short_name.get(lang)
+            return record.short_name.get(lang) if record else None
         elif obj.indicator.type_value == 'dcm':
+            if obj.indicator.is_multiple:
+                return obj.value_array_int
             rec = Records.objects.filter(id=obj.value_reference).first()
             return rec.number
         elif obj.indicator.type_value == 'user':
