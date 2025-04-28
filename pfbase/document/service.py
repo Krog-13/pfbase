@@ -378,6 +378,7 @@ class RecordService:
         self.indicators = record.get('indicators', [])
         self.status_id = record.get('status_id', None)
         self.comment = record.get('comment', None)
+        self.stamp = record.get('stamp', None)
 
         if self.date_string:
             naive_datetime = datetime.strptime(self.date_string, "%Y-%m-%d %H:%M")
@@ -404,7 +405,7 @@ class RecordService:
             self.record_update_iv(self.indicators, record)
 
             if self.status_id:
-                self.create_history(record, self.status_id, user, self.comment)
+                self.create_history(record, self.status_id, user, self.comment, self.stamp)
 
     @transaction.atomic
     def update_record_pack(self, user, request_data):
@@ -538,8 +539,8 @@ class RecordService:
         return True
 
     @staticmethod
-    def create_history(record, status_id, user, comment=None):
-        record.history.create(status_id=status_id, author=user, comment=comment)
+    def create_history(record, status_id, user, comment=None, stamp=None):
+        record.history.create(status_id=status_id, author=user, comment=comment, stamp=stamp)
 
     @staticmethod
     def give_date_format(date_str, type_value):
