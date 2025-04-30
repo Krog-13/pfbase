@@ -295,6 +295,7 @@ class RecordService:
         self.record_id = main['record_id']
         self.organization_id = main.get('organization_id')
         self.status_id = main.get('status_id', None)
+        self.comment = main.get('comment', None)
         self.main_indicators = main.get('indicators', [])
 
         if self.date_string:
@@ -310,6 +311,7 @@ class RecordService:
         self.sub_code = sub.get('code', None)
         self.sub_document_id = sub.get('document_id', None)
         self.sub_status_id = sub.get('status_id', None)
+        self.sub_comment = sub.get('comment', None)
         self.sub_indicators = sub.get('indicators', [])
 
         if self.date_string:
@@ -425,7 +427,7 @@ class RecordService:
         self.record_update_iv(self.main_indicators, main_record)
         subs = request_data.get('subs', [])
         if self.status_id:
-            self.create_history(main_record, self.status_id, user)
+            self.create_history(main_record, self.status_id, user, comment=self.comment)
 
         for sub in subs:
             self.validate_update_sub_data(sub)
@@ -450,7 +452,7 @@ class RecordService:
             self.record_update_iv(self.sub_indicators, record)
 
             if self.sub_status_id:
-                self.create_history(record, self.sub_status_id, user)
+                self.create_history(record, self.sub_status_id, user, comment=self.sub_comment)
         return True
 
     @transaction.atomic
