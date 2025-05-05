@@ -82,7 +82,7 @@ class IndicatorValueBase(models.Model):
         models.PositiveIntegerField(),
         blank=True, default=list, verbose_name="Список Int")
     value_array_str = ArrayField(
-        models.CharField(max_length=128),
+        models.CharField(max_length=255),
         blank=True, default=list, verbose_name="Список Str")
     index_sort = models.PositiveBigIntegerField(
         blank=True, verbose_name='Индекс сортировки')
