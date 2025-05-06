@@ -7,7 +7,7 @@ from pfbase.pagination import CustomPagination
 from ..serializers.elements import EIGetSerializer, EIPostSerializer, EIUpdateSerializer
 from ..models import elements, Elements
 from rest_framework.parsers import MultiPartParser, FormParser
-from ..service import find_driver, upload_file, ExcelUpload
+from ..service import find_driver, upload_file, ExcelUpload, exist_element
 from pfbase.exception import ExcelFormatError, WrongType
 
 
@@ -75,6 +75,9 @@ class EIAPIView(views.APIView):
         return Response(EIGetSerializer(queryset, many=False, context={'request': request}).data)
 
     def post(self, request):
+        element_values = exist_element(request.data)
+        if element_values:
+            return self._handle_patch(request, element_values.element_id)
         serializer = EIPostSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
@@ -83,17 +86,21 @@ class EIAPIView(views.APIView):
         raise exc.ValidationError(serializer.errors)
 
     def patch(self, request, *args, **kwargs):
-        serializer = EIUpdateSerializer(data=request.data, context={'request': request})
         pk = kwargs.get('pk', False)
         if not pk:
             return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        return self._handle_patch(request, pk)
+
+    def _handle_patch(self, request, pk):
+        """Helper method to handle patch logic for a given pk."""
         try:
             element = self.queryset.get(pk=pk)
         except elements.Elements.DoesNotExist:
             return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = EIUpdateSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.update(element, serializer.validated_data)
-            return Response({"message": "Element updated successfully"})
+            return Response({"message": "Element updated successfully"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, *args, **kwargs):
