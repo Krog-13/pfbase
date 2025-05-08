@@ -5,7 +5,7 @@ from pfbase.exception import WrongType
 from django.utils import timezone
 from datetime import datetime
 from ..system import models as stm_models
-from .models import Elements, DctIndicators, Dictionaries
+from .models import Elements, DctIndicators, Dictionaries, ElementIndicatorValues
 from ..document import models as dcm_models
 from rest_framework import status
 from rest_framework.response import Response
@@ -61,6 +61,8 @@ class ElementService:
         self.organization_id = request_data.get('organization_id')
         self.organization_code = request_data.get('organization_code')
         self.indicators = request_data.get('indicators', [])
+        if self.organization_code:
+            self.organization_id = Organization.objects.getByCode(code=self.organization_code)
 
     @transaction.atomic
     def create_element_iv(self, user, validated_data):
@@ -554,3 +556,13 @@ def upload_file(uploaded_file):
             raise Exception("Invalid file format")
         except Exception as e:
             raise Exception(str(e))
+
+def exist_element(data):
+    el_ind = data.get("indicators", [])
+    guid = find_guid_value(el_ind)
+    if guid:
+        return ElementIndicatorValues.objects.filter(value_str=guid).first()
+
+def find_guid_value(element_indicators):
+    matching = next(filter(lambda x: x["code"].endswith("_GUID"), element_indicators), None)
+    return matching["value"] if matching else None

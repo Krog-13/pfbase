@@ -162,7 +162,9 @@ class EIUpdateSerializer(CommonSerializer):
     parent_id = serializers.IntegerField(required=False, allow_null=True)
     indicators = IndicatorSerializer(many=True, required=False)
     dictionary_id = serializers.IntegerField(required=False)
+    dictionary_code = serializers.CharField(max_length=50, required=False)
     organization_id = serializers.IntegerField(required=False)
+    organization_code = serializers.CharField(required=False)
 
     def update(self, instance, validated_data):
         user = self.context['request'].user
