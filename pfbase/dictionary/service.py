@@ -4,6 +4,8 @@ from collections import namedtuple
 from pfbase.exception import WrongType
 from django.utils import timezone
 from datetime import datetime
+
+from .manager import ElementsIndicatorValueManager
 from ..system import models as stm_models
 from .models import Elements, DctIndicators, Dictionaries, ElementIndicatorValues
 from ..document import models as dcm_models
@@ -228,10 +230,11 @@ class ExcelUpload:
     """
     Upload excel file Dictionaries
     """
-    def __init__(self, excel_file, user, trigger):
+    def __init__(self, excel_file, user, trigger, checker):
         self.excel_file = excel_file
         self.user = user
         self.trigger = trigger
+        self.checker = checker
         self.workbook = None
         self.sheet = None
         self.dct_code = None
@@ -321,7 +324,39 @@ class ExcelUpload:
                     self.element_service.create_element_iv(self.user, self.output)
                 else:
                     self.element_service.update_element_iv(element, self.user, self.output)
+
+            elif self.trigger == "create_skip":
+                if self.checker == "CODE":
+                    element_code = self.output["code"]
+                    element = Elements.objects.filter(code=element_code).first()
+                    if not element:
+                        self.element_service.create_element_iv(self.user, self.output)
+                    else:
+                        continue
+                else:
+                    i_value, i_type = self.get_indicator_value()
+                    i_correct_type = self.get_optimal_type(i_type)
+                    if i_value:
+                        element_i_v = ElementIndicatorValues.objects.filter(indicator__code=self.checker, **{i_correct_type:i_value}).first()
+                        if not element_i_v:
+                            self.element_service.create_element_iv(self.user, self.output)
+                        else:
+                            continue
         return self.trigger
+
+    def get_indicator_value(self):
+        for indicator in self.output["indicators"]:
+            if indicator["code"] == self.checker:
+                return indicator["value"], indicator["type"]
+        return None
+
+    def get_optimal_type(self, type):
+        if type == "dct" or type == "list" or type == "organization" or type == "user":
+            return "value_reference"
+        elif type == "date" or type=="datetime" or type=="time":
+            return "value_datetime"
+        else:
+            return f"value_{type}"
 
     def _check(self):
         if self.excel_file.name.endswith(".xlsx"):

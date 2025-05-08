@@ -158,10 +158,11 @@ class FileUploadElementsView(views.APIView):
         user = request.user
         excel_file = request.FILES.get("file")
         trigger_param = request.data.get("trigger")
+        checker = request.data.get("checker")
         if not excel_file:
             return Response({"error": "No file was uploaded. Please select a file and try again"}, status=400)
         try:
-            excel_upload = ExcelUpload(excel_file, user, trigger_param)
+            excel_upload = ExcelUpload(excel_file, user, trigger_param, checker)
             excel_upload.check_format(excel_file)
             is_updated = excel_upload.start_upload()
         except ExcelFormatError:
@@ -177,5 +178,6 @@ class FileUploadElementsView(views.APIView):
             return Response({"message": "All elements updated successfully"}, status=status.HTTP_200_OK)
         elif is_updated == "create_update":
             return Response({"message": "All elements created or updated successfully"}, status=status.HTTP_200_OK)
-
+        elif is_updated == "create_skip":
+            return Response({"message": "All elements created or skipped successfully"}, status=status.HTTP_200_OK)
         return Response({"warning": "Set params update!"}, status=400)
