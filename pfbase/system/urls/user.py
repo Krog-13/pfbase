@@ -8,7 +8,7 @@ from rest_framework import routers
 from django.urls import path
 from ..views.user import (UserAPIView, RegistrationUserAPIView, PermissionAPIView, RolesAPIView,
                           CustomAuthToken, UserLogout, ChangePasswordViewSet, PasswordResetView,
-                          PasswordResetConfirmView)
+                          PasswordResetConfirmView, SetPasswordViewSet)
 
 user_router = routers.DefaultRouter()
 user_router.register(r"stm/users", UserAPIView)
@@ -19,6 +19,7 @@ user_urlpatterns = [
     path('api-token-auth/', CustomAuthToken.as_view()),
     path('api-token-logout/', UserLogout.as_view()),
     path('change-password/', ChangePasswordViewSet.as_view()),
+    path('set-password/<int:pk>/', SetPasswordViewSet.as_view()),
 
     # password reset
     path('password-reset/', PasswordResetView.as_view(), name="password-reset"),
