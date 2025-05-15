@@ -1,7 +1,7 @@
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.shortcuts import redirect
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.viewsets import ModelViewSet, ViewSet
 from rest_framework.response import Response
 from pfbase.pagination import CustomPagination
@@ -9,7 +9,7 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from ..serializers.user import UserSerializer, RegistrationUserSerializer, RolesSerializer, \
     PermissionSerializer, AuthTokenSerializer, ChangePasswordSerializer, PasswordResetSerializer, \
-    PasswordResetConfirmSerializer
+    PasswordResetConfirmSerializer, SetPasswordSerializer
 from ..models.user import User
 from rest_framework.views import APIView
 from django.contrib.auth.models import Group
@@ -128,6 +128,21 @@ class ChangePasswordViewSet(UpdateAPIView):
             obj.save()
             return Response({"message": "Пароль изменен успешно"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SetPasswordViewSet(UpdateAPIView):
+    """Change password"""
+    permission_classes = (IsAdminUser,)
+
+    def put(self, request, pk):
+        obj = get_object_or_404(User, pk=pk)
+        serializer = SetPasswordSerializer(obj, data=request.data)
+        if serializer.is_valid():
+            serializer.save(obj)
+            obj.save()
+            return Response({"message": "Пароль установлен успешно"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class PasswordResetView(APIView):

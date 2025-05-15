@@ -145,6 +145,27 @@ class AuthTokenSerializer(serializers.Serializer):
         return attrs
 
 
+class SetPasswordSerializer(serializers.Serializer):
+    """Custom set password"""
+    new_password = serializers.CharField(
+        write_only=True, required=True,
+        validators=[validate_password])
+    confirm_password = serializers.CharField(
+        write_only=True, required=True)
+
+    def validate(self, attrs):
+        if attrs["new_password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError(
+                {"message": "Password fields didn't match."})
+        return attrs
+
+    def save(self, obj, **kwargs):
+        obj.set_password(self.validated_data['new_password'])
+        obj.save()
+        return obj
+
+
+
 class ChangePasswordSerializer(serializers.Serializer):
     """Custom update update"""
     old_password = serializers.CharField(
