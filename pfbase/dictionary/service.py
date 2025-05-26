@@ -48,8 +48,8 @@ class ElementService:
         self.organization_code = request_data.get('organization_code')
         self.indicators = request_data.get('indicators', [])
 
-        if not self.dictionary_id and not self.code:
-            raise WrongType("Invalid data: 'dictionary_id' or 'code' is required.")
+        if not self.dictionary_id and not self.dictionary_code:
+            raise WrongType("Invalid data: 'dictionary_id' or 'dictionary_code' is required.")
 
     def validate_update_data(self, request_data):
         """Validation for updating an existing element"""
