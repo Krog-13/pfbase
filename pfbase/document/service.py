@@ -8,7 +8,6 @@ from .models import Records, DcmIndicators, Documents, RecordIndicatorValues, Re
 from django.db.models import Case, When, IntegerField
 from django.utils import timezone
 
-
 Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json', 'file', 'user', 'array_int', 'array_str'])
 marker = Typing(int="int", float="float", str="str", text="text", json='json', file="file", user="user",
                 datetime=["datetime", "date", "time"], bool="bool", reference=["dct", "list", "dcm", "user", "org"], array_int=["dct", "dcm", "list", "user", "org"],
@@ -560,7 +559,7 @@ class RecordService:
                     parse_datetime = datetime.strptime(date_str, fmt[0])
                     if type_value == "time":
                         parse_datetime = datetime.combine(datetime.now().date(), parse_datetime.time())
-                    return timezone.make_aware(parse_datetime)
+                    return timezone.make_aware(parse_datetime, timezone=datetime.timezone.utc)
         except ValueError:
             return False
 
