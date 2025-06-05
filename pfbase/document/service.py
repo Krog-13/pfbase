@@ -1,7 +1,7 @@
 from django.db import transaction
 from collections import namedtuple
 from pfbase.exception import WrongType
-from datetime import datetime
+from datetime import datetime, timezone as tz
 from ..system import models as stm_models
 from ..dictionary import models as dct_models
 from .models import Records, DcmIndicators, Documents, RecordIndicatorValues, RecordHistory
@@ -559,7 +559,7 @@ class RecordService:
                     parse_datetime = datetime.strptime(date_str, fmt[0])
                     if type_value == "time":
                         parse_datetime = datetime.combine(datetime.now().date(), parse_datetime.time())
-                    return timezone.make_aware(parse_datetime, timezone=datetime.timezone.utc)
+                    return timezone.make_aware(parse_datetime, timezone=tz.utc)
         except ValueError:
             return False
 
