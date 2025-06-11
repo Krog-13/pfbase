@@ -2,12 +2,14 @@ from ..models.rhistory import RecordHistory
 from ..service import HistoryService
 from rest_framework.exceptions import ValidationError
 from rest_framework import serializers, exceptions
+from datetime import timedelta
+from django.utils.timezone import localtime
 
 
 class RHistorySerializer(serializers.ModelSerializer):
     author = serializers.CharField(source="author.first_name")
     status = serializers.JSONField(source="status.short_name")
-    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+    created_at = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -16,6 +18,11 @@ class RHistorySerializer(serializers.ModelSerializer):
 
     def get_full_name(self, obj):
         return f"{obj.author.first_name} {obj.author.last_name}"
+
+    def get_created_at(self, obj):
+        # Delete if use Django setting timezone
+        created = localtime(obj.created_at) + timedelta(hours=5)
+        return created.strftime("%Y-%m-%d %H:%M:%S")
 
 class HistoryPostSerializer(serializers.Serializer):
     record_id = serializers.IntegerField(required=True)
