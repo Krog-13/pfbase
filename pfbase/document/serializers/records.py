@@ -93,7 +93,7 @@ class RIValueSerializer(serializers.ModelSerializer):
         mapping = {"str": "value_str", "text": "value_text", "date": "value_datetime", "int": "value_int", "float": "value_float",
                    "datetime": "value_datetime", "file": "value_str", "bool": "value_bool", "time": "value_datetime", "json": "value_json"}
         mapping_multiple = {"str": "value_array_str", "text": "value_array_str",
-                            "int": "value_array_int", "file": "value_array_str"}
+                            "int": "value_array_int", "file": "value_array_str", "date": "value_array_str"}
         if is_multiple:
             value = getattr(obj, mapping_multiple[type_value], None)
         else:

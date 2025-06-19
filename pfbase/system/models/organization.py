@@ -13,6 +13,7 @@ class Organization(models.Model):
     identifier = models.CharField(max_length=128, null=True, blank=True, verbose_name='Идентификатор')
     active = models.BooleanField(default=True, verbose_name='Активный')
     code = models.CharField(max_length=128, null=True, blank=True, verbose_name='Код')
+    index_sort = models.PositiveIntegerField(blank=True, verbose_name='Индекс сортировки', default=0)
     type = models.ForeignKey(
         to="ListValues", on_delete=models.CASCADE,
         verbose_name='Тип организации')
