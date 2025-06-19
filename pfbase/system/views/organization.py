@@ -10,7 +10,7 @@ class OrganizationAPIView(ModelViewSet):
     """
     Представление организаций
     """
-    queryset = Organization.objects.all().order_by('-id')
+    queryset = Organization.objects.all().order_by('-id').filter(active=True)
     serializer_class = OrganizationSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
