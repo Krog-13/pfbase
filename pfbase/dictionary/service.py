@@ -151,17 +151,15 @@ class ElementService:
         idc_code = indicator.get('code')
 
         if type_value == marker.reference[1]:
-            if not isinstance(some_value, int):
-                if not some_value.isdigit():
-                    some_value = stm_models.ListValues.objects.get(code=some_value).id
-                else:
-                    stm_models.ListValues.objects.get(id=some_value)
+            if not some_value.isdigit() or some_value.startswith("0"):
+                some_value = stm_models.ListValues.objects.get(code=some_value).id
+            else:
+                stm_models.ListValues.objects.get(id=some_value)
         elif type_value == marker.reference[0]:
-            if not isinstance(some_value, int):
-                if not some_value.isdigit():
-                    some_value = Elements.objects.get(code=some_value).id
-                else:
-                    Elements.objects.get(id=some_value)
+            if not some_value.isdigit() or some_value.startswith("0"):
+                some_value = Elements.objects.get(code=some_value).id
+            else:
+                Elements.objects.get(id=some_value)
         elif type_value == marker.reference[2]:
             if not isinstance(some_value, int):
                 if not some_value.isdigit():
