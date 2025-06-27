@@ -55,8 +55,6 @@ class BusinessDocumentModelManager(models.Manager):
             if indicator.code in kwargs:
                 value = kwargs[indicator.code]
                 target_field = get_target_field(indicator)
-                if indicator.is_multiple and indicator.type_value in INDICATOR_FOR_MULTIPLE_STR_UPLOAD:
-                    value = value.split(';')
                 indicator_value_data = {
                     'record': record,
                     'indicator': indicator,
