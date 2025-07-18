@@ -156,10 +156,11 @@ class ElementService:
             else:
                 stm_models.ListValues.objects.get(id=some_value)
         elif type_value == marker.reference[0]:
-            if not some_value.isdigit() or some_value.startswith("0"):
-                some_value = Elements.objects.get(code=some_value).id
-            else:
-                Elements.objects.get(id=some_value)
+            if not isinstance(some_value, int):
+                if not some_value.isdigit() or some_value.startswith("0"):
+                    some_value = Elements.objects.get(code=some_value).id
+                else:
+                    Elements.objects.get(id=some_value)
         elif type_value == marker.reference[2]:
             if not isinstance(some_value, int):
                 if not some_value.isdigit():
