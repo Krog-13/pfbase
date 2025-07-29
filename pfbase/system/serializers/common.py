@@ -46,7 +46,7 @@ class FileGetSerializer(serializers.Serializer):
         try:
             minio = MinioClient()
             minio.get_client()
-            file_data = file_data.split(",")
+            file_data = file_data.rsplit(",", 1)
             file = minio.get_file_minio(file_data[0], file_data[1])
         except S3Error as e:
             raise exceptions.ValidationError({"error": str(e.code)})
