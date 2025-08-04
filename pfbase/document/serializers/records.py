@@ -127,6 +127,7 @@ class RIGetSerializer(serializers.ModelSerializer):
     code = serializers.CharField(source="document.code", required=False)
     indicator_value = RIValueSerializer(source="record_values", many=True, read_only=True)
     status = serializers.SerializerMethodField()
+    status_info = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
     organization_detail = serializers.SerializerMethodField()
 
@@ -138,6 +139,12 @@ class RIGetSerializer(serializers.ModelSerializer):
         last_status = obj.history.last()
         if last_status:
             return last_status.status.short_name
+        return None
+
+    def get_status_info(self, obj):
+        last_status = obj.history.last()
+        if last_status:
+            return {"code": last_status.status.code, "comment": last_status.comment}
         return None
 
     def get_children(self, obj):
