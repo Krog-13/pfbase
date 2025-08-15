@@ -47,6 +47,8 @@ class RecordsManager(models.Manager):
                 queryset = queryset.filter(Q(id=value) | Q(parent_id=value))
             if key == "record_date":
                 queryset = queryset.filter(date__date=value)
+            if key == "created_at":
+                queryset = queryset.filter(created_at__date=value)
             if key == "record_date_range":
                 values = value.split(",")
                 queryset = queryset.filter(
@@ -68,9 +70,18 @@ class RecordsManager(models.Manager):
                         ).order_by('-created_at').values('status__code')[:1]
                     )
                 ).filter(last_status=value)
+            if key == "code_statuses":
+                from .models import RecordHistory
+                queryset = queryset.annotate(
+                    last_status=Subquery(
+                        RecordHistory.objects.filter(
+                            record=OuterRef('pk')
+                        ).order_by('-created_at').values('status__code')[:1]
+                    )
+                ).filter(last_status__in=value.split(","))
 
             if key not in ["NUMBER", "DCM_CODE", "active", "organization_id", "parent_id", "page", "lang",
-                           "status", "date", "STATUS", "code_status", "record_date", "author_id", "author_one_id", "id"]:
+                           "status", "date", "STATUS", "code_status", "code_statuses", "record_date", "author_id", "author_one_id", "id"]:
                 from .models import DcmIndicators
                 try:
                     indic = DcmIndicators.objects.get(code=key)
