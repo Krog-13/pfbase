@@ -47,6 +47,11 @@ class RecordsManager(models.Manager):
                 queryset = queryset.filter(Q(id=value) | Q(parent_id=value))
             if key == "record_date":
                 queryset = queryset.filter(date__date=value)
+            if key == "record_date_range":
+                values = value.split(",")
+                queryset = queryset.filter(
+                    date__date__range=(values[0], values[1])
+                )
             if key == "STATUS":
                 queryset = queryset.annotate(
                     latest_status_date=Max('history__created_at')
