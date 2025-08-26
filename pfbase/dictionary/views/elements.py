@@ -36,7 +36,7 @@ class ElementsAPIView(AbstractModelAPIView):
         organization_id = params.get("organization_id")
         if organization_id:
             params["organization_id"] = [organization_id]
-        else:
+        elif org:
             params["organization_id"] = [org.id]
         indicators = elements.Elements.objects.getByFilter(params)
         if_paginate = request.query_params.get('paginate', False)
