@@ -175,7 +175,9 @@ class ElementService:
             dct_indicator = DctIndicators.objects.get(code=idc_code, type_value=type_value)
             is_multiple = dct_indicator.is_multiple
         if is_multiple:
-            ev = element.element_values.create(indicator=dct_indicator)
+            ev = element.element_values.filter(indicator=dct_indicator).first() if update else None
+            if ev is None:
+                ev = element.element_values.create(indicator=dct_indicator)
             result = self.separate_multiple_value(ev, type_value, some_value)
             if not result:
                 raise WrongType("Invalid type value")
