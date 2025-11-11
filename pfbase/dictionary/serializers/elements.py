@@ -24,12 +24,13 @@ class EIValueSerializer(serializers.ModelSerializer):
     short_name = serializers.JSONField(source='indicator.short_name')
     type_value = serializers.CharField(source='indicator.type_value')
     type_extend = serializers.CharField(source='indicator.type_extend')
+    is_multiple = serializers.CharField(source='indicator.is_multiple')
     code = serializers.CharField(source='indicator.code')
     value = serializers.SerializerMethodField()
 
     class Meta:
         model = ElementIndicatorValues
-        fields = 'id', 'short_name', 'code', 'type_value', 'type_extend', 'value_reference', 'value'
+        fields = 'id', 'short_name', 'code', 'type_value', 'type_extend', 'is_multiple', 'value_reference', 'value'
 
     def get_value_name(self, obj):
         if obj.indicator.type_value == 'dct':
@@ -42,7 +43,7 @@ class EIValueSerializer(serializers.ModelSerializer):
     def get_value(self, obj):
         value_fields = [
             'value_int', 'value_text', 'value_datetime',
-            'value_bool', 'value_str', 'value_json', 'value_float']
+            'value_bool', 'value_str', 'value_json', 'value_float', 'value_array_str', 'value_array_int']
         for field in value_fields:
             if obj.indicator.type_value in ['dct', 'list']:
                 return self.get_value_name(obj)
@@ -108,7 +109,7 @@ class CustomField(serializers.Field):
 
     def to_internal_value(self, data):
         # Allow only strings, integers, and booleans
-        if isinstance(data, (str, int, bool, dict)):
+        if isinstance(data, (str, int, bool, dict, list)):
             return data
         raise serializers.ValidationError("Value must be an integer, string, or boolean.")
 

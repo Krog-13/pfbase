@@ -170,16 +170,35 @@ class ElementService:
 
         if idc_id:
             dct_indicator = DctIndicators.objects.get(id=idc_id, type_value=type_value)
+            is_multiple = dct_indicator.is_multiple
         else:
             dct_indicator = DctIndicators.objects.get(code=idc_code, type_value=type_value)
+            is_multiple = dct_indicator.is_multiple
+        if is_multiple:
+            ev = element.element_values.filter(indicator=dct_indicator).first() if update else None
+            if ev is None:
+                ev = element.element_values.create(indicator=dct_indicator)
+            result = self.separate_multiple_value(ev, type_value, some_value)
+            if not result:
+                raise WrongType("Invalid type value")
+            ev.save()
+        else:
+            ev = element.element_values.filter(indicator=dct_indicator).first() if update else None
+            if ev is None:
+                ev = element.element_values.create(indicator=dct_indicator)
 
-        ev = element.element_values.filter(indicator=dct_indicator).first() if update else None
-        if ev is None:
-            ev = element.element_values.create(indicator=dct_indicator)
+            if not self.separate_value(ev, type_value, some_value):
+                raise WrongType("Invalid type value")
+            ev.save()
 
-        if not self.separate_value(ev, type_value, some_value):
-            raise WrongType("Invalid type value")
-        ev.save()
+    def separate_multiple_value(self, element_iv, type_value, value):
+        if type_value in marker.array_int:
+            element_iv.value_array_int = value if value else []
+        elif type_value in marker.array_str:
+            element_iv.value_array_str = value if value else []
+        else:
+            return False
+        return True
 
     def separate_value(self, entity, type_value, some_value):
         if type_value == marker.int:
