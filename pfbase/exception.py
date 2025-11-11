@@ -15,3 +15,11 @@ class WrongType(Exception):
 class ExcelFormatError(Exception):
     """Invalid excel file format"""
     pass
+
+class KalkanLibraryNotFound(Exception):
+    """Kalkan library not found"""
+    pass
+
+class KalkanError(Exception):
+    """Kalkan error"""
+    pass
