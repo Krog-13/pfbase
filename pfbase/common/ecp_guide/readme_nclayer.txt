@@ -23,8 +23,8 @@ qNirF+zSkBeenxOTAFQNOG8BLRlTbOEdPHRas5pwpnDEqR++1NE=
 
 
 ===============Пример реализации на бэкенде================
-см. file verify_cms.py
-
+см. file kalkan_adapter.py
+скопируйте файл в свой проект
 
 ===============Пример реализации на фронте================
 

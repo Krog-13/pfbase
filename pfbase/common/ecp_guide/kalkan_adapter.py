@@ -1,6 +1,4 @@
 """
-Файл для внутреннего тестирования ЭЦП
-
 Модуль работы с библиотекой kalkan + SDK
 Верификация подписанных данных и валидация сертификата через OCSP
 
@@ -10,7 +8,7 @@ enums.CertProp.KC_SUBJECT_SURNAME # Фамилия
 enums.CertProp.KC_SUBJECT_COMMONNAME # Фамилия Имя
 enums.CertProp.KC_SUBJECT_GIVENNAME # Отчество
 enums.CertProp.KC_SUBJECT_EMAIL # Email
-
+"""
 from pfbase.exception import KalkanLibraryNotFound, KalkanError
 from pykalkan import Adapter, exceptions
 from threading import Lock
@@ -34,7 +32,7 @@ class KalkanAdapter:
             return cls._instance
 
     def verify_data(self, signature: str, data: str, cert_code: list = None) -> dict:
-        Function to verify ECP signature and validate certificate via OCSP
+        """Function to verify ECP signature and validate certificate via OCSP."""
         adapter = self.get_adapter()
         try:
             output = {}
@@ -57,4 +55,3 @@ class KalkanAdapter:
         if cls._instance:
             cls._instance.finalize()
             cls._instance = None
-"""
