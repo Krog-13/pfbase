@@ -33,7 +33,7 @@ class RecordHistoryAdmin(admin.ModelAdmin):
     Record History
     """
     list_display = ('status', 'record', 'author', 'created_at', 'id')
-    search_fields = ('id', 'record__number', 'author__username', 'status__code',)
+    search_fields = ('record__id', 'author__username', 'status__code',)
     list_per_page = 50
 
 
@@ -45,7 +45,7 @@ class IndicatorAdmin(admin.ModelAdmin):
     fields = ("document", ("short_name", "full_name", "type_value", "type_extend", "is_multiple", ), ("code", "is_required"),
               "active")
     list_display = ("get_name", "code", "type_value", "document", "index_sort", "is_multiple", "id", "is_required")
-    search_fields = ('id', "document__name", "short_name", "code",)
+    search_fields = ('document__id', )
     list_filter = ("document",)
     list_per_page = 50
 
@@ -66,7 +66,7 @@ class RecordAdmin(admin.ModelAdmin):
     fields = ("number", "date", "active", "document", "organization", "parent")
     list_display = ("number", "document", "author", "parent", "id")
     list_filter = ("document",)
-    search_fields = ('id', 'number', "author__username", 'document__name')
+    search_fields = ('document__id', "author__username", )
     list_per_page = 50
 
     def save_model(self, request, obj, form, change):
@@ -84,8 +84,7 @@ class RecordIndicatorValueAdmin(admin.ModelAdmin):
               "value_datetime", "value_reference",
               "index_sort", "record", "indicator", "active")
     list_display = ("some_value", "type_value", "indicator", "record", "index_sort", "id")
-    search_fields = ('id', 'record__number', 'indicator__short_name',)
-    list_filter = ("indicator",)
+    search_fields = ('record__id', 'indicator__short_name',)
     list_per_page = 50
 
     def type_value(self, obj):
