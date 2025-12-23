@@ -33,6 +33,8 @@ class RecordHistoryAdmin(admin.ModelAdmin):
     Record History
     """
     list_display = ('status', 'record', 'author', 'created_at', 'id')
+    search_fields = ('id', 'record__number', 'author__username', 'status__code',)
+    list_per_page = 50
 
 
 @admin.register(DcmIndicators)
@@ -43,8 +45,9 @@ class IndicatorAdmin(admin.ModelAdmin):
     fields = ("document", ("short_name", "full_name", "type_value", "type_extend", "is_multiple", ), ("code", "is_required"),
               "active")
     list_display = ("get_name", "code", "type_value", "document", "index_sort", "is_multiple", "id", "is_required")
-    search_fields = ('name', 'id')
-    list_filter = ("document", "author")
+    search_fields = ('id', "document__name", "short_name", "code",)
+    list_filter = ("document",)
+    list_per_page = 50
 
     def get_name(self, obj):
         return obj.short_name.get("ru", obj.code)
@@ -62,7 +65,9 @@ class RecordAdmin(admin.ModelAdmin):
     """
     fields = ("number", "date", "active", "document", "organization", "parent")
     list_display = ("number", "document", "author", "parent", "id")
-    list_filter = ("document", "author")
+    list_filter = ("document",)
+    search_fields = ('id', 'number', "author__username", 'document__name')
+    list_per_page = 50
 
     def save_model(self, request, obj, form, change):
         if not obj.pk:  # If the object is being created for the first time
@@ -79,9 +84,9 @@ class RecordIndicatorValueAdmin(admin.ModelAdmin):
               "value_datetime", "value_reference",
               "index_sort", "record", "indicator", "active")
     list_display = ("some_value", "type_value", "indicator", "record", "index_sort", "id")
-    search_fields = (
-        'field_value', 'id')
-    list_filter = ("record",)
+    search_fields = ('id', 'record__number', 'indicator__short_name',)
+    list_filter = ("indicator",)
+    list_per_page = 50
 
     def type_value(self, obj):
         return obj.indicator.type_value

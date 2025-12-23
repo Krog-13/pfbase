@@ -32,7 +32,9 @@ class IndicatorAdmin(admin.ModelAdmin):
     fields = ("dictionary", ("short_name", "full_name", "type_value", "type_extend", "is_multiple"), "description",
               ("code", "index_sort"), "active")
     list_display = ("get_name", "code", "type_value", "dictionary", "index_sort", "id")
-    list_filter = ("dictionary", "author")
+    list_filter = ("dictionary",)
+    search_fields = ('id', 'code', 'short_name', 'dictionary__name',)
+    list_per_page = 50
 
     def get_name(self, obj):
         return obj.short_name.get("ru", obj.code)
@@ -50,9 +52,9 @@ class ElementAdmin(admin.ModelAdmin):
     """
     fields = ("short_name", "full_name", "dictionary", "organization", "code", "index_sort", "parent", "active")
     list_display = ('get_short_name', 'dictionary', "code", "parent", "index_sort", "id")
-    list_filter = ("dictionary", "author")
-
-    search_fields = ('id',)
+    list_filter = ("dictionary",)
+    search_fields = ('id', 'short_name', 'code', 'dictionary__name',)
+    list_per_page = 50
 
     def get_short_name(self, obj):
         return obj.short_name.get("ru")
@@ -71,8 +73,10 @@ class EIValueAdmin(admin.ModelAdmin):
     fields = (("value_str", "value_int", "value_float", "value_text", "value_datetime", "value_reference", "value_json", "value_bool"),
               "index_sort", "element", "indicator")
     list_display = ("some_value", "type_value", "indicator", "element", "index_sort", "id")
-    search_fields = ("value_int", "id")
-    list_filter = ("element",)
+    search_fields = ("id", "indicator__short_name", "element__short_name", "value_str", "value_int", "value_float",
+                     "value_text", "value_datetime", "value_reference", "value_json", "value_bool")
+    list_filter = ("indicator",)
+    list_per_page = 50
 
     def type_value(self, obj):
         return obj.indicator.type_value
