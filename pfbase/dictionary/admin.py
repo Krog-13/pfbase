@@ -12,8 +12,9 @@ class DictionaryAdmin(admin.ModelAdmin):
     """
     Dictionary in admin panel
     """
-    fields = ("name", "description", "code", "active", "parent")
+    fields = (("name", "description"), "code", "parent", "active")
     list_display = ('get_name', 'author', 'code', 'parent', 'id')
+    list_select_related = ("author",)
 
     def get_name(self, obj):
         return obj.name.get("ru", obj.code)
@@ -29,8 +30,7 @@ class IndicatorAdmin(admin.ModelAdmin):
     """
     Indicators in admin panel
     """
-    fields = ("dictionary", ("short_name", "full_name", "type_value", "type_extend", "is_multiple"), "description",
-              ("code", "index_sort"), "active")
+    fields = ("dictionary", ("short_name", "full_name", "description"), "type_value", "type_extend", "code", "index_sort", "active", "is_multiple")
     list_display = ("get_name", "code", "type_value", "dictionary", "index_sort", "id")
     list_filter = ("dictionary",)
     search_fields = ('dictionary__id', 'dictionary__name', )
@@ -50,10 +50,12 @@ class ElementAdmin(admin.ModelAdmin):
     """
     Elements in admin panel
     """
-    fields = ("short_name", "full_name", "dictionary", "organization", "code", "index_sort", "parent", "active")
+    fields = (("short_name", "full_name"), "dictionary", "organization", "code", "index_sort", "parent", "active")
     list_display = ('get_short_name', 'dictionary', "code", "parent", "index_sort", "id")
     list_filter = ("dictionary",)
+    list_select_related = ("dictionary",)
     search_fields = ('dictionary__id', )
+    autocomplete_fields = ("parent",)
     list_per_page = 50
 
     def get_short_name(self, obj):
@@ -70,14 +72,32 @@ class EIValueAdmin(admin.ModelAdmin):
     """
     Element-indicator values in admin panel
     """
-    fields = (("value_str", "value_int", "value_float", "value_text", "value_datetime", "value_reference", "value_json", "value_bool"),
-              "index_sort", "element", "indicator")
+    fieldsets = (
+        (
+            "Значения индикаторов", {
+            "fields": [("value_int", "value_float"), "value_str", "value_bool", ("value_text", "value_json")]
+        }
+        ),
+        (
+            "Date&Time", {
+            "fields": ["value_datetime", ]
+        }
+        ),
+        (
+            "Other", {
+            "fields": ["value_reference", "index_sort", "element", "indicator"]
+        }
+        ),
+    )
     list_display = ("some_value", "type_value", "indicator", "element", "index_sort", "id")
     search_fields = ("element__id", "indicator__short_name", )
+    autocomplete_fields = ("element",)
     list_per_page = 50
 
     def type_value(self, obj):
         return obj.indicator.type_value
+
+    type_value.admin_order_field = "indicator__type_value"
 
     def some_value(self, obj):
         if obj.value_int:
