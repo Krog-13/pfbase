@@ -54,6 +54,7 @@ class CustomUserAdmin(admin.ModelAdmin):
     # fieldsets = (("username", "email"), ("id", "first_name"))
     list_display = ('username', 'email', 'organization', 'id')
     list_filter = ("organization",)
+    list_select_related = ("organization",)
 
 # admin.site.register(User, CustomUserAdmin)
 
