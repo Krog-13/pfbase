@@ -14,9 +14,9 @@ class DocumentAdmin(admin.ModelAdmin):
     """
     Abstract Documents in the admin panel
     """
-    fields = (("name", "description"), "code", "index_sort", "type", "parent")
-    list_display = ("get_name", "code", "type", "parent", "index_sort", "id")
-    search_fields = ('get_name', 'id')
+    fields = (("name", "description"), ("code", "index_sort"), "parent", "type")
+    list_display = ("get_name", "code", "type", "parent", "id")
+    search_fields = ('=id', "name")
 
     def get_name(self, obj):
         return obj.name["ru"]
@@ -32,10 +32,11 @@ class RecordHistoryAdmin(admin.ModelAdmin):
     """
     Record History
     """
+    fields = (("status", "action"), "comment", "stamp", "sign_stamp", "record", "author")
     list_display = ('status', 'record', 'author', 'created_at', 'id')
     list_select_related = ("record", "author", "status", "record__document",)
-    search_fields = ('record__id', 'author__username', 'status__code',)
-    autocomplete_fields = ("record",)
+    search_fields = ('=record__id', 'author__username', 'status__code',)
+    readonly_fields = ("record",)
     list_per_page = 50
 
 
@@ -44,9 +45,9 @@ class IndicatorAdmin(admin.ModelAdmin):
     """
     Indicator in the admin panel
     """
-    fields = ("document", ("short_name", "full_name"), "code", "type_value", "type_extend", "is_multiple", "is_required", "active")
-    list_display = ("get_name", "code", "type_value", "document", "index_sort", "is_multiple", "id", "is_required")
-    search_fields = ('document__id', )
+    fields = ("document", ("short_name", "full_name", "description"), "code", ("type_value", "type_extend"), "index_sort", "is_multiple", "is_required", "active")
+    list_display = ("get_name", "code", "type_value", "document", "index_sort", "is_multiple", "is_required", "id")
+    search_fields = ('=document__id', )
     list_filter = ("document",)
     list_per_page = 50
 
@@ -64,10 +65,10 @@ class RecordAdmin(admin.ModelAdmin):
     """
     Records in the admin panel
     """
-    fields = ("number", "date", "active", "document", "organization", "parent")
+    fields = ("number", "date", "organization", "document", "parent", "active")
     list_display = ("number", "document", "author", "parent", "id")
     list_filter = ("document",)
-    search_fields = ('document__id', "author__username", )
+    search_fields = ('=id', "number", '=document__id', "author__username",)
     autocomplete_fields = ("parent",)
     list_per_page = 50
 
@@ -85,25 +86,27 @@ class RecordIndicatorValueAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             "Значения индикаторов", {
-            "fields": [("value_int", "value_float"), "value_str", "value_bool", ("value_text", "value_json"),
-                       ("value_array_int", "value_array_str")]
-        }
-        ),
-        (
-            "Date&Time", {
-            "fields": ["value_datetime", ]
+            "fields":
+                [
+                    "value_str",
+                    ("value_int", "value_float"),
+                    ("value_text", "value_json"),
+                    ("value_array_int", "value_array_str"),
+                    "value_datetime",
+                    ("value_bool", "value_reference")
+                ]
         }
         ),
         (
             "Other",
             {
-                "fields": ["value_reference", "index_sort", "record", "indicator", "active"]
+                "fields": ["index_sort", "record", "indicator", "active"]
             }
         )
     )
     list_display = ("some_value", "type_value", "indicator", "record", "index_sort", "id")
     list_select_related = ("record", "indicator", "record__document",)
-    search_fields = ('record__id', 'indicator__short_name',)
+    search_fields = ('=record__id', 'indicator__short_name',)
     autocomplete_fields = ("record",)
     list_per_page = 50
 

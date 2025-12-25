@@ -12,7 +12,7 @@ class DictionaryAdmin(admin.ModelAdmin):
     """
     Dictionary in admin panel
     """
-    fields = (("name", "description"), "code", "parent", "active")
+    fields = (("name", "description"), "code", "organization", "parent", "active")
     list_display = ('get_name', 'author', 'code', 'parent', 'id')
     list_select_related = ("author",)
 
@@ -30,10 +30,10 @@ class IndicatorAdmin(admin.ModelAdmin):
     """
     Indicators in admin panel
     """
-    fields = ("dictionary", ("short_name", "full_name", "description"), "type_value", "type_extend", "code", "index_sort", "active", "is_multiple")
+    fields = ("dictionary", ("short_name", "full_name", "description"), "code", ("type_value", "type_extend"), "index_sort", "is_multiple", "is_required", "active")
     list_display = ("get_name", "code", "type_value", "dictionary", "index_sort", "id")
     list_filter = ("dictionary",)
-    search_fields = ('dictionary__id', 'dictionary__name', )
+    search_fields = ('=dictionary__id', 'dictionary__name',)
     list_per_page = 50
 
     def get_name(self, obj):
@@ -50,11 +50,11 @@ class ElementAdmin(admin.ModelAdmin):
     """
     Elements in admin panel
     """
-    fields = (("short_name", "full_name"), "dictionary", "organization", "code", "index_sort", "parent", "active")
+    fields = ("dictionary", ("short_name", "full_name"), "code", "index_sort", "organization", "parent", "active")
     list_display = ('get_short_name', 'dictionary', "code", "parent", "index_sort", "id")
     list_filter = ("dictionary",)
     list_select_related = ("dictionary",)
-    search_fields = ('dictionary__id', )
+    search_fields = ('=id', '=dictionary__id', "short_name",)
     autocomplete_fields = ("parent",)
     list_per_page = 50
 
@@ -75,22 +75,24 @@ class EIValueAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             "Значения индикаторов", {
-            "fields": [("value_int", "value_float"), "value_str", "value_bool", ("value_text", "value_json")]
-        }
-        ),
-        (
-            "Date&Time", {
-            "fields": ["value_datetime", ]
+            "fields":
+                [
+                    "value_str",
+                    ("value_int", "value_float"),
+                    ("value_text", "value_json"),
+                    "value_datetime",
+                    ("value_bool", "value_reference")
+                ]
         }
         ),
         (
             "Other", {
-            "fields": ["value_reference", "index_sort", "element", "indicator"]
+            "fields": ["index_sort", "element", "indicator", "active"]
         }
         ),
     )
     list_display = ("some_value", "type_value", "indicator", "element", "index_sort", "id")
-    search_fields = ("element__id", "indicator__short_name", )
+    search_fields = ("=element__id", "element__short_name", "indicator__short_name",)
     autocomplete_fields = ("element",)
     list_per_page = 50
 

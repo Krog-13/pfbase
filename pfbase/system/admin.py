@@ -12,8 +12,11 @@ class LVAdmin(admin.ModelAdmin):
     """
     List Value in admin panel
     """
+    fields = ("list", "code", ("short_name", "full_name"), "author", "index_sort", "active")
+    exclude = ("deleted_at",)
     list_display = ('list', 'code', 'get_name', 'id')
     list_filter = ("list", )
+    list_per_page = 50
 
     def get_name(self, obj):
         return obj.short_name.get("ru", obj.code)
@@ -29,7 +32,10 @@ class NotificationAdmin(admin.ModelAdmin):
     """
     Notification in admin panel
     """
+    fields = (("title", "message"), ("type_notification", "is_read"), ("receiver_user", "sender_user"))
     list_display = ('type_notification', 'sender_user', 'receiver_user', 'id')
+    readonly_fields = ("record", "element")
+    list_per_page = 50
 
 
 @admin.register(Organization)
@@ -37,6 +43,8 @@ class OrganizationAdmin(admin.ModelAdmin):
     """
     Organization in admin panel
     """
+    fields = (("short_name", "full_name"), "code", "identifier", "index_sort", "type", "parent", "active")
+    exclude = ("deleted_at",)
     list_display = ('get_name', 'get_full_name', 'identifier', 'id')
 
     def get_name(self, obj):
@@ -51,7 +59,8 @@ class CustomUserAdmin(admin.ModelAdmin):
     """
     User in admin panel
     """
-    # fieldsets = (("username", "email"), ("id", "first_name"))
+    fields = ("username", "email", "first_name", "last_name", "is_superuser", "is_staff", "is_active", "groups", "user_permissions", ("last_login", "date_joined"))
+    exclude = ("password", )
     list_display = ('username', 'email', 'organization', 'id')
     list_filter = ("organization",)
     list_select_related = ("organization",)
