@@ -16,6 +16,7 @@ class DocumentAdmin(admin.ModelAdmin):
     """
     fields = (("name", "description"), ("code", "index_sort"), "parent", "type")
     list_display = ("get_name", "code", "type", "parent", "id")
+    list_select_related = ("parent",)
     search_fields = ('=id', "name")
 
     def get_name(self, obj):
@@ -66,7 +67,8 @@ class RecordAdmin(admin.ModelAdmin):
     Records in the admin panel
     """
     fields = ("number", "date", "organization", "document", "parent", "active")
-    list_display = ("number", "document", "author", "parent", "id")
+    list_display = ("number", "admin_document", "author", "parent", "id")
+    list_select_related = ("author", "document", "parent")
     list_filter = ("document",)
     search_fields = ('=id', "number", '=document__id', "author__username",)
     autocomplete_fields = ("parent",)
