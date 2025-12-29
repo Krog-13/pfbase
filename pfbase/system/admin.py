@@ -59,7 +59,7 @@ class CustomUserAdmin(admin.ModelAdmin):
     """
     User in admin panel
     """
-    fields = ("username", "email", "first_name", "last_name", "is_superuser", "is_staff", "is_active", "groups", "user_permissions", ("last_login", "date_joined"))
+    fields = ("username", "email", "first_name", "last_name", "organization", "is_superuser", "is_staff", "is_active", "groups", "user_permissions", ("last_login", "date_joined"))
     exclude = ("password", )
     list_display = ('username', 'email', 'organization', 'id')
     list_filter = ("organization",)

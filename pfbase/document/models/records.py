@@ -28,9 +28,16 @@ class Records(SoftDelete):
     objects = RecordsManager()
 
     def __str__(self):
-        if self.document is None:
-            return "No document"
-        return self.document.name.get("ru", "No name") + " №" + self.number + " от " + self.date.strftime("%d.%m.%Y")
+        return f"Record #{self.pk}"
+
+    def admin_document(self):
+        if not self.document:
+            return f"Record #{self.pk}"
+
+        return (
+            f"{self.document.name.get('ru', 'No name')} "
+            f"№{self.number} от {self.date:%d.%m.%Y}"
+        )
 
     class Meta:
         db_table = '"dcm\".\"records"'
