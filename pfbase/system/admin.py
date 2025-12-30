@@ -55,16 +55,17 @@ class OrganizationAdmin(admin.ModelAdmin):
 
 
 @admin.register(User)
-class CustomUserAdmin(admin.ModelAdmin):
+class CustomUserAdmin(UserAdmin):
     """
     User in admin panel
     """
     fieldsets = (
         (
             "Main Section",
-         {"fields": (("username", "email"), ("first_name", "last_name"), "organization")}
+            {"fields": (("username", "email"), ("first_name", "last_name"), "organization")}
         ),
-        ("Groups & Permissions",
+        (
+            "Groups & Permissions",
             {"fields": ("groups", "user_permissions")}
         ),
         (
