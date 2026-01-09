@@ -1,8 +1,9 @@
+from django.contrib.auth.models import Group
 from .models.notification import Notification
 from .models.listvalues import ListValues
 from .models.organization import Organization
 from .models.user import User
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin, GroupAdmin as BaseGroupAdmin
 from django.contrib import admin
 
 
@@ -79,6 +80,13 @@ class CustomUserAdmin(UserAdmin):
     list_select_related = ("organization",)
 
 # admin.site.register(User, CustomUserAdmin)
+class GroupAdmin(BaseGroupAdmin):
+    list_display = ("name", "id",)
+    ordering = ("id",)
+    search_fields = ("id", "name")
+
+admin.site.unregister(Group)
+admin.site.register(Group, GroupAdmin)
 
 
 def get_app_list(self, request, app_label=None):
