@@ -80,6 +80,7 @@ class EIValueAdmin(admin.ModelAdmin):
                     "value_str",
                     ("value_int", "value_float"),
                     ("value_text", "value_json"),
+                    ("value_array_int", "value_array_str"),
                     "value_datetime",
                     ("value_bool", "value_reference")
                 ]
