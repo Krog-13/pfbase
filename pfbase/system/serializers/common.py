@@ -4,11 +4,15 @@ from ..minio_client import MinioClient
 from uuid import uuid4
 from minio.error import S3Error
 
+from ..service import validate_file_extension
 # Initialize MinioClient
 
 
 class FileSaveSerializer(serializers.Serializer):
     file = serializers.FileField(required=True)
+
+    def validate_file(self, file):
+        return validate_file_extension(file)
 
     def create(self, validated_data):
         try:
@@ -24,6 +28,11 @@ class FileSaveSerializer(serializers.Serializer):
 
 class FilesSaveSerializer(serializers.Serializer):
     files = serializers.ListField(required=True)
+
+    def validate_files(self, files):
+        for file in files:
+            validate_file_extension(file)
+        return files
 
     def create(self, validated_data):
         try:
