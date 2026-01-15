@@ -1,7 +1,9 @@
-from django.core.mail import send_mail
 import os
-from rest_framework import serializers
+
 import magic
+from django.core.mail import send_mail
+from rest_framework import serializers
+
 
 class EmailSendNotification:
     """

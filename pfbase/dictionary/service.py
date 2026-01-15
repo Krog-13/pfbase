@@ -150,23 +150,23 @@ class ElementService:
         idc_id = indicator.get('id')
         idc_code = indicator.get('code')
 
-        if type_value == marker.reference[1]:
-            if not some_value.isdigit() or some_value.startswith("0"):
-                some_value = stm_models.ListValues.objects.get(code=some_value).id
-            else:
-                stm_models.ListValues.objects.get(id=some_value)
-        elif type_value == marker.reference[0]:
-            if not isinstance(some_value, int):
-                if not some_value.isdigit() or some_value.startswith("0"):
-                    some_value = Elements.objects.get(code=some_value).id
-                else:
-                    Elements.objects.get(id=some_value)
-        elif type_value == marker.reference[2]:
-            if not isinstance(some_value, int):
-                if not some_value.isdigit():
-                    some_value = dcm_models.Records.objects.get(code=some_value).id
-                else:
-                    dcm_models.Records.objects.get(id=some_value)
+        # if type_value == marker.reference[1]:
+        #     if not some_value.isdigit() or some_value.startswith("0"):
+        #         some_value = stm_models.ListValues.objects.get(code=some_value).id
+        #     else:
+        #         stm_models.ListValues.objects.get(id=some_value)
+        # elif type_value == marker.reference[0]:
+        #     if not isinstance(some_value, int):
+        #         if not some_value.isdigit() or some_value.startswith("0"):
+        #             some_value = Elements.objects.get(code=some_value).id
+        #         else:
+        #             Elements.objects.get(id=some_value)
+        # elif type_value == marker.reference[2]:
+        #     if not isinstance(some_value, int):
+        #         if not some_value.isdigit():
+        #             some_value = dcm_models.Records.objects.get(code=some_value).id
+        #         else:
+        #             dcm_models.Records.objects.get(id=some_value)
 
         if idc_id:
             dct_indicator = DctIndicators.objects.get(id=idc_id, type_value=type_value)
