@@ -1,8 +1,13 @@
 from rest_framework import status, exceptions as exc
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import views
 from ..serializers.common import FileSaveSerializer, FileGetSerializer, FilesSaveSerializer
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
+from ..throttles import FileUploadThrottle
+
+
 # from pfbase.system.kalkan_adapter import KalkanAdapter
 # from pykalkan import enums
 
@@ -11,6 +16,8 @@ class FileAPIView(views.APIView):
     """
     File API View
     """
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [FileUploadThrottle]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
