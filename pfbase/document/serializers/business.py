@@ -255,7 +255,7 @@ def BusinessDocumentModelSerializer(document_code):
                         dct_ids_global.append(getattr(obj, ind_dct.code))
                 self.dictionary_values = Elements.objects.filter(pk__in=dct_ids_global)
 
-        def to_representation(self, instance):
+        def to_representation_old(self, instance):
             self.queryset_bind()
 
             rep = super().to_representation(instance)
@@ -327,7 +327,85 @@ def BusinessDocumentModelSerializer(document_code):
                 rep = {k: v for k, v in rep.items() if k in self._only_fields}
 
             return rep
+        def to_representation(self, instance):
+            self.queryset_bind()
+
+            rep = super().to_representation(instance)
+
+            if self.is_detail_show:
+                self.load_dictionary_values()
+
+                if instance.author:
+                    rep['author'] = {'id': instance.author.id, 'username': instance.author.username}
+                else:
+                    rep['author'] = None
+
+                if instance.organization:
+                    rep['organization'] = {
+                        'id': instance.organization.id,
+                        'name': instance.organization.short_name
+                    }
+                else:
+                    rep['organization'] = None
+
+                if instance.parent:
+                    rep['parent'] = {
+                        'id': instance.parent.id,
+                        'number': instance.parent.number,
+                        'date': instance.parent.date
+                    }
+                else:
+                    rep['parent'] = None
+
+                elements_map = {str(el.pk): el for el in self.dictionary_values}
+
+                for indicator in self.indicators_dict:
+                    field_key = indicator.code
+                    element_id = rep.get(field_key)
+                    if element_id:
+                        try:
+                            DictSerializerClass = BusinessDictionarySerializer(indicator.type_extend)
+                            element = elements_map.get(str(element_id))
+                            rep[field_key] = DictSerializerClass(element).data if element else None
+                        except Exception as e:
+                            rep[field_key] = {"error": str(e)}
+
+                for indicator in self.other_indicators:
+                    field_key = indicator.code
+                    ref_id = rep.get(field_key)
+                    if ref_id:
+                        if indicator.type_value == IndicatorType.LIST:
+                            obj = self.grouped_list_values.get(ref_id, [None])[0]
+                            if obj:
+                                rep[field_key] = {
+                                    'id': obj.id,
+                                    'code': obj.code,
+                                    'short_name': obj.short_name,
+                                    'full_name': obj.full_name
+                                }
+
+                        elif indicator.type_value == IndicatorType.USER:
+                            obj = self.grouped_user_values.get(ref_id, [None])[0]
+                            if obj:
+                                rep[field_key] = {
+                                    'id': obj.id,
+                                    'username': obj.username,
+                                    'email': obj.email
+                                }
+
+                        elif indicator.type_value == IndicatorType.ORGANIZATION:
+                            obj = self.grouped_organization_values.get(ref_id, [None])[0]
+                            if obj:
+                                rep[field_key] = {
+                                    'id': obj.id,
+                                    'short_name': obj.short_name,
+                                    'full_name': obj.full_name
+                                }
+
+            # 🔥 ФИЛЬТРАЦИЯ ВСЕГДА
+            if hasattr(self, '_only_fields'):
+                rep = {k: v for k, v in rep.items() if k in self._only_fields}
+
+            return rep
 
     return BusinessDocumentModelRecordSerializer
-
-
