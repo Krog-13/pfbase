@@ -13,3 +13,7 @@ asn1crypto==1.5.1
 cryptography==45.0.4
 # library for working with digital ECP in Kazakhstan
 pykalkan~=1.2.0
+#for windows
+python-magic-bin
+#for linux | sudo apt-get install libmagic1
+#python-magic

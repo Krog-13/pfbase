@@ -13,14 +13,13 @@ class EmailSendNotification:
 
 
 
-ALLOWED_EXTENSIONS = ("jpg", "jpeg", "png", "pdf", "txt", "zip")
+ALLOWED_EXTENSIONS = ("jpg", "jpeg", "png", "pdf", "txt",)
 EXTENSION_TO_MIME = {
     "jpg": ["image/jpeg"],
     "jpeg": ["image/jpeg"],
     "png": ["image/png"],
     "pdf": ["application/pdf"],
     "txt": ["text/plain", "text/x-plain"],
-    "zip": ["application/zip", "application/octet-stream"],
 }
 MAX_SIZE_BY_EXTENSION = {
     "jpg": 5 * 1024 * 1024,
