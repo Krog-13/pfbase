@@ -26,12 +26,24 @@ class FileSaveSerializer(serializers.Serializer):
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
 
+
 class FilesSaveSerializer(serializers.Serializer):
     files = serializers.ListField(required=True)
 
     def validate_files(self, files):
+        errors = []
         for file in files:
-            FileValidationService.validate(file)
+            try:
+                FileValidationService.validate(file)
+            except serializers.ValidationError as e:
+                errors.append({
+                    "file_name": file.name,
+                    "error": str(e.detail if hasattr(e, "detail") else e)
+                })
+
+            if errors:
+                raise ValidationError({"files": errors})
+
         return files
 
     def create(self, validated_data):
