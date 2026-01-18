@@ -15,21 +15,16 @@ class FileSaveSerializer(serializers.Serializer):
         return FileValidationService.validate(file)
 
     def create(self, validated_data):
-        minio = MinioClient()
-        minio.get_client()
-
-        file = validated_data['file']
-        file_id = uuid4().hex
-
         try:
+            minio = MinioClient()
+            minio.get_client()
+            file = validated_data['file']
+            file_id = uuid4().hex
+            file_data = f"{file.name},{file_id}"
             minio.save_file_minio(file, file_id)
-        except Exception as e:
+            return file_data
+        except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
-
-        return {
-            "original_name": file.name,
-            "saved_name": file_id
-        }
 
 
 class FilesSaveSerializer(serializers.Serializer):
@@ -52,21 +47,18 @@ class FilesSaveSerializer(serializers.Serializer):
         return files
 
     def create(self, validated_data):
-        minio = MinioClient()
-        minio.get_client()
-
-        files = validated_data['files']
-        saved_files = []
-
-        for file in files:
-            file_id = uuid4().hex
-            minio.save_file_minio(file, file_id)
-            saved_files.append({
-                "original_name": file.name,
-                "saved_name": file_id
-            })
-
-        return {"saved_files": saved_files}
+        try:
+            minio = MinioClient()
+            minio.get_client()
+            files = validated_data['files']
+            file_data = []
+            for file in files:
+                file_id = uuid4().hex
+                file_data.append(f"{file.name},{file_id}")
+                minio.save_file_minio(file, file_id)
+            return file_data
+        except ValidationError as e:
+            raise exceptions.ValidationError({"error": str(e)})
 
 class FileGetSerializer(serializers.Serializer):
     file_data = serializers.CharField(required=True)
