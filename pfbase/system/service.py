@@ -1,3 +1,5 @@
+import uuid
+
 from django.core.mail import send_mail
 import os
 from rest_framework import serializers
@@ -13,21 +15,24 @@ class EmailSendNotification:
 
 
 
-ALLOWED_EXTENSIONS = ("jpg", "jpeg", "png", "pdf", "txt",)
+ALLOWED_EXTENSIONS = ("jpg", "jpeg", "png", "pdf", "docx", "xlsx", "txt")
 EXTENSION_TO_MIME = {
     "jpg": ["image/jpeg"],
     "jpeg": ["image/jpeg"],
     "png": ["image/png"],
     "pdf": ["application/pdf"],
+    "docx": ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    "xlsx": ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
     "txt": ["text/plain", "text/x-plain"],
 }
 MAX_SIZE_BY_EXTENSION = {
-    "jpg": 5 * 1024 * 1024,
-    "jpeg": 5 * 1024 * 1024,
-    "png": 5 * 1024 * 1024,
-    "pdf": 20 * 1024 * 1024,
-    "txt": 3 * 1024 * 1024,
-    "zip": 50 * 1024 * 1024,
+    "jpg": 20 * 1024 * 1024,
+    "jpeg": 20 * 1024 * 1024,
+    "png": 20 * 1024 * 1024,
+    "pdf": 80 * 1024 * 1024,
+    "docx": 80 * 1024 * 1024,
+    "xlsx": 80 * 1024 * 1024,
+    "txt": 40 * 1024 * 1024,
 }
 FORBIDDEN_FILENAME_PARTS = ("../", "..\\", "\x00")
 
@@ -92,13 +97,6 @@ class FileValidationService:
             raise serializers.ValidationError(f"Неизвестный тип файла. Разрешены {','.join(ALLOWED_EXTENSIONS)} типы файлов")
         if detected_mime not in allowed_mimes:
             raise serializers.ValidationError(f"Тип файла не соответствует расширению ({detected_mime})")
-
-    @classmethod
-    def dangerous_format_extensions(cls, extension):
-        if extension == 'zip':
-            return
-        if extension not in ALLOWED_EXTENSIONS:
-            raise serializers.ValidationError("Формат запрещен по соображениям безопасности")
 
     @staticmethod
     def _get_extension(file):
