@@ -17,3 +17,4 @@ pykalkan~=1.2.0
 python-magic-bin
 #for linux | sudo apt-get install libmagic1
 #python-magic
+filetype
