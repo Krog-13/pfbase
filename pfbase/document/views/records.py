@@ -63,7 +63,7 @@ class RIAPIView(views.APIView):
             queryset = self.queryset.get(id=pk)
         except Records.DoesNotExist:
             return Response({"message": "Record not found"}, status=status.HTTP_404_NOT_FOUND)
-        return Response(RIGetSerializer(queryset, many=False).data)
+        return Response(RIGetSerializer(queryset, many=False, context={'request': request}).data)
 
     def post(self, request):
         serializer = RecordPostSerializer(data=request.data, context={'request': request})

@@ -209,8 +209,8 @@ class RecordService:
                 document = Documents.objects.get(code=code)
             parent_r = Records.objects.get(id=parent_id) if parent_id else None
             record = Records.objects.create(
-                number=record_data.get('number'),
-                date=record_data.get('date'),
+                number=record_data.get('number', '0000'),
+                date=record_data.get('date', timezone.now()),
                 parent=parent_r,
                 author=user,
                 organization_id=organization_id,
@@ -219,9 +219,9 @@ class RecordService:
             if status_id:
                 self.create_history(record, status_id, user)
             if not indicators:
-                return record
+                pass
             self.create_riv(record, indicators)
-            return record
+        return record
 
 
     @transaction.atomic

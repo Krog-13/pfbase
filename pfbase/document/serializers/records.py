@@ -37,7 +37,9 @@ class RIValueSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RecordIndicatorValues
-        fields = 'id', 'short_name', 'full_name', 'code', 'type_value', 'type_extend', 'is_multiple', 'value_reference', 'value'
+        fields = ('id', 'short_name', 'full_name', 'code',
+                  'type_value', 'type_extend', 'is_multiple',
+                  'value_reference', 'value_array_int', 'value_array_str', 'value')
 
 
     def get_short_name(self, obj):
@@ -79,8 +81,13 @@ class RIValueSerializer(serializers.ModelSerializer):
             rec = Records.objects.filter(id=obj.value_reference).first()
             return rec.number
         elif obj.indicator.type_value == 'user':
+            if obj.indicator.is_multiple:
+                return obj.value_array_int
             usr = User.objects.filter(id=obj.value_reference).first()
-            return f"{usr.first_name} {usr.last_name}"
+            if not usr:
+                return None
+            return obj.value_reference
+            # return f"{usr.first_name} {usr.last_name}"
         elif obj.indicator.type_value == 'org':
             org = Organization.objects.filter(id=obj.value_reference).first()
             return org.short_name.get(lang)
@@ -299,7 +306,7 @@ class RecordUpdateSerializer(CommonSerializer):
     number = serializers.CharField(required=False)
     date = serializers.DateField(required=False)
     parent_id = serializers.IntegerField(required=False)
-    record_id = serializers.IntegerField(required=True)
+    record_id = serializers.IntegerField(required=False)
     status_id = serializers.IntegerField(required=False)
     organization_id = serializers.IntegerField(required=False)
     indicators = IndicatorUpdateSerializer(many=True, required=False)
