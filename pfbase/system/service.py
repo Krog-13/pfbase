@@ -2,6 +2,7 @@ from django.core.mail import send_mail
 import os
 from rest_framework import serializers
 import filetype
+import magic
 
 class EmailSendNotification:
     """
@@ -14,15 +15,17 @@ class EmailSendNotification:
 
 
 ALLOWED_EXTENSIONS = ("jpg", "jpeg", "png", "pdf", "docx", "xlsx", "txt")
-# EXTENSION_TO_MIME = {
-#     "jpg": ["image/jpeg"],
-#     "jpeg": ["image/jpeg"],
-#     "png": ["image/png"],
-#     "pdf": ["application/pdf"],
-#     "docx": ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
-#     "xlsx": ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
-#     "txt": ["text/plain", "text/x-plain"],
-# }
+
+EXTENSION_TO_MIME = {
+    "jpg": ["image/jpeg"],
+    "jpeg": ["image/jpeg"],
+    "png": ["image/png"],
+    "pdf": ["application/pdf"],
+    "docx": ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    "xlsx": ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+    "txt": ["text/plain", "text/x-plain"],
+}
+
 EXTENSION_TO_FILETYPE = {
     "jpg": ["jpg"],
     "jpeg": ["jpg"],
@@ -48,10 +51,10 @@ class FileValidationService:
         cls.validate_size(file)
         cls.validate_filename(file)
         extension = cls.validate_extension(file)
-        detected_type = cls.detect_real_type(file)
-        cls.validate_type_vs_extension(file, extension, detected_type)
-        # detected_mime = cls.detect_real_mime(file)
-        # cls.validate_mime_vs_extension(extension, detected_mime)
+        # detected_type = cls.detect_real_type(file)
+        # cls.validate_type_vs_extension(file, extension, detected_type)
+        detected_mime = cls.detect_real_mime(file)
+        cls.validate_mime_vs_extension(extension, detected_mime)
         return file
 
     @classmethod
@@ -101,22 +104,22 @@ class FileValidationService:
 
         return extension
 
-    # @classmethod
-    # def detect_real_mime(cls, file):
-    #     header = file.read(2048)
-    #     file.seek(0)
-    #
-    #     mime = magic.from_buffer(header, mime=True)
-    #     return mime
+    @classmethod
+    def detect_real_mime(cls, file):
+        header = file.read(2048)
+        file.seek(0)
 
-    # @classmethod
-    # def validate_mime_vs_extension(cls, extension, detected_mime):
-    #     allowed_mimes = EXTENSION_TO_MIME.get(extension)
-    #
-    #     if not allowed_mimes:
-    #         raise serializers.ValidationError(f"Неизвестный тип файла. Разрешены {','.join(ALLOWED_EXTENSIONS)} типы файлов")
-    #     if detected_mime not in allowed_mimes:
-    #         raise serializers.ValidationError(f"Тип файла не соответствует расширению ({detected_mime})")
+        mime = magic.from_buffer(header, mime=True)
+        return mime
+
+    @classmethod
+    def validate_mime_vs_extension(cls, extension, detected_mime):
+        allowed_mimes = EXTENSION_TO_MIME.get(extension)
+
+        if not allowed_mimes:
+            raise serializers.ValidationError(f"Неизвестный тип файла. Разрешены {','.join(ALLOWED_EXTENSIONS)} типы файлов")
+        if detected_mime not in allowed_mimes:
+            raise serializers.ValidationError(f"Тип файла не соответствует расширению ({detected_mime})")
 
     @classmethod
     def detect_real_type(cls, file):
