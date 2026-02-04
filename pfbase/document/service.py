@@ -482,7 +482,11 @@ class RecordService:
 
         for indicator in indicators:
             type_value = indicator.get('type')
-            rv = record.record_values.get(id=indicator.get('id'), indicator__type_value=type_value)
+            try:
+                rv = record.record_values.get(id=indicator.get('id'))
+            except RecordIndicatorValues.DoesNotExist:
+                record_indicator = DcmIndicators.objects.get(code=indicator.get('code'), type_value=type_value)
+                rv = record.record_values.create(indicator=record_indicator)
             some_value = indicator.get('value')
             if rv.indicator.is_multiple:
                 result = self.separate_multiple_value(rv, type_value, some_value)
