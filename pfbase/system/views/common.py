@@ -1,9 +1,11 @@
 from rest_framework import status, exceptions as exc
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import views
 from ..serializers.common import FileSaveSerializer, FileGetSerializer, FilesSaveSerializer
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework import views
+import smtplib
+
 
 from ..throttles import FileUploadThrottle
 
@@ -50,6 +52,53 @@ class FileAPIView(views.APIView):
             raise exc.ValidationError({"message": "Failed to process the uploaded file(s). Please try again or check the file format."})
 
 
+class MailCheckAPI(views.APIView):
+    """
+    Mail Check API View
+    Проверяет возможность входа по SMTP.
+    """
+    def post(self, request):
+        data = request.data
+        # Получаем параметры из запроса
+        email_host = data.get("email_host")
+        email_port = data.get("email_port", 587)
+        email_user = data.get("email_user")
+        email_password = data.get("email_password")
+        use_ssl = data.get("use_ssl", False)
+        use_tls = data.get("use_tls", True)
+
+        if not all([email_host, email_port, email_user, email_password]):
+            return Response({"status": "error", "message": "Missing required parameters"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            if use_ssl:
+                server = smtplib.SMTP_SSL(email_host, email_port, timeout=10)
+            else:
+                server = smtplib.SMTP(email_host, email_port, timeout=10)
+                if use_tls:
+                    server.starttls()
+            server.login(email_user, email_password)
+            server.quit()
+            return Response({
+                "email": email_user,
+                "status": "success",
+                "message": "Login successful ✅"
+            }, status=status.HTTP_200_OK)
+
+        except smtplib.SMTPAuthenticationError as e:
+            return Response({
+                "email": email_user,
+                "status": "failed",
+                "message": "Login failed ❌",
+                "error": str(e)
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            return Response({
+                "email": email_user,
+                "status": "error",
+                "message": "Other error ❌",
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # class EcpAPIView(views.APIView):
 #     """
 #     ECP API View

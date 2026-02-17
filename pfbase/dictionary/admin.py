@@ -119,6 +119,12 @@ class EIValueAdmin(admin.ModelAdmin):
             return obj.value_bool
         elif obj.value_json:
             return "JSON data"
+        elif obj.value_array_int:
+            return "Array of int"
+        elif obj.value_array_str:
+            return "Array of str"
+        elif obj.value_json:
+            return "JSON data"
         else:
             return None
 
