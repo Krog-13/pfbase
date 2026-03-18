@@ -37,7 +37,7 @@ class RecordHistoryAdmin(admin.ModelAdmin):
     list_display = ('status', 'record', 'author', 'created_at', 'id')
     list_select_related = ("record", "author", "status", "record__document",)
     search_fields = ('=record__id', 'author__username', 'status__code',)
-    readonly_fields = ("record",)
+    autocomplete_fields = ("record",)
     list_per_page = 50
 
 

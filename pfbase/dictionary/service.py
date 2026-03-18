@@ -289,6 +289,8 @@ class ExcelUpload:
                 self.mapping[idx] = f"indicators_{item}"
 
         for row in self.sheet.iter_rows(min_row=2):
+            if row[0].value in (None, ""):
+                continue
             self.output = {"code": None,
                            "dictionary_code": self.dct_code,
                            "parent_id": None,

@@ -5,6 +5,7 @@ from ..serializers.common import FileSaveSerializer, FileGetSerializer, FilesSav
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework import views
 import smtplib
+from email.message import EmailMessage
 
 
 from ..throttles import FileUploadThrottle
@@ -63,6 +64,7 @@ class MailCheckAPI(views.APIView):
         email_host = data.get("email_host")
         email_port = data.get("email_port", 587)
         email_user = data.get("email_user")
+        to_email = data.get("to_email")
         email_password = data.get("email_password")
         use_ssl = data.get("use_ssl", False)
         use_tls = data.get("use_tls", True)
@@ -78,6 +80,17 @@ class MailCheckAPI(views.APIView):
                 if use_tls:
                     server.starttls()
             server.login(email_user, email_password)
+
+            # Формируем тестовое письмо
+            msg = EmailMessage()
+            msg["Subject"] = "SMTP Test Email"
+            msg["From"] = email_user
+            msg["To"] = to_email
+            msg.set_content("Это тестовое письмо для проверки SMTP подключения.")
+            if to_email:
+                # Отправка
+                server.send_message(msg)
+
             server.quit()
             return Response({
                 "email": email_user,
