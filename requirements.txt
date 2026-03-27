@@ -11,8 +11,6 @@ openpyxl==3.1.2
 #django-debug-toolbar==5.0.1
 asn1crypto==1.5.1
 cryptography==45.0.4
-# library for working with digital ECP in Kazakhstan
-pykalkan~=1.2.0
 #for windows
 python-magic-bin
 #for linux | sudo apt-get install libmagic1
