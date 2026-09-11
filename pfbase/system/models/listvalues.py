@@ -1,30 +1,28 @@
-from pfbase.base_models import default_name, CommonManager
+from pfbase.base_models import default_name, CommonManager, TimeStampedModel, AutoSortModel
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
-class ListValues(models.Model):
+class ListValues(TimeStampedModel, AutoSortModel):
     """
-    Список значений
+    List of values
     """
-    list = models.CharField(max_length=128, verbose_name='Список')
-    code = models.CharField(max_length=128, verbose_name='Код значения')
+    list = models.CharField(max_length=128, verbose_name=_('List'))
+    code = models.CharField(max_length=128, verbose_name=_('Code'))
     short_name = models.JSONField(
-        verbose_name='Краткое наименование', default=default_name)
+        verbose_name=_('Short name'), default=default_name)
     full_name = models.JSONField(
-        verbose_name='Полное наименование', null=True, blank=True, default=default_name)
-    active = models.BooleanField(default=True, verbose_name='Активный')
+        verbose_name=_('Full name'), null=True, blank=True, default=default_name)
+    active = models.BooleanField(default=True, verbose_name=_('Active'))
     author = models.ForeignKey(
-        to="User", on_delete=models.CASCADE, verbose_name='Автор', related_name="list_values")
-    index_sort = models.PositiveIntegerField(blank=True, verbose_name='Индекс сортировки', null=True, default=0)
-    created_at = models.DateTimeField(auto_now_add=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, blank=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
+        to="User", on_delete=models.CASCADE, verbose_name=_('Author'), related_name="list_values")
+
     objects = CommonManager()
 
     def __str__(self):
-        return self.list + "." + self.code
+        return f"{self.list}.{self.code}"
 
     class Meta:
         db_table = '"stm\".\"list_values"'
-        verbose_name = 'STM Список значений'
-        verbose_name_plural = 'STM Списки значений'
+        verbose_name = _('STM List Value')
+        verbose_name_plural = _('STM List Values')

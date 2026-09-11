@@ -1,4 +1,4 @@
-from pfbase.base_models import default_name, CommonManager
+from pfbase.base_models import default_name, CommonManager, TimeStampedModel
 from django.db import models
 
 
@@ -7,30 +7,28 @@ class DictionaryType(models.TextChoices):
     SUB = 'sub', 'Sub'
 
 
-class Dictionaries(models.Model):
+class Dictionaries(TimeStampedModel):
     """
-    Абстракции справочников
+    Dictionary abstractions
     """
-    name = models.JSONField(verbose_name='Наименование', default=default_name)
+    name = models.JSONField(verbose_name='Name', default=default_name)
     description = models.JSONField(
-        null=True, blank=True, verbose_name='Описание', default=default_name)
+        null=True, blank=True, verbose_name='Description', default=default_name)
     code = models.CharField(
-        max_length=128, verbose_name='Код', unique=True)
+        max_length=128, verbose_name='Code', unique=True)
     author = models.ForeignKey(
-        to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор')
+        to="User", on_delete=models.SET_NULL, null=True, verbose_name='Author')
     active = models.BooleanField(
-        default=True, verbose_name='Активный')
+        default=True, verbose_name='Active')
     parent = models.ForeignKey(
         "self", null=True, blank=True, related_name="children",
-        on_delete=models.CASCADE, verbose_name='Родительская абстракция')
+        on_delete=models.CASCADE, verbose_name='Parent abstraction')
     organization = models.ForeignKey(
-        to="Organization", on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Организация')
+        to="Organization", on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Organization')
     type = models.CharField(
         choices=DictionaryType.choices, max_length=4,
-        verbose_name='Тип абстракции', default=DictionaryType.MAIN)
-    created_at = models.DateTimeField(auto_now_add=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, blank=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
+        verbose_name='Abstraction type', default=DictionaryType.MAIN)
+
     objects = CommonManager()
 
     def __str__(self):
@@ -38,5 +36,5 @@ class Dictionaries(models.Model):
 
     class Meta:
         db_table = '"dct\".\"dictionaries"'
-        verbose_name = 'DCT Справочник'
-        verbose_name_plural = 'DCT Справочники'
+        verbose_name = 'DCT Dictionary'
+        verbose_name_plural = 'DCT Dictionaries'

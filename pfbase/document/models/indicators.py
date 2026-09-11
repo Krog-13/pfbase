@@ -1,23 +1,19 @@
-from pfbase.base_models import IndicatorBase, CommonManager
+from pfbase.base_models import IndicatorBase
 from pfbase.document.manager import DcmIndicatorsManager
-from pfbase import config
 from .documents import Documents
 from django.db import models
 
 
 class DcmIndicators(IndicatorBase):
     """
-    Показатели :Documents
+    Indicators for :Documents
     """
     document = models.ForeignKey(
-        to=Documents, on_delete=models.CASCADE, verbose_name='Документ',
+        to=Documents, on_delete=models.CASCADE, verbose_name='Document',
         related_name='indicators')
-    author = models.ForeignKey(to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор',
+    author = models.ForeignKey(to="User", on_delete=models.SET_NULL, null=True, verbose_name='Author',
                                related_name="indicators")
-    calc_rule = models.JSONField(verbose_name='Правило вычисления', null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, blank=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
+    calc_rule = models.JSONField(verbose_name='Calculation rule', null=True, blank=True)
     objects = DcmIndicatorsManager()
 
     def __str__(self):
@@ -25,14 +21,5 @@ class DcmIndicators(IndicatorBase):
 
     class Meta:
         db_table = '"dcm\".\"indicators"'
-        verbose_name = 'DCM Индикатор'
-        verbose_name_plural = 'DCM Индикаторы'
-
-    def save(self, *args, **kwargs):
-        """Автоматическое заполнение сортировки"""
-        if not self.pk:
-            max_sort = DcmIndicators.objects.aggregate(models.Max('index_sort'))['index_sort__max']
-            if max_sort is None:
-                max_sort = config.START_STEP
-            self.index_sort = max_sort + config.STEP_SORT
-        super().save(*args, **kwargs)
+        verbose_name = 'DCM Indicator'
+        verbose_name_plural = 'DCM Indicators'

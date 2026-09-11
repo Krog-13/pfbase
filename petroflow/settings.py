@@ -72,7 +72,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'rest_framework.authtoken',
-    # 'debug_toolbar',
+    'django.contrib.postgres',
     'pfbase',
 ]
 
@@ -108,9 +108,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'petroflow.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
@@ -149,11 +146,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'ru'
+LANGUAGE_CODE = 'en'
 
 TIME_ZONE = 'Asia/Almaty'
 
-USE_I18N = True
+USE_I18N = False
 
 USE_TZ = False
 
@@ -166,25 +163,27 @@ STATIC_ROOT = BASE_DIR / 'static'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Sending emails
-if not DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_BACKEND = 'petroflow.backend.email.EmailBackend'
-    EMAIL_HOST = env('EMAIL_HOST')
-    EMAIL_PORT = env('EMAIL_PORT')
-    EMAIL_HOST_USER = env('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
-    EMAIL_USE_SSL = env('EMAIL_USE_SSL')
-    EMAIL_USE_TLS = env('EMAIL_USE_TLS')
+# main config
+SMTP_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+CONSOLE_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
+_BACKEND_ALIASES = {
+    "smtp": SMTP_BACKEND,
+    "console": CONSOLE_BACKEND,
+}
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
+MAILERS = {"default": {"BACKEND": _BACKEND_ALIASES["smtp"]},
+           "OPTIONS": {
+               "host": env('EMAIL_HOST'),
+                "port": env('EMAIL_PORT'),
+                "password": env('EMAIL_HOST_PASSWORD'),
+                "username": env('EMAIL_HOST_USER'),
+                "use_tls": env('EMAIL_USE_TLS'),
+                "use_ssl": env('EMAIL_USE_SSL'),
+                "timeout": 10
+           }}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
 
 # Update default User
 AUTH_USER_MODEL = 'pfbase.User'
@@ -270,8 +269,3 @@ LOGGING = {
 
 
 logging.config.dictConfig(LOGGING)
-
-
-# INTERNAL_IPS = [
-#     '127.0.0.1',
-# ]

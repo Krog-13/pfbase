@@ -1,24 +1,19 @@
 from pfbase.base_models import IndicatorValueBase
-from pfbase import config
 from django.db import models
 from .indicators import DcmIndicators
 from .records import Records
-import json
 
 
 class RecordIndicatorValues(IndicatorValueBase):
     """
-    Значения индикаторов по Записям
+    Indicator values for :Records
     """
     record = models.ForeignKey(
-        to=Records, on_delete=models.CASCADE, verbose_name='Запись',
+        to=Records, on_delete=models.CASCADE, verbose_name='Record',
         related_name="record_values")
     indicator = models.ForeignKey(
-        to=DcmIndicators, on_delete=models.CASCADE, verbose_name='Показатель',
+        to=DcmIndicators, on_delete=models.CASCADE, verbose_name='Indicator',
         related_name="indicator_values")
-    created_at = models.DateTimeField(auto_now_add=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, blank=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         if self.value_str:
@@ -46,19 +41,5 @@ class RecordIndicatorValues(IndicatorValueBase):
 
     class Meta:
         db_table = '"dcm\".\"record_indicator_values"'
-        verbose_name = 'DCM Значение инидкатора'
-        verbose_name_plural = 'DCM Значения индикаторов'
-
-    @staticmethod
-    def json_file_data(filename, file_id):
-        file_data = {"filename": filename, "file_id": file_id}
-        return json.dumps(file_data)
-
-    def save(self, *args, **kwargs):
-        """Автоматическое заполнение сортировки"""
-        if not self.pk:
-            max_sort = RecordIndicatorValues.objects.aggregate(models.Max('index_sort'))['index_sort__max']
-            if max_sort is None:
-                max_sort = config.START_STEP
-            self.index_sort = max_sort + config.STEP_SORT
-        super().save(*args, **kwargs)
+        verbose_name = 'DCM Indicator Value'
+        verbose_name_plural = 'DCM Indicator Values'

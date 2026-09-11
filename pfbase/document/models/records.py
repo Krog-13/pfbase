@@ -1,30 +1,28 @@
-from pfbase.base_models import SoftDelete
+from pfbase.base_models import SoftDelete, TimeStampedModel
 from .documents import Documents
 from django.db import models
 from ..manager import RecordsManager
 
-# ToDo: размножить SoftDelete в каждом приложении
-class Records(SoftDelete):
+
+class Records(SoftDelete, TimeStampedModel):
     """
-    Запсиси :Documents
+    Records for :Documents
     """
-    number = models.CharField(verbose_name="Номер", max_length=255)
-    date = models.DateTimeField(verbose_name="Дата")
-    active = models.BooleanField(default=True, verbose_name="Активный")
+    number = models.CharField(verbose_name="Number", max_length=255)
+    date = models.DateTimeField(verbose_name="Date")
+    active = models.BooleanField(default=True, verbose_name="Active")
     document = models.ForeignKey(
         to=Documents, on_delete=models.SET_NULL, null=True,
-        verbose_name='Документ')
+        verbose_name='Document')
     parent = models.ForeignKey(
         "self", null=True, blank=True, related_name="children", on_delete=models.CASCADE,
-        verbose_name='Родительская запись')
+        verbose_name='Parent record')
     author = models.ForeignKey(
-        to="User", on_delete=models.CASCADE, verbose_name='Автор')
+        to="User", on_delete=models.CASCADE, verbose_name='Author')
     organization = models.ForeignKey(
         to="Organization", on_delete=models.SET_NULL, blank=True, null=True,
-        verbose_name='Организация', related_name="records")
-    created_at = models.DateTimeField(auto_now_add=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, blank=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
+        verbose_name='Organization', related_name="records")
+
     objects = RecordsManager()
 
     def __str__(self):
@@ -41,5 +39,5 @@ class Records(SoftDelete):
 
     class Meta:
         db_table = '"dcm\".\"records"'
-        verbose_name = 'DCM Запись документа'
-        verbose_name_plural = 'DCM Записи документов'
+        verbose_name = 'DCM Document Record'
+        verbose_name_plural = 'DCM Document Records'

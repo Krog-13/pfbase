@@ -10,25 +10,25 @@ class Action(models.TextChoices):
 
 class ElementHistory(models.Model):
     """
-    История действии над :Elements
+    History of actions on :Elements
     """
     status = models.ForeignKey(
-        to="ListValues", on_delete=models.SET_NULL, null=True, verbose_name='Статус')
-    stamp = models.JSONField(verbose_name='Слепок', null=True, blank=True)
+        to="ListValues", on_delete=models.SET_NULL, null=True, verbose_name='Status')
+    stamp = models.JSONField(verbose_name='Stamp', null=True, blank=True)
     action = models.CharField(
-        choices=Action.choices, max_length=6, verbose_name='Действие', default=Action.CREATED)
+        choices=Action.choices, max_length=6, verbose_name='Action', default=Action.CREATED)
     element = models.ForeignKey(
-        to=Elements, on_delete=models.SET_NULL, null=True, verbose_name='Элемент справочника',
+        to=Elements, on_delete=models.SET_NULL, null=True, verbose_name='Dictionary element',
         related_name="history")
     author = models.ForeignKey(
-        to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор')
+        to="User", on_delete=models.SET_NULL, null=True, verbose_name='Author')
     created_at = models.DateTimeField(
-        auto_now_add=True, blank=True, verbose_name='Дата и время действия')
+        auto_now_add=True, blank=True, verbose_name='Action date and time')
 
     def __str__(self):
-        return self.status.code
+        return self.status.code if self.status else f"History {self.pk}"
 
     class Meta:
         db_table = '"dct\".\"element_history"'
-        verbose_name = 'DCT История элемента'
-        verbose_name_plural = 'DCT История элементов'
+        verbose_name = 'DCT Element History'
+        verbose_name_plural = 'DCT Element Histories'

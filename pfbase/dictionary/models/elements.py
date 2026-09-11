@@ -1,36 +1,33 @@
-from pfbase.base_models import default_name, CommonManager
+from pfbase.base_models import default_name, TimeStampedModel, AutoSortModel
 from .dictionaries import Dictionaries
 from django.db import models
 from ..manager import ElementManager
 
-class Elements(models.Model):
+
+class Elements(TimeStampedModel, AutoSortModel):
     """
-    Элементы :Dictionary
+    Elements for :Dictionaries
     """
     short_name = models.JSONField(
-        verbose_name='Краткое наименование', default=default_name)
+        verbose_name='Short name', default=default_name)
     full_name = models.JSONField(
-        verbose_name='Полное наименование', null=True, blank=True, default=default_name)
+        verbose_name='Full name', null=True, blank=True, default=default_name)
     code = models.CharField(
-        max_length=128, verbose_name='Код', unique=False, null=True, blank=True)
+        max_length=128, verbose_name='Code', unique=False, null=True, blank=True)
     dictionary = models.ForeignKey(
         to=Dictionaries, on_delete=models.SET_NULL, null=True,
-        verbose_name='Справочник', related_name="elements")
+        verbose_name='Dictionary', related_name="elements")
     parent = models.ForeignKey(
         "self", null=True, blank=True, related_name="children",
-        on_delete=models.CASCADE, verbose_name='Родительский элемент')
+        on_delete=models.CASCADE, verbose_name='Parent element')
     active = models.BooleanField(
-        default=True, verbose_name='Активный')
+        default=True, verbose_name='Active')
     author = models.ForeignKey(
-        to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор', related_name="elements")
+        to="User", on_delete=models.SET_NULL, null=True, verbose_name='Author', related_name="elements")
     organization = models.ForeignKey(
         to="Organization", on_delete=models.SET_NULL, blank=True, null=True,
-        verbose_name='Организация', related_name="elements")
-    index_sort = models.PositiveBigIntegerField(
-        blank=True, null=True, verbose_name='Индекс сортировки')
-    created_at = models.DateTimeField(auto_now_add=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, blank=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
+        verbose_name='Organization', related_name="elements")
+
     objects = ElementManager()
 
     def __str__(self):
@@ -38,5 +35,5 @@ class Elements(models.Model):
 
     class Meta:
         db_table = '"dct\".\"elements"'
-        verbose_name = 'DCT Элемент'
-        verbose_name_plural = 'DCT Элементы'
+        verbose_name = 'DCT Element'
+        verbose_name_plural = 'DCT Elements'

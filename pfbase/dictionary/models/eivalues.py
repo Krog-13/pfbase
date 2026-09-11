@@ -1,33 +1,29 @@
 from pfbase.base_models import IndicatorValueBase
-from pfbase import config
 from django.db import models
 from .indicators import DctIndicators
 from .elements import Elements
-import json
 from pfbase.dictionary.manager import ElementsIndicatorValueManager
+
 
 class ElementIndicatorValues(IndicatorValueBase):
     """
-    Значения индикаторов по Элементам
+    Indicator values for :Elements
     """
     element = models.ForeignKey(
-        to=Elements, on_delete=models.CASCADE, verbose_name='Элемент',
+        to=Elements, on_delete=models.CASCADE, verbose_name='Element',
         related_name="element_values")
     indicator = models.ForeignKey(
-        to=DctIndicators, on_delete=models.CASCADE, verbose_name='Показатель',
+        to=DctIndicators, on_delete=models.CASCADE, verbose_name='Indicator',
         related_name="indicator_values")
     author = models.ForeignKey(
-        to="User", on_delete=models.SET_NULL, null=True, verbose_name='Автор')
-    created_at = models.DateTimeField(auto_now_add=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, blank=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
-    objects = ElementsIndicatorValueManager()
+        to="User", on_delete=models.SET_NULL, null=True, verbose_name='Author')
 
+    objects = ElementsIndicatorValueManager()
 
     class Meta:
         db_table = '"dct\".\"element_indicator_values"'
-        verbose_name = 'DCT Значения индикатора'
-        verbose_name_plural = 'DCT Значения индикаторов'
+        verbose_name = 'DCT Indicator Value'
+        verbose_name_plural = 'DCT Indicator Values'
 
     def __str__(self):
         if self.value_str:
@@ -48,17 +44,3 @@ class ElementIndicatorValues(IndicatorValueBase):
             return "JSON data"
         else:
             return "No data"
-
-    def save(self, *args, **kwargs):
-        """Автоматическое заполнение сортировки"""
-        if not self.pk:
-            max_sort = ElementIndicatorValues.objects.aggregate(models.Max('index_sort'))['index_sort__max']
-            if max_sort is None:
-                max_sort = config.START_STEP
-            self.index_sort = max_sort + config.STEP_SORT
-        super().save(*args, **kwargs)
-
-    @staticmethod
-    def json_file_data(filename, file_id):
-        file_data = {"filename": filename, "file_id": file_id}
-        return json.dumps(file_data)
