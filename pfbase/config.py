@@ -1,7 +1,7 @@
-START_STEP = 100  # Стартовое значение сортировки
-STEP_SORT = 5  # Счетчик сортировки +5
+START_STEP = 100  # Start value sort
+STEP_SORT = 5  # Count sorted +5
 
 
-# Шаблон для JSON формата
+# Default JSON format
 def default_name():
     return {"ru": "", "kk": "", "en": ""}
