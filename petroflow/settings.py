@@ -10,58 +10,25 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-import environ
-from pathlib import Path
+import os
 import logging.config
+from datetime import timedelta
+from pathlib import Path
+
+import environ
 from corsheaders.defaults import default_headers
 
-env = environ.Env(
-    DEBUG=(bool),
-    LOCAL=(bool),
-    SECRET_KEY=(str),
-    DATABASE_NAME=(str),
-    DATABASE_USER=(str),
-    DATABASE_PASSWORD=(str),
-    DATABASE_HOST=(str),
-    DATABASE_PORT=(str),
-
-    MINIO_ACCESS_KEY=(str),
-    MINIO_SECRET_KEY=(str),
-    MINIO_SERVER=(str),
-    MINIO_BUCKET=(str),
-
-    EMAIL_HOST=(str),
-    EMAIL_PORT=(int),
-    EMAIL_HOST_USER=(str),
-    EMAIL_HOST_PASSWORD=(str),
-    EMAIL_USE_SSL=(bool),
-    EMAIL_USE_TLS=(bool),
-
-    CORS_ALLOWED_ORIGINS=(list),
-    CSRF_TRUSTED_ORIGINS=(list),
-
-    ALLOWED_HOSTS=(list)
-)
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+SECRET_KEY = os.environ["SECRET_KEY"]
 
-environ.Env.read_env(BASE_DIR / '.env')
+DEBUG = os.environ["DEBUG"]
+LOCAL = os.environ["LOCAL"]
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG')
-LOCAL = env('LOCAL')
-
-ALLOWED_HOSTS = env('ALLOWED_HOSTS')
+ALLOWED_HOSTS = os.environ["ALLOWED_HOSTS"].split(",")
 
 # Application definition
 INSTALLED_APPS = [
+    # Django
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -69,10 +36,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.admindocs',
-    'rest_framework',
-    'corsheaders',
-    'rest_framework.authtoken',
     'django.contrib.postgres',
+
+    # Third-party
+    'grappelli',
+    'corsheaders',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'drf_spectacular',
+
+    # Local
     'pfbase',
 ]
 
@@ -85,7 +58,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'debug_toolbar.middleware.DebugToolbarMiddleware'
 ]
 
 ROOT_URLCONF = 'petroflow.urls'
@@ -108,24 +80,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'petroflow.wsgi.application'
 
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': env('DATABASE_NAME'),
-        'USER': env('DATABASE_USER'),
-        'PASSWORD': env('DATABASE_PASSWORD'),
-        'HOST': env('DATABASE_HOST'),
-        'PORT': env('DATABASE_PORT'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ['DATABASE_NAME'],
+        'USER': os.environ['DATABASE_USER'],
+        'PASSWORD': os.environ['DATABASE_PASSWORD'],
+        'HOST': os.environ['DATABASE_HOST'],
+        'PORT': os.environ['DATABASE_PORT'],
         'OPTIONS': {
             'options': '-c search_path=public,dct,dcm,stm',
         },
     }
 }
-
-
-# Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -143,9 +110,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
-
 LANGUAGE_CODE = 'en'
 
 TIME_ZONE = 'Asia/Almaty'
@@ -154,14 +118,32 @@ USE_I18N = False
 
 USE_TZ = False
 
+APPEND_SLASH = False
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'static'
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+
+# MinIO (S3-compatible) storage
+AWS_S3_ENDPOINT_URL = os.environ["MINIO_ENDPOINT_URL"]
+AWS_ACCESS_KEY_ID = os.environ["MINIO_ACCESS_KEY"]
+AWS_SECRET_ACCESS_KEY = os.environ["MINIO_SECRET_KEY"]
+AWS_STORAGE_BUCKET_NAME = os.environ["MINIO_BUCKET_NAME"]
+AWS_S3_REGION_NAME = "us-east-1"          # MinIO default
+AWS_S3_SIGNATURE_VERSION = "s3v4"
+AWS_S3_ADDRESSING_STYLE = "path"          # required for MinIO
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None
+AWS_QUERYSTRING_AUTH = True               # signed (temporary) URLs; set False if bucket is public
+AWS_S3_URL_PROTOCOL = "http:"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 # main config
 SMTP_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -174,12 +156,12 @@ _BACKEND_ALIASES = {
 
 MAILERS = {"default": {"BACKEND": _BACKEND_ALIASES["smtp"]},
            "OPTIONS": {
-               "host": env('EMAIL_HOST'),
-                "port": env('EMAIL_PORT'),
-                "password": env('EMAIL_HOST_PASSWORD'),
-                "username": env('EMAIL_HOST_USER'),
-                "use_tls": env('EMAIL_USE_TLS'),
-                "use_ssl": env('EMAIL_USE_SSL'),
+               "host": os.environ['EMAIL_HOST'],
+                "port": os.environ['EMAIL_PORT'],
+                "password": os.environ['EMAIL_HOST_PASSWORD'],
+                "username": os.environ['EMAIL_HOST_USER'],
+                "use_tls": os.environ['EMAIL_USE_TLS'],
+                "use_ssl": os.environ['EMAIL_USE_SSL'],
                 "timeout": 10
            }}
 
@@ -192,10 +174,9 @@ REST_FRAMEWORK = {
     # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     # 'PAGE_SIZE': 10,
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication'
-    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
@@ -206,11 +187,12 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'file-upload': '10/min',
-    }
+    },
 
-    # 'DEFAULT_PERMISSION_CLASSES': [
-    #     'rest_framework.permissions.IsAuthenticated',
-    # ]
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 if LOCAL:
@@ -221,16 +203,28 @@ if LOCAL:
     CORS_ALLOW_ALL_ORIGINS = True
     # CORS_ORIGIN_WHITELIST = ["https://e792-176-98-224-108.ngrok-free.app", "http://localhost:5174"]
 else:
-    CORS_ALLOWED_ORIGINS = env('CORS_ALLOWED_ORIGINS')
+    CORS_ALLOWED_ORIGINS = os.environ["CORS_ALLOWED_ORIGINS"].split(",")
 
-CSRF_TRUSTED_ORIGINS = env('CSRF_TRUSTED_ORIGINS')
 
-# MINIO
-MINIO_SERVER = env('MINIO_SERVER')
-MINIO_ACCESS_KEY = env('MINIO_ACCESS_KEY')
-MINIO_SECRET_KEY = env('MINIO_SECRET_KEY')
-MINIO_BUCKET = env('MINIO_BUCKET', default='templates')
+CSRF_TRUSTED_ORIGINS = os.environ["CSRF_TRUSTED_ORIGINS"].split(",")
 
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Pfbase API",
+    "DESCRIPTION": "API documentation for the Digital Twin project",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=240),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": False,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
 
 LOGGING_CONFIG = None
 
