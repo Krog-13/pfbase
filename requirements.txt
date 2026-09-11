@@ -1,16 +1,24 @@
-Django>=6.0.0
-djangorestframework>=3.17.1
-psycopg2-binary>=2.9.11
-django-cors-headers>=4.9.0
-minio>=7.2.20
-django-environ>=0.13.0
-gunicorn>=25.3.0
-pillow>=12.2.0
-django-filter>=25.2
-openpyxl>=3.1.5
+Django~=6.1.1
+djangorestframework~=3.18.1
+django-cors-headers~=4.9.0
+djangorestframework-simplejwt~=5.5.1
+django-filter~=26.1
 
-#for windows
+gunicorn~=26.2.0
+
+pillow~=12.3.0
+psycopg[binary]~=3.2
+django-storages[s3]~=1.14.6
+django-grappelli~=5.0.0
+
+drf-spectacular~=0.30.0
+openpyxl~=3.1.5
+
+# Windows
 python-magic-bin
-#for linux | sudo apt-get install libmagic1
-#python-magic
+
+# Linux:
+# sudo apt-get install libmagic1
+# python-magic
+
 filetype
