@@ -3,9 +3,7 @@ from .models.indicators import DcmIndicators
 from .models.records import Records
 from .models.rivalues import RecordIndicatorValues
 from .models.rhistory import RecordHistory
-from ..dictionary.models.dictionaries import Dictionaries
 from django.contrib import admin
-from django import forms
 
 
 # Admin for Documents

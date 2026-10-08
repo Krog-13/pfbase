@@ -130,7 +130,6 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # MinIO (S3-compatible) storage
-MINIO_SERVER = os.environ["MINIO_SERVER"]
 MINIO_ACCESS_KEY = os.environ["MINIO_ACCESS_KEY"]
 MINIO_SECRET_KEY = os.environ["MINIO_SECRET_KEY"]
 MINIO_BUCKET = os.environ["MINIO_BUCKET"]
@@ -166,26 +165,17 @@ _BACKEND_ALIASES = {
     "console": CONSOLE_BACKEND,
 }
 
-EMAIL_BACKEND = SMTP_BACKEND
-EMAIL_HOST = os.environ['EMAIL_HOST']
-EMAIL_PORT = os.environ['EMAIL_PORT']
-EMAIL_HOST_USER = os.environ['EMAIL_HOST_USER']
-EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
-EMAIL_USE_TLS = os.environ['EMAIL_USE_TLS']
-EMAIL_USE_SSL = os.environ['EMAIL_USE_SSL']
-EMAIL_TIMEOUT = 10
-
 MAILERS = {
     "default": {
         "BACKEND": _BACKEND_ALIASES["smtp"],
         "OPTIONS": {
-            "host": EMAIL_HOST,
-            "port": EMAIL_PORT,
-            "password": EMAIL_HOST_PASSWORD,
-            "username": EMAIL_HOST_USER,
-            "use_tls": EMAIL_USE_TLS,
-            "use_ssl": EMAIL_USE_SSL,
-            "timeout": EMAIL_TIMEOUT,
+            "host": os.environ['EMAIL_HOST'],
+            "port": os.environ['EMAIL_PORT'],
+            "password": os.environ['EMAIL_HOST_PASSWORD'],
+            "username": os.environ['EMAIL_HOST_USER'],
+            "use_tls": os.environ['EMAIL_USE_TLS'],
+            "use_ssl": os.environ['EMAIL_USE_SSL'],
+            "timeout": 10,
         },
     }
 }
@@ -228,9 +218,9 @@ if LOCAL:
     CORS_ALLOW_ALL_ORIGINS = True
     # CORS_ORIGIN_WHITELIST = ["https://e792-176-98-224-108.ngrok-free.app", "http://localhost:5174"]
 else:
-    CORS_ALLOWED_ORIGINS = os.environ["CORS_ALLOWED_ORIGINS"]
+    CORS_ALLOWED_ORIGINS = os.environ["CORS_ALLOWED_ORIGINS"].split(",")
 
-CSRF_TRUSTED_ORIGINS = os.environ["CSRF_TRUSTED_ORIGINS"]
+CSRF_TRUSTED_ORIGINS = os.environ["CSRF_TRUSTED_ORIGINS"].split(",")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
