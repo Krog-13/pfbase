@@ -51,7 +51,7 @@ class RIAPIView(views.APIView):
     """
     Представление :Record with their :Indicators
     """
-    queryset = Records.objects.all().order_by('-created_at', '-id')
+    queryset = Records.objects.filter(is_deleted=False).order_by('-created_at', '-id')
     permission_classes = (IsAuthenticated,)
     pagination_class = CustomPagination
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -59,7 +59,7 @@ class RIAPIView(views.APIView):
     def get(self, request, *args, **kwargs):
         record_id = kwargs.get("pk")
         if record_id:
-            record = Records.objects.select_related(
+            record = Records.objects.filter(is_deleted=False).select_related(
                 "document", "author", "organization", "parent"
             ).prefetch_related(
                 "record_values__indicator",
