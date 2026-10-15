@@ -5,7 +5,6 @@ from datetime import datetime, timezone as tz
 from ..system import models as stm_models
 from ..dictionary import models as dct_models
 from .models import Records, DcmIndicators, Documents, RecordIndicatorValues, RecordHistory
-from django.db.models import Case, When, IntegerField
 from django.utils import timezone
 
 Typing = namedtuple('Typing', ['int', 'float', 'str', 'text', 'datetime', 'bool', 'reference', 'json', 'file', 'user', 'array_int', 'array_str'])
@@ -566,95 +565,6 @@ class RecordService:
                     return timezone.make_aware(parse_datetime, timezone=tz.utc)
         except ValueError:
             return False
-
-
-class TableService:
-
-    def __init__(self, queryset, params, data):
-        self.queryset = queryset
-        self.params = params
-        self.data = data
-        self.output = {"header": [], "body": []}
-        self.row = []
-        self.status = None
-
-    def construction_table(self):
-        self.document_code = self.data.get('document_code')
-        self.lang = self.params.get("lang", "ru")
-        self.status = self.params.get('status', False)
-        self.order_indicators_code = self.data.get('indicators_code')
-        table_header = self.table_header()
-        self.queryset = self.queryset.filter(document__code=self.document_code)
-        for item in table_header:
-            label = item.get("short_name").get(self.lang, "ru")
-            self.output["header"].append(label)
-        for record in self.queryset:
-            self.row = []
-            for code in self.order_indicators_code:
-                self.set_row(record, code)
-            if self.status:
-                self.status = self.get_status(record)
-            author = record.author.first_name + " " + record.author.last_name
-            self.output["body"].append({"row": self.row, "status": self.status, "id": record.id, "author": author})
-        return self.output
-
-    def get_status(self, record):
-        last_status = record.history.last()
-        if last_status:
-            status = last_status.status.short_name.get(self.lang, "ru")
-            code = last_status.status.code
-            created_at = last_status.created_at
-            return {"name": status,
-                    "code": code,
-                    "created_at": created_at.strftime("%Y-%m-%d %H:%M:%S")}
-
-    def table_header(self):
-        ordering = Case(  # подзапрос для сохранения порядка
-            *[When(code=code, then=pos) for pos, code in enumerate(self.order_indicators_code)],
-            output_field=IntegerField())
-
-        header = DcmIndicators.objects.filter(code__in=self.order_indicators_code,
-                                              document__code=self.document_code).values("short_name").order_by(ordering)
-        return header
-
-    def set_row(self, record, code):
-        value = record.record_values.filter(indicator__code=code).first()
-        if not value:
-            self.row.append(None)
-            return
-        if value.indicator.type_value in marker.reference:
-            value = self.get_reference_value(value)
-        else:
-            value = value.value_int or value.value_str or value.value_float or \
-                    value.value_text or value.value_datetime or \
-                    value.value_bool or value.value_json or \
-                    None
-
-        self.row.append(value)
-
-    def get_reference_value(self, value):
-        """Получение значения по id из Справочника или Списка"""
-        if value.indicator.type_value == 'dct':
-            element = dct_models.Elements.objects.filter(id=value.value_reference).first()
-            return element.short_name.get(self.lang, "ru")
-        elif value.indicator.type_value == 'list':
-            vl = stm_models.ListValues.objects.filter(id=value.value_reference).first()
-            return vl.short_name.get(self.lang, "ru")
-        return None
-
-
-def table_present(queryset, params, data):
-    """
-    Представление данных в виде таблицы
-    :header
-    :body
-    """
-    try:
-        ts = TableService(queryset, params, data)
-        output = ts.construction_table()
-    except KeyError:
-        return {"message": "Error"}
-    return output
 
 
 class HistoryService:

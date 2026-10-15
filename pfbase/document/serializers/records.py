@@ -11,6 +11,13 @@ import datetime
 from ...system.models import Organization
 
 
+def latest_record_history(obj):
+    prefetched = getattr(obj, "prefetched_history", None)
+    if prefetched is not None:
+        return prefetched[0] if prefetched else None
+    return obj.history.select_related("status").order_by("-created_at", "-id").first()
+
+
 class RecordSerializer(serializers.ModelSerializer):
     children = serializers.SerializerMethodField()
 
@@ -65,6 +72,15 @@ class RIValueSerializer(serializers.ModelSerializer):
     def get_value_name(self, obj):
         query_params = self.context['request'].query_params
         lang = query_params.get('lang', 'ru')
+        reference_names = self.context.get("reference_names")
+        if reference_names is not None:
+            reference_type = obj.indicator.type_value
+            if obj.indicator.is_multiple:
+                return [
+                    reference_names.get((reference_type, reference_id), reference_id)
+                    for reference_id in (obj.value_array_int or [])
+                ]
+            return reference_names.get((reference_type, obj.value_reference))
         if obj.indicator.type_value == 'dct':
             if obj.indicator.is_multiple:
                 return obj.value_array_int
@@ -98,9 +114,12 @@ class RIValueSerializer(serializers.ModelSerializer):
         if type_value in ["dct", "list", "dcm", "user", "org"]:
             return self.get_value_name(obj)
         mapping = {"str": "value_str", "text": "value_text", "date": "value_datetime", "int": "value_int", "float": "value_float",
-                   "datetime": "value_datetime", "file": "value_str", "bool": "value_bool", "time": "value_datetime", "json": "value_json"}
+                   "datetime": "value_datetime", "file": "value_str", "bool": "value_bool", "time": "value_datetime",
+                   "json": "value_json", "list_string": "value_array_str", "list_integers": "value_array_int",}
         mapping_multiple = {"str": "value_array_str", "text": "value_array_str",
-                            "int": "value_array_int", "file": "value_array_str", "date": "value_array_str"}
+                            "int": "value_array_int", "file": "value_array_str",
+                            "date": "value_array_str", "list_integers": "value_array_int",
+                            "list_string": "value_array_str"}
         if is_multiple:
             value = getattr(obj, mapping_multiple[type_value], None)
         else:
@@ -124,9 +143,9 @@ class RecordsSerializer(serializers.ModelSerializer):
         return False
 
     def get_status(self, obj):
-        last_status = obj.history.last()
+        last_status = latest_record_history(obj)
         if last_status:
-            return last_status.status.short_name
+            return last_status.status.short_name if last_status.status else None
         return None
 
 
@@ -143,14 +162,16 @@ class RIGetSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_status(self, obj):
-        last_status = obj.history.last()
+        last_status = latest_record_history(obj)
         if last_status:
-            return last_status.status.short_name
+            return last_status.status.short_name if last_status.status else None
         return None
 
     def get_status_info(self, obj):
-        last_status = obj.history.last()
+        last_status = latest_record_history(obj)
         if last_status:
+            if not last_status.status:
+                return {"code": None, "comment": last_status.comment}
             return {"code": last_status.status.code, "comment": last_status.comment}
         return None
 
@@ -165,6 +186,50 @@ class RIGetSerializer(serializers.ModelSerializer):
         short_name = obj.organization.short_name if obj.organization else None
         return {"id": org_id,
                 "short_name": short_name}
+
+
+class RecordDetailSerializer(RIGetSerializer):
+    """Explicit public representation of a single record and its values."""
+
+    class Meta(RIGetSerializer.Meta):
+        fields = (
+            "id", "number", "date", "active", "document", "code", "parent",
+            "author", "organization", "is_deleted", "created_at", "updated_at",
+            "deleted_at", "indicator_value", "status", "status_info", "children",
+            "organization_detail",
+        )
+
+    def to_representation(self, instance):
+        values = list(instance.record_values.all())
+        reference_ids = {kind: set() for kind in ("dct", "list", "dcm", "user", "org")}
+        for value in values:
+            kind = value.indicator.type_value
+            if kind in reference_ids:
+                if value.value_reference is not None:
+                    reference_ids[kind].add(value.value_reference)
+                reference_ids[kind].update(value.value_array_int or [])
+
+        request = self.context.get("request")
+        lang = request.query_params.get("lang", "ru") if request else "ru"
+        names = {}
+        for item in Elements.objects.filter(id__in=reference_ids["dct"]).only("id", "short_name"):
+            names[("dct", item.id)] = item.short_name.get(lang) or item.short_name.get("ru")
+        for item in ListValues.objects.filter(id__in=reference_ids["list"]).only("id", "short_name"):
+            names[("list", item.id)] = item.short_name.get(lang) or item.short_name.get("ru")
+        for item in Records.objects.filter(id__in=reference_ids["dcm"]).only("id", "number"):
+            names[("dcm", item.id)] = item.number
+        for item in User.objects.filter(id__in=reference_ids["user"]).only(
+            "id", "username", "first_name", "last_name"
+        ):
+            names[("user", item.id)] = " ".join(
+                part for part in (item.first_name, item.last_name) if part
+            ) or item.username
+        for item in Organization.objects.filter(id__in=reference_ids["org"]).only(
+            "id", "short_name"
+        ):
+            names[("org", item.id)] = item.short_name.get(lang) or item.short_name.get("ru")
+        self.context["reference_names"] = names
+        return super().to_representation(instance)
 
 
 class CommonSerializer(serializers.Serializer):
