@@ -96,20 +96,20 @@ def get_app_list(self, request, app_label=None):
     """
     sort_apps = ['pfbase'] # add new app name for sorting if needed
     ordering = {  # add new model name if new app in sort_apps was added
-        "DCM Документы": 1,
-        "DCM Индикаторы": 2,
-        "DCM Записи документов": 3,
-        "DCM Значения индикаторов": 4,
-        "DCM Истории записей": 5,
-        "DCT Справочники": 6,
-        "DCT Индикаторы": 7,
-        "DCT Элементы": 8,
-        "DCT Значения индикаторов": 9,
-        "DCT История элементов": 10,
-        "STM Списки значений": 11,
-        "STM Уведомления": 12,
-        "STM Организации": 13,
-        "STM Пользователи": 14,
+        "DCM Documents": 1,
+        "DCM Indicators": 2,
+        "DCM Document Records": 3,
+        "DCM Indicator Values": 4,
+        "DCM Record Histories": 5,
+        "DCT Dictionaries": 6,
+        "DCT Indicators": 7,
+        "DCT Elements": 8,
+        "DCT Indicator Values": 9,
+        "DCT Element Histories": 10,
+        "STM List Values": 11,
+        "STM Notifications": 12,
+        "STM Organizations": 13,
+        "STM Users": 14,
     }
     app_dict = self._build_app_dict(request, app_label)
     app_list = sorted(app_dict.values(), key=lambda x: x['name'].lower())
