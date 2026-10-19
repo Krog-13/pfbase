@@ -187,51 +187,6 @@ class RIGetSerializer(serializers.ModelSerializer):
         return {"id": org_id,
                 "short_name": short_name}
 
-
-class RecordDetailSerializer(RIGetSerializer):
-    """Explicit public representation of a single record and its values."""
-
-    class Meta(RIGetSerializer.Meta):
-        fields = (
-            "id", "number", "date", "active", "document", "code", "parent",
-            "author", "organization", "is_deleted", "created_at", "updated_at",
-            "deleted_at", "indicator_value", "status", "status_info", "children",
-            "organization_detail",
-        )
-
-    def to_representation(self, instance):
-        values = list(instance.record_values.all())
-        reference_ids = {kind: set() for kind in ("dct", "list", "dcm", "user", "org")}
-        for value in values:
-            kind = value.indicator.type_value
-            if kind in reference_ids:
-                if value.value_reference is not None:
-                    reference_ids[kind].add(value.value_reference)
-                reference_ids[kind].update(value.value_array_int or [])
-
-        request = self.context.get("request")
-        lang = request.query_params.get("lang", "ru") if request else "ru"
-        names = {}
-        for item in Elements.objects.filter(id__in=reference_ids["dct"]).only("id", "short_name"):
-            names[("dct", item.id)] = item.short_name.get(lang) or item.short_name.get("ru")
-        for item in ListValues.objects.filter(id__in=reference_ids["list"]).only("id", "short_name"):
-            names[("list", item.id)] = item.short_name.get(lang) or item.short_name.get("ru")
-        for item in Records.objects.filter(id__in=reference_ids["dcm"]).only("id", "number"):
-            names[("dcm", item.id)] = item.number
-        for item in User.objects.filter(id__in=reference_ids["user"]).only(
-            "id", "username", "first_name", "last_name"
-        ):
-            names[("user", item.id)] = " ".join(
-                part for part in (item.first_name, item.last_name) if part
-            ) or item.username
-        for item in Organization.objects.filter(id__in=reference_ids["org"]).only(
-            "id", "short_name"
-        ):
-            names[("org", item.id)] = item.short_name.get(lang) or item.short_name.get("ru")
-        self.context["reference_names"] = names
-        return super().to_representation(instance)
-
-
 class CommonSerializer(serializers.Serializer):
     def to_internal_value(self, data):
         # Get all allowed fields
