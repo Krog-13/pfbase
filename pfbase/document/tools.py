@@ -6,6 +6,7 @@ from django.db.models import OuterRef, Prefetch, Subquery
 from .models.indicators import DcmIndicators
 from .models.rivalues import RecordIndicatorValues
 from .models.rhistory import RecordHistory
+from .common import record_field
 
 
 class RecordService:
@@ -13,12 +14,48 @@ class RecordService:
         self.filters = filters
         self.document_code = filters["document_code"]
         self.indicators_code = filters["indicators_code"]
+        self.indicator_filters = filters.get("indicator_filters", {})
         self.indicators_code_list = []
 
     def prepare_records(self, qs):
         """Preparation records"""
         self.indicators_code_list = self.resolve_indicator_codes()
         records = self.prefetch_records(qs, self.indicators_code_list)
+        filtered_records = self.filter_records(records)
+        return filtered_records
+
+    def filter_records(self, records):
+        """Filtering records"""
+        for code, value in self.indicator_filters.items():
+            indicator = DcmIndicators.objects.filter(
+                document__code=self.document_code, code=code).only("type_value", "is_multiple").first()
+            if not indicator:
+                continue
+            field = record_field(indicator)
+            if not field:
+                continue
+            if indicator.is_multiple:
+                value = [value]
+                records = records.filter(**{
+                    f"record_values__indicator__code": code,
+                    f"record_values__{field}__overlap": value})
+            else:
+                if indicator.type_value in ("str", "text"):
+                    records = records.filter(**{
+                        f"record_values__indicator__code": code,
+                        f"record_values__{field}__icontains": value})
+                elif indicator.type_value == "bool":
+                    if value == 'true':
+                        value = True
+                    else:
+                        value = False
+                    records = records.filter(**{
+                        "record_values__indicator__code": code,
+                        f"record_values__{field}": value})
+                else:
+                    records = records.filter(**{
+                        "record_values__indicator__code": code,
+                        f"record_values__{field}": value})
         return records
 
     def resolve_indicator_codes(self):

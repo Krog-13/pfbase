@@ -69,6 +69,9 @@ class RIAPIView(views.APIView):
         query = RecordQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         filters = query.validated_data
+        filters["indicator_filters"] = {
+            key: value
+            for key, value in request.query_params.items() if key.isupper()}
 
         rs = RecordService(filters)
         records = rs.prepare_records(self.queryset)
