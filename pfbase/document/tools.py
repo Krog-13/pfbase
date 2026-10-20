@@ -1,7 +1,4 @@
 from django.utils import timezone
-from django.core.exceptions import ValidationError as DjangoValidationError
-from django.utils.dateparse import parse_date, parse_datetime
-from rest_framework.exceptions import ValidationError
 
 from ..system import models as stm_models
 
@@ -24,14 +21,13 @@ class RecordService:
         """Preparation records"""
         self.indicators_code_list = self.resolve_indicator_codes()
         records = self.prefetch_records(qs, self.indicators_code_list)
-        filtered_records = self.filter_records(records)
-        return filtered_records
+        if self.indicator_filters:
+            records = self.filter_records(records)
+        return records
 
     def filter_records(self, records):
         """Filter records by indicator code without multiplying joined rows."""
-        if not self.indicator_filters:
-            return records
-
+        # ToDo not filters Datetime, Time and range it
         indicators = DcmIndicators.objects.filter(
             document__code=self.document_code,
             code__in=self.indicator_filters,
@@ -45,7 +41,6 @@ class RecordService:
                 continue
             value = self._coerce_value(indicator, raw_value)
             lookup = self.define_lookup(indicator, value)
-
             matching_values = RecordIndicatorValues.objects.filter(
                 record_id=OuterRef("pk"), indicator_id=indicator.pk,
                 **{f"{field}__{lookup}": value})
@@ -55,7 +50,7 @@ class RecordService:
     @staticmethod
     def define_lookup(indicator, value):
         lookup = "exact"
-        if indicator.type_value in ("date", "datetime"):
+        if indicator.type_value == "date":
             if isinstance(value, list):
                 lookup = "date__range"
         elif indicator.is_multiple:
@@ -162,19 +157,15 @@ class TableService:
         statuses = {
             item.id: item
             for item in stm_models.ListValues.objects.filter(id__in=status_ids).only(
-                "id", "code", "short_name"
-            )
-        }
+                "id", "code", "short_name")}
         body = []
         for record in self.queryset:
             values_by_code = {
                 value.indicator.code: value
-                for value in record.prefetched_values
-            }
+                for value in record.prefetched_values}
             values = {
                 code: self.serialize_value(values_by_code.get(code))
-                for code in idc_code
-            }
+                for code in idc_code}
             current_status = statuses.get(record.current_status_id)
             status = None
             if current_status:
@@ -182,8 +173,7 @@ class TableService:
                     "name": current_status.short_name.get(self.lang)
                     or current_status.short_name.get("ru"),
                     "code": current_status.code,
-                    "created_at": record.current_status_at,
-                }
+                    "created_at": record.current_status_at}
             author_name = " ".join(
                 part for part in (record.author.first_name, record.author.last_name) if part
             ) or record.author.username
@@ -193,8 +183,7 @@ class TableService:
                 "date": record.date,
                 "author": author_name,
                 "status": status,
-                "values": values,
-            })
+                "values": values})
         return body
 
     @staticmethod
