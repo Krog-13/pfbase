@@ -42,10 +42,9 @@ class RecordService:
             field = record_field(indicator)
             if not field or not raw_value:
                 continue
-            value = self._coerce_value(indicator, field, raw_value)
+            value = self._coerce_value(indicator, raw_value)
+            lookup = self.define_lookup(indicator, value)
 
-            lookup = "overlap" if indicator.is_multiple else (
-                "icontains" if indicator.type_value in ("str", "text") else "exact")
             matching_values = RecordIndicatorValues.objects.filter(
                 record_id=OuterRef("pk"), indicator_id=indicator.pk,
                 **{f"{field}__{lookup}": value})
@@ -53,15 +52,29 @@ class RecordService:
         return records
 
     @staticmethod
-    def _coerce_value(indicator, field_name, value):
+    def define_lookup(indicator, value):
+        lookup = "exact"
+        if indicator.type_value in ("date", "datetime"):
+            if isinstance(value, list):
+                lookup = "date__range"
+        elif indicator.is_multiple:
+            lookup = "overlap"
+        elif indicator.type_value in ("str", "text"):
+            lookup = "icontains"
+        return lookup
+
+    @staticmethod
+    def _coerce_value(indicator, value):
         """Parse query-string values using the model field's conversion rules."""
         if indicator.is_multiple:
             return [value]
         if indicator.type_value == "bool":
-            normalized = value.strip().lower()
-            if normalized not in {"true", "false", "1", "0"}:
+            if value not in {"true", "false", "1", "0"}:
                 raise ValueError
-            return normalized in {"true", "1"}
+            return value in {"true", "1"}
+        if indicator.type_value in ("date", "datetime"):
+            if value.count(","):
+                return value.split(",")
         return value
 
     def resolve_indicator_codes(self):
