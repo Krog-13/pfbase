@@ -1,5 +1,6 @@
 from django.utils import timezone
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework.exceptions import ValidationError
 
 from ..system import models as stm_models
@@ -120,8 +121,8 @@ class RecordService:
             table = ts.construction_table(self.document_code,
                                           self.indicators_code_list)
             return table
-        except ValueError as error:
-            return {"message": str(error)}
+        except ValueError:
+            return {"message": "Error by build table"}
 
 class TableService:
     def __init__(self, queryset):

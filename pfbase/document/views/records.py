@@ -74,7 +74,10 @@ class RIAPIView(views.APIView):
             for key, value in request.query_params.items() if key.isupper()}
 
         rs = RecordService(filters)
-        records = rs.prepare_records(self.queryset)
+        try:
+            records = rs.prepare_records(self.queryset)
+        except ValueError as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(records, request, view=self)
