@@ -1,8 +1,10 @@
 from django.utils import timezone
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.exceptions import ValidationError
 
 from ..system import models as stm_models
 
-from django.db.models import OuterRef, Prefetch, Subquery
+from django.db.models import Exists, OuterRef, Prefetch, Subquery
 from .models.indicators import DcmIndicators
 from .models.rivalues import RecordIndicatorValues
 from .models.rhistory import RecordHistory
@@ -25,38 +27,42 @@ class RecordService:
         return filtered_records
 
     def filter_records(self, records):
-        """Filtering records"""
-        for code, value in self.indicator_filters.items():
-            indicator = DcmIndicators.objects.filter(
-                document__code=self.document_code, code=code).only("type_value", "is_multiple").first()
-            if not indicator:
-                continue
+        """Filter records by indicator code without multiplying joined rows."""
+        if not self.indicator_filters:
+            return records
+
+        indicators = DcmIndicators.objects.filter(
+            document__code=self.document_code,
+            code__in=self.indicator_filters,
+        ).only("id", "code", "type_value", "is_multiple")
+        indicators_by_code = {indicator.code: indicator for indicator in indicators}
+
+        for code, raw_value in self.indicator_filters.items():
+            indicator = indicators_by_code.get(code)
             field = record_field(indicator)
-            if not field:
+            if not field or not raw_value:
                 continue
-            if indicator.is_multiple:
-                value = [value]
-                records = records.filter(**{
-                    f"record_values__indicator__code": code,
-                    f"record_values__{field}__overlap": value})
-            else:
-                if indicator.type_value in ("str", "text"):
-                    records = records.filter(**{
-                        f"record_values__indicator__code": code,
-                        f"record_values__{field}__icontains": value})
-                elif indicator.type_value == "bool":
-                    if value == 'true':
-                        value = True
-                    else:
-                        value = False
-                    records = records.filter(**{
-                        "record_values__indicator__code": code,
-                        f"record_values__{field}": value})
-                else:
-                    records = records.filter(**{
-                        "record_values__indicator__code": code,
-                        f"record_values__{field}": value})
+            value = self._coerce_value(indicator, field, raw_value)
+
+            lookup = "overlap" if indicator.is_multiple else (
+                "icontains" if indicator.type_value in ("str", "text") else "exact")
+            matching_values = RecordIndicatorValues.objects.filter(
+                record_id=OuterRef("pk"), indicator_id=indicator.pk,
+                **{f"{field}__{lookup}": value})
+            records = records.filter(Exists(matching_values))
         return records
+
+    @staticmethod
+    def _coerce_value(indicator, field_name, value):
+        """Parse query-string values using the model field's conversion rules."""
+        if indicator.is_multiple:
+            return [value]
+        if indicator.type_value == "bool":
+            normalized = value.strip().lower()
+            if normalized not in {"true", "false", "1", "0"}:
+                raise ValueError
+            return normalized in {"true", "1"}
+        return value
 
     def resolve_indicator_codes(self):
         """Return requested indicator codes, or all codes when none were supplied."""
