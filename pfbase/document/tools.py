@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 
 from ..system import models as stm_models
 
@@ -29,7 +30,29 @@ class RecordService:
         return records
 
     def filter_by_stock(self, records):
-        """Filter records by stock fields"""
+        """Apply filters for built-in record fields."""
+        for key, raw_value in self.stock_filters.items():
+            value = raw_value.strip()
+            if not value:
+                continue
+            if key == "NUMBER":
+                records = records.filter(number__icontains=value)
+            elif key == "CODE":
+                records = records.filter(document__code=value)
+            elif key in {"CREATED_AT", "DATE"}:
+                dates = [part.strip() for part in value.split(",")]
+                field = "created_at" if key == "CREATED_AT" else "date"
+                if len(dates) == 2:
+                    records = records.filter(**{f"{field}__date__range": dates})
+                else:
+                    records = records.filter(**{f"{field}__date": dates[0]})
+            elif key == "AUTHOR_ID":
+                author_id = int(value)
+                records = records.filter(author_id=author_id)
+            elif key == "ORGANIZATION_ID":
+                organization_ids = [int(item.strip()) for item in value.split(",")]
+                records = records.filter(organization_id__in=organization_ids)
+        return records
 
 
     def filter_by_indicator(self, records):

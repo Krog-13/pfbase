@@ -65,7 +65,7 @@ class RecordAdmin(admin.ModelAdmin):
     Records in the admin panel
     """
     fields = ("number", "date", "organization", "document", "parent", "active")
-    list_display = ("number", "admin_document", "author", "parent", "id")
+    list_display = ("number", "admin_document", "author", "parent", "created_at", "id")
     list_select_related = ("author", "document", "parent")
     list_filter = ("document",)
     search_fields = ('=id', "number", '=document__id', "author__username",)
