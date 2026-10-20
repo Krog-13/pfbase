@@ -145,9 +145,12 @@ def give_date_format(date_str, type_value):
     try:
         for fmt in formats:
             if type_value == fmt[1]:
-                parse_datetime = datetime.strptime(date_str, fmt[0])
+                parsed_value = datetime.strptime(date_str, fmt[0])
                 if type_value == "time":
-                    parse_datetime = datetime.combine(datetime.now().date(), parse_datetime.time())
-                return timezone.make_aware(parse_datetime)
+                    parsed_value = datetime.combine(timezone.localdate(), parsed_value.time())
+                return timezone.make_aware(
+                    parsed_value,
+                    timezone=timezone.get_current_timezone(),
+                )
     except ValueError:
         return False

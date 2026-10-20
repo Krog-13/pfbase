@@ -210,11 +210,20 @@ class TableService:
             body.append({
                 "id": record.id,
                 "number": record.number,
-                "date": record.date,
+                "date": self._format_local_datetime(record.date),
+                "created_at": self._format_local_datetime(record.created_at),
                 "author": author_name,
                 "status": status,
                 "values": values})
         return body
+
+    @staticmethod
+    def _format_local_datetime(value):
+        if value is None:
+            return None
+        if timezone.is_aware(value):
+            value = timezone.localtime(value)
+        return value.strftime("%Y-%m-%d %H:%M")
 
     @staticmethod
     def serialize_value(value):
