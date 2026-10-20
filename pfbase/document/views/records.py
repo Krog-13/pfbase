@@ -11,7 +11,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status, views, generics, exceptions as exc
 from pfbase.pagination import CustomPagination
-from ..common import get_record_detail
+from ..common import get_record_detail, STOCK_FILTER_KEYS
 from ..serializers.records import RIGetSerializer, RecordPostSerializer, RecordUpdateSerializer, RecordSerializer, \
     RecordPackUpdateSerializer, RecordListUpdateSerializer, RecordsSerializer
 from ..models.records import Records
@@ -69,9 +69,15 @@ class RIAPIView(views.APIView):
         query = RecordQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         filters = query.validated_data
-        filters["indicator_filters"] = {
-            key: value
-            for key, value in request.query_params.items() if key.isupper()}
+        stock_filters = {}
+        indicator_filters = {}
+        for key, value in request.query_params.items():
+            if not key.isupper():
+                continue
+            destination = stock_filters if key in STOCK_FILTER_KEYS else indicator_filters
+            destination[key] = value
+        filters["stock_filters"] = stock_filters
+        filters["indicator_filters"] = indicator_filters
 
         rs = RecordService(filters)
         try:

@@ -14,6 +14,7 @@ class RecordService:
         self.filters = filters
         self.document_code = filters["document_code"]
         self.indicators_code = filters["indicators_code"]
+        self.stock_filters = filters.get("stock_filters", {})
         self.indicator_filters = filters.get("indicator_filters", {})
         self.indicators_code_list = []
 
@@ -21,11 +22,17 @@ class RecordService:
         """Preparation records"""
         self.indicators_code_list = self.resolve_indicator_codes()
         records = self.prefetch_records(qs, self.indicators_code_list)
+        if self.stock_filters:
+            records = self.filter_by_stock(records)
         if self.indicator_filters:
-            records = self.filter_records(records)
+            records = self.filter_by_indicator(records)
         return records
 
-    def filter_records(self, records):
+    def filter_by_stock(self, records):
+        """Filter records by stock fields"""
+
+
+    def filter_by_indicator(self, records):
         """Filter records by indicator code without multiplying joined rows."""
         # ToDo not filters Datetime, Time and range it
         indicators = DcmIndicators.objects.filter(

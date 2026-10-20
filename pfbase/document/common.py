@@ -2,6 +2,10 @@ from django.db.models import Prefetch
 from .models.rhistory import RecordHistory
 from .models.records import Records
 
+STOCK_FILTER_KEYS = {
+    "NUMBER", "CODE", "CREATED_AT", "DATE", "AUTHOR_ID", "ORGANIZATION_ID",
+}
+
 record_type_mapping = {
     "str": "value_str",
     "text": "value_text",
