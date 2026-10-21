@@ -65,6 +65,8 @@ class RecordService:
             elif key == "ORGANIZATION_ID":
                 organization_ids = [int(item.strip()) for item in value.split(",")]
                 records = records.filter(organization_id__in=organization_ids)
+            elif key == "STATUS_ID":
+                records = records.filter(current_status_id=int(value))
         return records
 
 
