@@ -31,7 +31,7 @@ class RecordService:
         self.stock_filters = stock_filters
         self.indicator_filters = indicator_filters
 
-    def prepare_records(self, qs):
+    def register_records(self, qs):
         """Preparation records"""
         self.set_params()
         self.indicators_code_list = self.resolve_indicator_codes()
