@@ -1,4 +1,5 @@
-from rest_framework import serializers, exceptions
+from rest_framework import serializers
+from django.utils import timezone
 
 
 class RecordQuerySerializer(serializers.Serializer):
@@ -98,10 +99,8 @@ class RecordRetrieveSerializer(serializers.Serializer):
 
     @staticmethod
     def _format_datetime(value, kind):
-        if value is None:
+        if not value:
             return None
-        from django.utils import timezone
-
         if timezone.is_aware(value):
             value = timezone.localtime(value)
         formats = {
