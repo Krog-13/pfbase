@@ -89,13 +89,26 @@ class RIAPIView(views.APIView):
                 **output,
             }, status=status.HTTP_200_OK)
 
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
+        if kwargs.get("pk"):
+            return self.restore(request, *args, **kwargs)
         serializer = RecordPostSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "Record created successfully"},
                             status=status.HTTP_201_CREATED)
         raise exc.ValidationError(serializer.errors)
+
+    def restore(self, request, *args, **kwargs):
+        pk = kwargs.get("pk")
+        if not pk:
+            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            record = Records.everything.get(pk=pk)
+        except Records.DoesNotExist:
+            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        record.restore()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def patch(self, request, *args, **kwargs):
         serializer = RecordListUpdateSerializer(data=request.data, context={'request': request})
