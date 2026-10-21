@@ -69,7 +69,6 @@ class RecordService:
                 records = records.filter(current_status_id=int(value))
         return records
 
-
     def filter_by_indicator(self, records):
         """Filter records by indicator code without multiplying joined rows."""
         # ToDo not filters Datetime, Time and range it
@@ -85,7 +84,7 @@ class RecordService:
             if not field or not raw_value:
                 continue
             value = self._coerce_value(indicator, raw_value)
-            lookup = self.define_lookup(indicator, value)
+            lookup = self._define_lookup(indicator, value)
             matching_values = RecordIndicatorValues.objects.filter(
                 record_id=OuterRef("pk"), indicator_id=indicator.pk,
                 **{f"{field}__{lookup}": value})
@@ -93,7 +92,7 @@ class RecordService:
         return records
 
     @staticmethod
-    def define_lookup(indicator, value):
+    def _define_lookup(indicator, value):
         lookup = "exact"
         if indicator.type_value == "date":
             if isinstance(value, list):
@@ -273,3 +272,5 @@ class TableService:
         }
         field = field_by_type.get(kind)
         return getattr(value, field) if field else None
+
+
