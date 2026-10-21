@@ -1,5 +1,5 @@
 from django.utils import timezone
-from django.utils.dateparse import parse_date
+from .common import STOCK_FILTER_KEYS
 
 from ..system import models as stm_models
 
@@ -11,16 +11,29 @@ from .common import record_field
 
 
 class RecordService:
-    def __init__(self, filters):
+    def __init__(self, filters, params):
         self.filters = filters
+        self.params = params
         self.document_code = filters["document_code"]
         self.indicators_code = filters["indicators_code"]
-        self.stock_filters = filters.get("stock_filters", {})
-        self.indicator_filters = filters.get("indicator_filters", {})
+        self.stock_filters = {}
+        self.indicator_filters = {}
         self.indicators_code_list = []
+
+    def set_params(self):
+        stock_filters = {}
+        indicator_filters = {}
+        for key, value in self.params.items():
+            if not key.isupper():
+                continue
+            destination = stock_filters if key in STOCK_FILTER_KEYS else indicator_filters
+            destination[key] = value
+        self.stock_filters = stock_filters
+        self.indicator_filters = indicator_filters
 
     def prepare_records(self, qs):
         """Preparation records"""
+        self.set_params()
         self.indicators_code_list = self.resolve_indicator_codes()
         records = self.prefetch_records(qs, self.indicators_code_list)
         if self.stock_filters:
@@ -200,8 +213,7 @@ class TableService:
             status = None
             if current_status:
                 status = {
-                    "name": current_status.short_name.get(self.lang)
-                    or current_status.short_name.get("ru"),
+                    "name": current_status.short_name,
                     "code": current_status.code,
                     "created_at": record.current_status_at}
             author_name = " ".join(
@@ -219,7 +231,7 @@ class TableService:
 
     @staticmethod
     def _format_local_datetime(value):
-        if value is None:
+        if not value:
             return None
         if timezone.is_aware(value):
             value = timezone.localtime(value)

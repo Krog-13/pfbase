@@ -69,17 +69,7 @@ class RIAPIView(views.APIView):
         query = RecordQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         filters = query.validated_data
-        stock_filters = {}
-        indicator_filters = {}
-        for key, value in request.query_params.items():
-            if not key.isupper():
-                continue
-            destination = stock_filters if key in STOCK_FILTER_KEYS else indicator_filters
-            destination[key] = value
-        filters["stock_filters"] = stock_filters
-        filters["indicator_filters"] = indicator_filters
-
-        rs = RecordService(filters)
+        rs = RecordService(filters, request.query_params)
         try:
             records = rs.prepare_records(self.queryset)
         except ValueError as e:
