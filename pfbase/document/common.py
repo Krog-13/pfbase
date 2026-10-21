@@ -42,9 +42,9 @@ def record_field(indicator):
 
 
 
-def get_record_detail(record_id):
+def get_record_detail(qs, record_id):
     """Fetch one visible record with relations used by its detail serializer."""
-    return Records.objects.filter(is_deleted=False).select_related(
+    return qs.select_related(
         "document", "author", "organization", "parent"
     ).prefetch_related(
         "record_values__indicator",
@@ -54,9 +54,3 @@ def get_record_detail(record_id):
             to_attr="prefetched_history",
         ),
     ).filter(pk=record_id).first()
-
-
-
-
-
-

@@ -11,11 +11,11 @@ from .common import record_field
 
 
 class RecordService:
-    def __init__(self, filters, params):
+    def __init__(self, filters=dict(), params=None):
         self.filters = filters
         self.params = params
-        self.document_code = filters["document_code"]
-        self.indicators_code = filters["indicators_code"]
+        self.document_code = filters.get("document_code")
+        self.indicators_code = filters.get("indicators_code")
         self.stock_filters = {}
         self.indicator_filters = {}
         self.indicators_code_list = []
@@ -153,6 +153,19 @@ class RecordService:
             current_status_at=Subquery(latest_history.values("created_at")[:1]))
         return records
 
+    @staticmethod
+    def prefetch_row(qs, pk):
+        return qs.select_related(
+            "document", "author", "organization", "parent"
+        ).prefetch_related(
+            "record_values__indicator",
+            Prefetch(
+                "history",
+                queryset=RecordHistory.objects.select_related("status").order_by("-created_at", "-id"),
+                to_attr="prefetched_history",
+            ),
+        ).filter(pk=pk).first()
+
     def build_records_table(self, queryset):
         """Build a localized header and a page of record rows."""
         try:
@@ -160,6 +173,15 @@ class RecordService:
             table = ts.construction_table(self.document_code,
                                           self.indicators_code_list)
             return table
+        except ValueError:
+            return {"message": "Error by build table"}
+
+    def build_record_row(self, record):
+        """Build a localized header and a page of record rows."""
+        try:
+            ts = TableService(record)
+            row = ts.construction_row()
+            return row
         except ValueError:
             return {"message": "Error by build table"}
 
@@ -172,6 +194,75 @@ class TableService:
         header = self.set_header(dcm_code, idc_code)
         body = self.set_body(idc_code)
         return {"header": header, "body": body}
+
+    def construction_row(self):
+        body = self.set_body_row()
+        return body
+
+    def set_body_row(self):
+        record = self.queryset
+        history_items = getattr(record, "prefetched_history", None)
+        history = history_items[0] if history_items else None
+        status_value = history.status if history else None
+        organization = record.organization
+
+        return {
+            "id": record.pk,
+            "number": record.number,
+            "date": self._format_local_datetime(record.date),
+            "active": record.active,
+            "document": record.document_id,
+            "code": record.document.code if record.document else None,
+            "parent": record.parent_id,
+            "author_id": record.author_id,
+            "organization": record.organization_id,
+            "is_deleted": record.is_deleted,
+            "created_at": self._format_local_datetime(record.created_at),
+            "updated_at": self._format_local_datetime(record.updated_at),
+            "deleted_at": self._format_local_datetime(record.deleted_at),
+            "indicator_value": [
+                self.serialize_indicator_value(value)
+                for value in record.record_values.all()
+            ],
+            "status": status_value.short_name if status_value else None,
+            "status_info": {
+                "code": status_value.code if status_value else None,
+                "comment": history.comment,
+            } if history else None,
+            "children": record.children.exists(),
+            "organization_detail": {
+                "id": record.organization_id,
+                "short_name": organization.short_name if organization else None,
+            },
+        }
+
+    @classmethod
+    def serialize_indicator_value(cls, value):
+        indicator = value.indicator
+        kind = indicator.type_value
+        reference_types = {"dct", "list", "dcm", "user", "org"}
+        if indicator.is_multiple:
+            serialized_value = (
+                value.value_array_int if kind in reference_types else value.value_array_str
+            )
+        elif kind in reference_types:
+            serialized_value = value.value_reference
+        else:
+            serialized_value = cls.serialize_value(value)
+
+        return {
+            "id": value.pk,
+            "short_name": indicator.short_name,
+            "full_name": indicator.full_name,
+            "code": indicator.code,
+            "type_value": kind,
+            "type_extend": indicator.type_extend,
+            "is_multiple": indicator.is_multiple,
+            "value_reference": value.value_reference,
+            "value_array_int": value.value_array_int,
+            "value_array_str": value.value_array_str,
+            "value": serialized_value,
+        }
 
     def set_header(self, dcm_code, idc_code):
         indicators = list(

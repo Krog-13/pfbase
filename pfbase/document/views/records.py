@@ -15,10 +15,10 @@ from ..common import get_record_detail, STOCK_FILTER_KEYS
 from ..serializers.records import RIGetSerializer, RecordPostSerializer, RecordUpdateSerializer, RecordSerializer, \
     RecordPackUpdateSerializer, RecordListUpdateSerializer, RecordsSerializer
 from ..models.records import Records
-from ..tools import RecordService
+from ..tools import RecordService, TableService
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from pfbase.permissions import RecordPermissions
-from ..serializers.recordsv3 import RecordQuerySerializer, RecordRetrieveSerializer
+from ..serializers.recordsv3 import RecordQuerySerializer
 
 
 class RecordAPIView(ModelViewSet):
@@ -59,11 +59,12 @@ class RIAPIView(views.APIView):
         return self.list(request)
 
     def retrieve(self, pk):
-        record = get_record_detail(pk)
-        if record is None:
+        rs = RecordService()
+        record = rs.prefetch_row(self.queryset, pk)
+        if not record:
             return Response({"message": "Record not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = RecordRetrieveSerializer(record)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        output = rs.build_record_row(record)
+        return Response(output, status=status.HTTP_200_OK)
 
     def list(self, request):
         query = RecordQuerySerializer(data=request.query_params)
@@ -71,7 +72,7 @@ class RIAPIView(views.APIView):
         filters = query.validated_data
         rs = RecordService(filters, request.query_params)
         try:
-            records = rs.prepare_records(self.queryset)
+            records = rs.register_records(self.queryset)
         except ValueError as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
