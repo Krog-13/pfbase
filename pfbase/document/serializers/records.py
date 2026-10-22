@@ -352,7 +352,7 @@ class RecordPackUpdateSerializer(serializers.Serializer):
             return RecordService().update_record_pack(user, request_data)
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
-        except ValueError as e:
+        except Exception as e:
             raise exceptions.ValidationError({"error": str(e)})
 
 
