@@ -11,12 +11,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status, views, generics, exceptions as exc
 from pfbase.pagination import CustomPagination
-from ..common import get_record_detail, STOCK_FILTER_KEYS
-from ..serializers.records import RIGetSerializer, RecordPostSerializer, RecordUpdateSerializer, RecordSerializer, \
-    RecordPackUpdateSerializer, RecordListUpdateSerializer, RecordsSerializer
+from ..serializers.records import (RIGetSerializer, RecordPostSerializer, RecordSerializer,
+                                   RecordListUpdateSerializer, RecordsSerializer)
 from ..models.records import Records
-from ..tools import RecordService, TableService
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from ..tools import RecordService
 from pfbase.permissions import RecordPermissions
 from ..serializers.recordsv3 import RecordQuerySerializer
 
