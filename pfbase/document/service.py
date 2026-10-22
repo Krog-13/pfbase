@@ -154,77 +154,79 @@ class RecordService:
 
     @transaction.atomic
     def create_record_pack(self, user, request_data):
-        """
-        Create Record with sub records
-        """
-        self.validate_data(request_data)
-
-        if self.document_id:
-            main_document = Documents.objects.get(id=self.document_id)
-        else:
-            main_document = Documents.objects.get(code=self.code)
-        parent_r = Records.objects.get(id=self.parent_id) if self.parent_id else None
+        """Create one main record and its child records atomically."""
+        main = request_data.get("main") or {}
+        main_document = self._get_document(main)
+        main_date = self._parse_record_date(main.get("date"))
+        parent_id = main.get("parent_id")
+        parent = Records.objects.get(pk=parent_id) if parent_id else None
 
         main_record = Records.objects.create(
-            number=self.number,
-            date=self.date,
-            parent=parent_r,
+            number=main.get("number") or "0000",
+            date=main_date,
+            parent=parent,
             author=user,
+            organization_id=main.get("organization_id", user.organization_id),
             document=main_document)
+        if main.get("indicators"):
+            self.create_riv(main_record, main["indicators"] or [])
+        if main.get("status_id"):
+            self.create_history(main_record, main["status_id"], user)
 
-        self.create_riv(main_record, self.main_indicators)
-        if self.status_id:
-            self.create_history(main_record, self.status_id, user)
-
-        if not self.subs:
-            return main_record
-
-        for sub in self.subs:
-            self.sub_validate_data(sub)
+        for sub in request_data.get("subs") or []:
             for row in sub.get('indicators', []):
                 sub_record = Records.objects.create(
-                    number=self.number,
-                    date=self.date,
+                    number=sub.get("number") or "0001",
+                    date=self._parse_record_date(sub.get("date")),
                     parent=main_record,
                     author=user,
-                    document=self.document)
+                    organization_id=sub.get("organization_id", main_record.organization_id),
+                    document=self._get_document(sub))
                 self.create_riv(sub_record, row)
-                if status_id := sub.get('status_id'):
-                    self.create_history(sub_record, status_id, user)
+                if sub.get("status_id"):
+                    self.create_history(sub_record, sub["status_id"], user)
         return main_record
 
     @transaction.atomic
     def create_record_list(self, user, validated_data):
-        """
-        Created list of Records
-        """
-        self.validate_records_data(validated_data)
-        for record_data in self.records:
-            document_id = record_data.get('document_id')
-            code = record_data.get('code')
-            indicators = record_data.get('indicators')
-            parent_id = record_data.get('parent_id')
-            status_id = record_data.get('status_id')
-            organization_id = record_data.get('organization_id', user.organization_id)
-            if document_id:
-                document = Documents.objects.get(id=document_id)
-            else:
-                document = Documents.objects.get(code=code)
-            parent_r = Records.objects.get(id=parent_id) if parent_id else None
+        """Create a batch of independent records atomically."""
+        created_records = []
+        for record_data in validated_data.get("records", []):
+            parent_id = record_data.get("parent_id")
             record = Records.objects.create(
-                number=record_data.get('number', '0000'),
-                date=record_data.get('date', timezone.now()),
-                parent=parent_r,
+                number=record_data.get("number") or "0000",
+                date=self._parse_record_date(record_data.get("date")),
+                parent=Records.objects.get(pk=parent_id) if parent_id else None,
                 author=user,
-                organization_id=organization_id,
-                document=document)
+                organization_id=record_data.get("organization_id", user.organization_id),
+                document=self._get_document(record_data))
+            self.create_riv(record, record_data.get("indicators") or [])
+            if record_data.get("status_id"):
+                self.create_history(record, record_data["status_id"], user)
+            created_records.append(record)
+        return created_records
 
-            if status_id:
-                self.create_history(record, status_id, user)
-            if not indicators:
-                continue
-            self.create_riv(record, indicators)
-        return record
+    @staticmethod
+    def _get_document(data):
+        document_id = data.get("document_id")
+        code = data.get("code")
+        if document_id:
+            return Documents.objects.get(pk=document_id)
+        if code:
+            return Documents.objects.get(code=code)
+        raise WrongType("Either document_id or code is required")
+
+    @staticmethod
+    def _parse_record_date(value):
+        if value is None:
+            return timezone.now()
+        if isinstance(value, datetime):
+            return timezone.make_aware(value) if timezone.is_naive(value) else value
+        try:
+            parsed = datetime.strptime(value, "%Y-%m-%d %H:%M")
+        except (TypeError, ValueError) as exc:
+            raise WrongType("Date must use YYYY-MM-DD HH:MM format") from exc
+        return timezone.make_aware(parsed, timezone.get_current_timezone())
 
 
     @transaction.atomic
@@ -392,71 +394,83 @@ class RecordService:
 
     @transaction.atomic
     def update_records_list(self, user, request_data):
-        """
-        Update Record with their Indicators
-        """
-        self.validate_records_data(request_data)
-        for record in self.records:
-            self.validate_record_update_data(record)
-            record = Records.objects.get(id=self.record_id)
-            if self.number:
-                record.number = self.number
-            if self.date:
-                record.date = self.date
-            record.user = user
-            record.save()
+        """Update the supplied records as one atomic batch."""
+        records_data = request_data.get("records", [])
+        ids = [item.get("record_id") for item in records_data]
+        if any(record_id is None for record_id in ids):
+            raise WrongType("record_id is required for every record")
+        if len(ids) != len(set(ids)):
+            raise WrongType("Duplicate record_id values are not allowed")
 
-            self.record_update_iv(self.indicators, record)
+        records_by_id = Records.objects.in_bulk(ids)
+        missing = [record_id for record_id in ids if record_id not in records_by_id]
+        if missing:
+            raise Records.DoesNotExist(f"Records not found: {missing}")
 
-            if self.status_id:
-                self.create_history(record, self.status_id, user, self.comment, self.stamp)
-        return True
+        for item in records_data:
+            record = records_by_id[item["record_id"]]
+            update_fields = []
+            if "number" in item:
+                record.number = item["number"]
+                update_fields.append("number")
+            if item.get("date") is not None:
+                record.date = self._parse_record_date(item["date"])
+                update_fields.append("date")
+            if update_fields:
+                record.save(update_fields=update_fields + ["updated_at"])
+            self.record_update_iv(item.get("indicators") or [], record)
+            if item.get("status_id"):
+                self.create_history(
+                    record, item["status_id"], user,
+                    item.get("comment"), item.get("stamp"),
+                )
+        return list(records_by_id.values())
 
     @transaction.atomic
     def update_record_pack(self, user, request_data):
-        """
-        Update Record with their Indicators
-        """
-        self.validate_update_data(request_data)
-        main_record = Records.objects.get(id=self.record_id)
-        if self.number:
-            main_record.number = self.number
-        if self.date:
-            main_record.date = self.date
-        if self.organization_id:
-            main_record.organization_id = self.organization_id
-        main_record.user = user
-        main_record.save()
-        self.record_update_iv(self.main_indicators, main_record)
-        subs = request_data.get('subs', [])
-        if self.status_id:
-            self.create_history(main_record, self.status_id, user, comment=self.comment)
+        """Update a main record and update or create its child records atomically."""
+        main_data = request_data.get("main") or {}
+        main_record = Records.objects.get(pk=main_data["record_id"])
+        update_fields = []
+        for key in ("number", "organization_id"):
+            if key in main_data:
+                setattr(main_record, "organization_id" if key == "organization_id" else key,
+                        main_data[key])
+                update_fields.append(key)
+        if main_data.get("date") is not None:
+            main_record.date = self._parse_record_date(main_data["date"])
+            update_fields.append("date")
+        if update_fields:
+            main_record.save(update_fields=update_fields + ["updated_at"])
+        self.record_update_iv(main_data.get("indicators") or [], main_record)
+        if main_data.get("status_id"):
+            self.create_history(main_record, main_data["status_id"], user, main_data.get("comment"))
 
-        for sub in subs:
-            self.validate_update_sub_data(sub)
-            try:
-                if self.sub_record_id:
-                    record = Records.objects.get(id=self.sub_record_id)
-                else:
-                    record =  Records.objects.create(
-                    number=self.number,
+        for sub_data in request_data.get("subs") or []:
+            sub_id = sub_data.get("record_id")
+            if sub_id:
+                sub_record = Records.objects.get(pk=sub_id, parent=main_record)
+                fields = []
+                if "number" in sub_data:
+                    sub_record.number = sub_data["number"]
+                    fields.append("number")
+                if sub_data.get("date") is not None:
+                    sub_record.date = self._parse_record_date(sub_data["date"])
+                    fields.append("date")
+                if fields:
+                    sub_record.save(update_fields=fields + ["updated_at"])
+            else:
+                sub_record = Records.objects.create(
+                    number=sub_data.get("number") or "0001",
+                    date=self._parse_record_date(sub_data.get("date")),
                     parent=main_record,
-                    date=datetime.now(),
                     author=user,
-                    document=self.document)
-            except Records.DoesNotExist:
-                raise
-            if self.sub_number:
-                record.number = self.sub_number
-            if self.sub_date:
-                record.date = self.sub_date
-            record.user = user
-            record.save()
-            self.record_update_iv(self.sub_indicators, record)
-
-            if self.sub_status_id:
-                self.create_history(record, self.sub_status_id, user, comment=self.sub_comment)
-        return True
+                    organization_id=sub_data.get("organization_id", main_record.organization_id),
+                    document=self._get_document(sub_data))
+            self.record_update_iv(sub_data.get("indicators") or [], sub_record)
+            if sub_data.get("status_id"):
+                self.create_history(sub_record, sub_data["status_id"], user, sub_data.get("comment"))
+        return main_record
 
     @transaction.atomic
     def update_record_iv(self, record, user, validated_data):
