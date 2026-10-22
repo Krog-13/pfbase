@@ -284,6 +284,8 @@ class RecordListPostSerializer(serializers.Serializer):
             return RecordService().create_record_list(user, validated_data)
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
+        except WrongType as e:
+            raise exceptions.ValidationError({"error": str(e)}) from e
 
 
 
@@ -319,8 +321,8 @@ class RecordPackPostSerializer(serializers.Serializer):
             return RecordService().create_record_pack(user, request_data)
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
-        except KeyError as e:
-            raise exceptions.ValidationError({"error": str(e)})
+        except WrongType as e:
+            raise exceptions.ValidationError({"error": str(e)}) from e
         except KeyError as e:
             raise exceptions.ValidationError({"error": str(e)})
 
@@ -352,8 +354,10 @@ class RecordPackUpdateSerializer(serializers.Serializer):
             return RecordService().update_record_pack(user, request_data)
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
-        except Exception as e:
-            raise exceptions.ValidationError({"error": str(e)})
+        except WrongType as e:
+            raise exceptions.ValidationError({"error": str(e)}) from e
+        except KeyError as e:
+            raise exceptions.ValidationError({"error": str(e)}) from e
 
 
 class RecordListUpdateSerializer(serializers.Serializer):
@@ -365,6 +369,8 @@ class RecordListUpdateSerializer(serializers.Serializer):
             return RecordService().update_records_list(user, validated_data)
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
+        except WrongType as e:
+            raise exceptions.ValidationError({"error": str(e)}) from e
 
 
 
