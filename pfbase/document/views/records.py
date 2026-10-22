@@ -12,7 +12,8 @@ from rest_framework.response import Response
 from rest_framework import status, views, generics, exceptions as exc
 from pfbase.pagination import CustomPagination
 from ..serializers.records import (RIGetSerializer, RecordPostSerializer, RecordSerializer,
-                                   RecordListUpdateSerializer, RecordsSerializer)
+                                   RecordListUpdateSerializer, RecordsSerializer, RecordListPostSerializer,
+                                   RecordPackPostSerializer, RecordPackUpdateSerializer, RecordUpdateSerializer)
 from ..models.records import Records
 from ..tools import RecordService
 from pfbase.permissions import RecordPermissions
@@ -108,13 +109,13 @@ class RIAPIView(views.APIView):
         record.restore()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def patch(self, request, **kwargs):
-        serializer = RecordListUpdateSerializer(data=request.data, context={'request': request})
-        pk = kwargs.get('pk', False)
-        if pk:
-            return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+    def patch(self, request):
+        pk = request.data.get("record_id")
+        if not pk:
+            return Response({"message": "The record ID (pk) is required."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = RecordUpdateSerializer(data=request.data, context={'request': request})
         try:
-            record = self.queryset.first()
+            record = self.queryset.get(id=pk)
         except Records.DoesNotExist:
             return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         if serializer.is_valid():
@@ -132,6 +133,44 @@ class RIAPIView(views.APIView):
         except Records.DoesNotExist:
             return Response({"message": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class RIPLAPIView(views.APIView):
+    """
+    Present :Record with their :Indicators
+    """
+    queryset = Records.objects.filter(is_deleted=False).order_by('-created_at', '-id')
+    permission_classes = (IsAuthenticated,)
+    serializers_post = {
+        "records-list": RecordListPostSerializer,
+        "records-pack": RecordPackPostSerializer,
+    }
+    serializers_update = {
+        "records-list": RecordListUpdateSerializer,
+        "records-pack": RecordPackUpdateSerializer
+    }
+
+    def post(self, request):
+        """Create a record list or pack, based on the URL route"""
+        serializer_class = self.serializers_post.get(request.resolver_match.url_name)
+        serializer = serializer_class(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.validated_data)
+
+    def patch(self, request):
+        """Update a record list or pack, based on the URL route."""
+        serializer_class = self.serializers_update.get(request.resolver_match.url_name)
+        instance = self.queryset.first()
+        serializer = serializer_class(
+            instance,
+            data=request.data,
+            context={"request": request},
+            partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.validated_data)
 
 
 class RecordIndicator(generics.ListAPIView):

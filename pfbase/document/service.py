@@ -50,7 +50,7 @@ class RecordService:
 
     def sub_validate_data(self, request_data):
         """Validation data"""
-        self.number = request_data.get('number', '0005')
+        self.number = request_data.get('number', '0001')
         self.date_string = request_data.get('date')
         self.document_id = request_data.get('document_id')
         self.code = request_data.get('code')
@@ -222,7 +222,7 @@ class RecordService:
             if status_id:
                 self.create_history(record, status_id, user)
             if not indicators:
-                pass
+                continue
             self.create_riv(record, indicators)
         return record
 
@@ -410,6 +410,7 @@ class RecordService:
 
             if self.status_id:
                 self.create_history(record, self.status_id, user, self.comment, self.stamp)
+        return True
 
     @transaction.atomic
     def update_record_pack(self, user, request_data):

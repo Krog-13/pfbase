@@ -321,13 +321,13 @@ class RecordPackPostSerializer(serializers.Serializer):
             raise exceptions.ValidationError({"error": str(e)})
         except KeyError as e:
             raise exceptions.ValidationError({"error": str(e)})
-        except Exception as e:
+        except KeyError as e:
             raise exceptions.ValidationError({"error": str(e)})
 
 
 class RecordUpdateSerializer(CommonSerializer):
     number = serializers.CharField(required=False)
-    date = serializers.DateField(required=False)
+    date = serializers.DateTimeField(required=False)
     parent_id = serializers.IntegerField(required=False)
     record_id = serializers.IntegerField(required=False)
     status_id = serializers.IntegerField(required=False)
@@ -352,7 +352,7 @@ class RecordPackUpdateSerializer(serializers.Serializer):
             return RecordService().update_record_pack(user, request_data)
         except ValidationError as e:
             raise exceptions.ValidationError({"error": str(e)})
-        except Exception as e:
+        except ValueError as e:
             raise exceptions.ValidationError({"error": str(e)})
 
 
