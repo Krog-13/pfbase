@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Q
 from collections import namedtuple
 from pfbase.exception import WrongType
 from datetime import datetime
@@ -89,31 +90,34 @@ class RecordService:
             Records.objects.get(id=value)
 
     def create_riv(self, record, indicator_values):
+        indicator_ids = [item["id"] for item in indicator_values if item.get("id")]
+        indicator_codes = [item["code"] for item in indicator_values if item.get("code")]
+        indicators = DcmIndicators.objects.filter(
+            document_id=record.document_id,
+        ).filter(
+            Q(id__in=indicator_ids) | Q(code__in=indicator_codes)
+        ).only("id", "code", "type_value", "is_multiple")
+        indicators_by_id = {indicator.pk: indicator for indicator in indicators}
+        indicators_by_code = {indicator.code: indicator for indicator in indicators}
+
         for item in indicator_values:
-            value = item['value']
-            type_value = item['type']
-            idc_id = item.get('id')
-            idc_code = item.get('code')
-            # ToDo complete check exists that value
-            #self.check_exist_reference(type_value, value)
-            if idc_id:
-                indicator = DcmIndicators.objects.get(id=idc_id)
-                is_multiple = indicator.is_multiple
-            else:
-                indicator = DcmIndicators.objects.get(code=idc_code)
-                is_multiple = indicator.is_multiple
-            if is_multiple:
-                rv = record.record_values.create(indicator=indicator)
+            indicator = indicators_by_id.get(item.get("id")) or indicators_by_code.get(item.get("code"))
+            if not indicator:
+                raise WrongType("Indicator does not belong to the record document")
+            if item.get("id") and item.get("code"):
+                if indicator.pk != item["id"] or indicator.code != item["code"]:
+                    raise WrongType("Indicator id and code do not match")
+
+            value = item["value"]
+            type_value = indicator.type_value
+            rv = RecordIndicatorValues(record=record, indicator=indicator)
+            if indicator.is_multiple:
                 result = self.separate_multiple_value(rv, type_value, value)
-                if not result:
-                    raise WrongType("Invalid type value")
-                rv.save()
             else:
-                rv = record.record_values.create(indicator=indicator)
                 result = self.separate_value(rv, type_value, value)
-                if not result:
-                    raise WrongType("Invalid type value")
-                rv.save()
+            if not result:
+                raise WrongType("Invalid type value")
+            rv.save()
         return True
 
     def create_any_riv(self, record, indicator_values):
@@ -240,8 +244,8 @@ class RecordService:
             document = Documents.objects.get(code=code)
         parent_r = Records.objects.get(id=parent_id) if parent_id else None
         record = Records.objects.create(
-            number=validated_data.get('number'),
-            date=validated_data.get('date'),
+            number=validated_data.get('number', '0000'),
+            date=validated_data.get('date') or timezone.now(),
             parent=parent_r,
             author=user,
             organization_id=organization_id,

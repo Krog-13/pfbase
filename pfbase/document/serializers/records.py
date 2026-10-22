@@ -1,12 +1,14 @@
 from rest_framework import serializers, exceptions
 from rest_framework.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils import timezone
 from ..models.records import Records
 from ..models.rivalues import RecordIndicatorValues
 from pfbase.dictionary.models.elements import Elements
 from pfbase.system.models.listvalues import ListValues
 from pfbase.system.models.user import User
 from ..service import RecordService
-import datetime
+from pfbase.exception import WrongType
 
 from ...system.models import Organization
 
@@ -254,7 +256,7 @@ class RecordFormDataSerializer(serializers.Serializer):
 
 class RecordPostSerializer(CommonSerializer):
     number = serializers.CharField(required=False, default="0000")
-    date = serializers.DateTimeField(required=False, default=datetime.datetime.now())
+    date = serializers.DateTimeField(required=False, default=timezone.now)
     document_id = serializers.IntegerField(required=False)
     code = serializers.CharField(required=False)
     parent_id = serializers.IntegerField(required=False)
@@ -287,7 +289,7 @@ class RecordListPostSerializer(serializers.Serializer):
 
 class RecordAnyPostSerializer(CommonSerializer):
     number = serializers.CharField(required=False, default="0000")
-    date = serializers.DateTimeField(required=False, default=datetime.datetime.now())
+    date = serializers.DateTimeField(required=False, default=timezone.now)
     document_id = serializers.IntegerField(required=False)
     code = serializers.CharField(required=False)
     parent_id = serializers.IntegerField(required=False)
