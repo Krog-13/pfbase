@@ -1,0 +1,16 @@
+.git
+.venv
+venv
+.env
+.env.*
+*.pem
+*.key
+.idea
+.junie
+.codex
+.agents
+__pycache__
+*.pyc
+*.log
+docs
+.github
