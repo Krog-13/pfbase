@@ -17,6 +17,7 @@ class User(AbstractUser):
     locked_until = models.DateTimeField(null=True, blank=True)
     block_reason = models.CharField(max_length=255, blank=True)
     failed_login_attempts = models.PositiveIntegerField(default=0)
+    is_ib_operator = models.BooleanField(default=False, verbose_name='IB operator (admin only)')
     password_changed_at = models.DateTimeField(default=timezone.now, editable=False)
     access_rules = models.JSONField(default=dict, blank=True,
                                   help_text='Optional networks (CIDR), weekdays (0-6), start/end (HH:MM, UTC).')
@@ -29,7 +30,7 @@ class User(AbstractUser):
         # Serialize credential changes with login, reset and refresh operations.
 
         tracked = ('password', 'is_active', 'is_staff', 'is_superuser', 'username',
-                   'email', 'expires_at', 'locked_until', 'access_rules')
+                   'email', 'expires_at', 'locked_until', 'access_rules', 'is_ib_operator')
         using = kwargs.get('using') or self._state.db or 'default'
         with transaction.atomic(using=using):
             previous = type(self).objects.using(using).select_for_update().filter(pk=self.pk).first() if self.pk else None
@@ -67,3 +68,9 @@ class User(AbstractUser):
         verbose_name = 'STM User'
         verbose_name_plural = 'STM Users'
         permissions = [('manage_account_security', 'Can manage account security attributes')]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(is_ib_operator=False) | models.Q(is_staff=True, is_superuser=False),
+                name='ib_operator_is_staff_not_superuser',
+            ),
+        ]

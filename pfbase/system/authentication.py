@@ -7,13 +7,22 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .models.user import User
 from .security import check_credentials, current_request, validated_session
+from .operator_role import IB_OPERATOR_PERMISSIONS
 
 
 class AccountBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
         if password is None or not (username or kwargs.get('email')):
             return None
-        return check_credentials(username or kwargs['email'], password, request)
+        return check_credentials(username or kwargs['email'], password, request, allow_admin_only=True)
+
+    def get_all_permissions(self, user_obj, obj=None):
+        permissions = super().get_all_permissions(user_obj, obj)
+        return permissions & IB_OPERATOR_PERMISSIONS if getattr(user_obj, 'is_ib_operator', False) else permissions
+
+    async def aget_all_permissions(self, user_obj, obj=None):
+        permissions = await super().aget_all_permissions(user_obj, obj)
+        return permissions & IB_OPERATOR_PERMISSIONS if getattr(user_obj, 'is_ib_operator', False) else permissions
 
 
 class SessionJWTAuthentication(JWTAuthentication):

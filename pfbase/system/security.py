@@ -50,7 +50,7 @@ def credential_digest(user):
     group_permissions = list(user.groups.order_by('pk', 'permissions__pk').values_list(
         'pk', 'permissions__pk', 'permissions__codename', 'permissions__content_type__app_label'))
     values = [user.password, user.username, user.email, user.is_active, user.is_staff,
-              user.is_superuser, str(user.expires_at), str(user.locked_until),
+              user.is_superuser, user.is_ib_operator, str(user.expires_at), str(user.locked_until),
               str(user.password_changed_at), user.access_rules, permissions, groups, group_permissions]
     return salted_hmac('account-session', json.dumps(values, sort_keys=True), algorithm='sha256').hexdigest()
 
@@ -117,7 +117,7 @@ def revoke_sessions(user, reason):
         audit('session_revoked', user, reason=reason)
 
 
-def check_credentials(identifier, password, request=None):
+def check_credentials(identifier, password, request=None, *, allow_admin_only=False):
     """Return None on failure, committing lock counters BEFORE the caller raises."""
     from django.db.models import Q
     with transaction.atomic():
@@ -130,6 +130,8 @@ def check_credentials(identifier, password, request=None):
             return None
         user = users[0]
         denial = account_denial(user, request)
+        if user.is_ib_operator and not allow_admin_only:
+            denial = 'admin_only'
         if denial:
             audit('login_failed', user, result='failure', reason=denial, request=request)
             return None
@@ -157,6 +159,8 @@ def check_credentials(identifier, password, request=None):
 def new_session(user, kind='jwt'):
     # Caller holds the user row lock; OneToOne also enforces the limit in the DB.
     import uuid
+    if user.is_ib_operator and kind != 'browser':
+        raise AuthenticationFailed('This account can only use Django admin.')
     now = timezone.now()
     revoke_sessions(user, 'new_login')
     session, _ = AuthSession.objects.update_or_create(user=user, defaults={
@@ -185,6 +189,8 @@ def issue_pair(user, session):
 
 def session_denial(user, session, request=None):
     now = timezone.now()
+    if user.is_ib_operator and session.kind != 'browser':
+        return 'admin_only'
     if session.revoked_at:
         return 'session_revoked'
     if session.expires_at <= now:

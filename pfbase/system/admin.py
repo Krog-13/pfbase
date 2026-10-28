@@ -6,6 +6,8 @@ from .models.user import User
 from django.contrib.auth.admin import UserAdmin, GroupAdmin as BaseGroupAdmin
 from django.contrib import admin
 from .models.security import SecurityEvent
+from .forms import OperatorUserCreationForm
+from django.core.exceptions import PermissionDenied
 
 
 # Admin for System
@@ -76,7 +78,7 @@ class CustomUserAdmin(UserAdmin):
         ),
         (
             'Account security',
-            {'fields': ('expires_at', 'locked_until', 'block_reason', 'access_rules',
+            {'fields': ('is_ib_operator', 'expires_at', 'locked_until', 'block_reason', 'access_rules',
                         'failed_login_attempts', 'password_changed_at')}
         )
     )
@@ -87,7 +89,41 @@ class CustomUserAdmin(UserAdmin):
     readonly_fields = ('last_login', 'date_joined', 'failed_login_attempts', 'password_changed_at')
 
     def has_add_permission(self, request):
+        if request.user.is_ib_operator:
+            return request.user.has_perm('pfbase.add_user')
         return super().has_add_permission(request) and request.user.has_perm('pfbase.manage_account_security')
+
+    def get_fieldsets(self, request, obj=None):
+        if request.user.is_ib_operator and obj is None:
+            return ((None, {'fields': ('username', 'email', 'first_name', 'last_name', 'password1', 'password2')}),)
+        return super().get_fieldsets(request, obj)
+
+    def get_form(self, request, obj=None, **kwargs):
+        if request.user.is_ib_operator and obj is None:
+            kwargs['form'] = OperatorUserCreationForm
+        return super().get_form(request, obj, **kwargs)
+
+    def _add_view(self, request, form_url='', extra_context=None):
+        if request.user.is_ib_operator:
+            # Bypass UserAdmin's add+change requirement only for a strictly
+            # limited form; never grant change_user just to enable creation.
+            forbidden = {'is_staff', 'is_superuser', 'is_ib_operator', 'is_active',
+                         'groups', 'user_permissions', 'access_rules', 'locked_until',
+                         'expires_at', 'usable_password', '_saveasnew'}
+            if forbidden.intersection(request.POST):
+                raise PermissionDenied('Only ordinary user accounts may be created.')
+            return admin.ModelAdmin.add_view(self, request, form_url, extra_context)
+        return super()._add_view(request, form_url, extra_context)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        if request.user.is_ib_operator:
+            raise PermissionDenied('Updating existing users is not allowed.')
+        return super().change_view(request, object_id, form_url, extra_context)
+
+    def response_add(self, request, obj, post_url_continue=None):
+        if request.user.is_ib_operator:
+            return admin.ModelAdmin.response_add(self, request, obj, post_url_continue)
+        return super().response_add(request, obj, post_url_continue)
 
     def has_change_permission(self, request, obj=None):
         return (super().has_change_permission(request, obj)
@@ -99,10 +135,15 @@ class CustomUserAdmin(UserAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         fields = super().get_readonly_fields(request, obj)
-        return fields if request.user.is_superuser else (*fields, 'is_superuser')
+        return fields if request.user.is_superuser else (*fields, 'is_superuser', 'is_ib_operator')
 
     def save_model(self, request, obj, form, change):
         from .security import audit
+        if request.user.is_ib_operator:
+            if change:
+                raise PermissionDenied('Updating existing users is not allowed.')
+            obj.is_staff = obj.is_superuser = obj.is_ib_operator = False
+            obj.is_active = True
         super().save_model(request, obj, form, change)
         audit('account_admin_updated', obj, reason=','.join(form.changed_data), request=request)
 
