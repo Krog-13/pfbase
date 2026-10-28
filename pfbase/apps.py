@@ -5,3 +5,6 @@ class PfbaseConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'pfbase'
     verbose_name = 'Core petroflow'
+
+    def ready(self):
+        from .system import signals  # noqa: F401

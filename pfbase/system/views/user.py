@@ -1,180 +1,150 @@
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.shortcuts import redirect
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from rest_framework.viewsets import ModelViewSet, ViewSet
-from rest_framework.response import Response
-from pfbase.pagination import CustomPagination
-from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.authtoken.models import Token
-from ..serializers.user import UserSerializer, RegistrationUserSerializer, RolesSerializer, \
-    PermissionSerializer, AuthTokenSerializer, ChangePasswordSerializer, PasswordResetSerializer, \
-    PasswordResetConfirmSerializer, SetPasswordSerializer
-from ..models.user import User
-from rest_framework.views import APIView
-from django.contrib.auth.models import Group
-from django.urls import reverse
-from rest_framework.generics import CreateAPIView, get_object_or_404, UpdateAPIView
-from django.contrib.auth.models import Permission
-from ...permissions import IsOwnerOrReadOnly
-from django.views.generic import TemplateView
-from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from django.conf import settings
+from django.contrib.auth.models import Group, Permission
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.mail import send_mail
+from django.db import IntegrityError, transaction
+from django.urls import reverse
 from django.utils import timezone
-from django.db.utils import IntegrityError
+from django.shortcuts import render
+from rest_framework import serializers, status
+from rest_framework.generics import CreateAPIView, get_object_or_404
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+from rest_framework.permissions import BasePermission, DjangoModelPermissions, IsAuthenticated, SAFE_METHODS
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 
+from pfbase.pagination import CustomPagination
+from ..models.user import User
+from ..serializers.user import (UserSerializer, RegistrationUserSerializer, RolesSerializer,
+    PermissionSerializer, ChangePasswordSerializer, SetPasswordSerializer,
+    PasswordResetSerializer, PasswordResetConfirmSerializer)
+from ..security import audit, create_reset, reset_password
+from .security import PublicSecurityView, SecurityTokenObtainView, SessionLogoutView
+
+
+class AccountModelPermissions(DjangoModelPermissions):
+    perms_map = {**DjangoModelPermissions.perms_map,
+                 'GET': ['%(app_label)s.view_%(model_name)s']}
+
+
+class ManageAccountSecurity(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.has_perm('pfbase.manage_account_security')
 
 
 class UserAPIView(ModelViewSet):
-    """
-    Представление пользователей
-    """
     queryset = User.objects.all().order_by('-id')
     serializer_class = UserSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, AccountModelPermissions)
     pagination_class = CustomPagination
+
+    def get_serializer_class(self):
+        return RegistrationUserSerializer if self.action == 'create' else UserSerializer
+
+    def perform_destroy(self, instance):
+        if not self.request.user.has_perm('pfbase.manage_account_security'):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Account security permission is required.')
+        if instance.is_superuser and not self.request.user.is_superuser:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only a superuser may delete a superuser account.')
+        instance.delete()
 
 
 class RegistrationUserAPIView(CreateAPIView):
-    """
-    Регистрация нового пользователя
-    """
-    parser_classes = (MultiPartParser, FormParser)
+    queryset = User.objects.all()
+    serializer_class = RegistrationUserSerializer
+    permission_classes = (IsAuthenticated, AccountModelPermissions, ManageAccountSecurity)
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
 
-    def post(self, request, *args, **kwargs):
-        serializer = RegistrationUserSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            try:
-                serializer.save()
-                return Response(
-                    {"message": "Пользователь успешно зарегистрирован"}, status=status.HTTP_201_CREATED
-                )
-            except IntegrityError:
-                return Response(
-                    {"message": "Дублирующееся значение ключа нарушает ограничение уникальности"}, status=status.HTTP_400_BAD_REQUEST
-                )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except IntegrityError:
+            raise serializers.ValidationError('An account with these attributes already exists.')
+
+
+class RoleManagementPermission(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and (request.method in SAFE_METHODS or request.user.is_superuser)
 
 
 class RolesAPIView(ModelViewSet):
     queryset = Group.objects.all().order_by('id')
     serializer_class = RolesSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, AccountModelPermissions, RoleManagementPermission)
 
 
 class PermissionAPIView(ModelViewSet):
     queryset = Permission.objects.all().order_by('id')
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, AccountModelPermissions, RoleManagementPermission)
     serializer_class = PermissionSerializer
     pagination_class = CustomPagination
 
 
-class CustomAuthToken(ObtainAuthToken):
-    """Customizing the ObtainAuthToken"""
-    serializer_class = AuthTokenSerializer
+# Legacy imports share the new lifecycle; no permanent authtoken can be issued.
+CustomAuthToken = SecurityTokenObtainView
+UserLogout = SessionLogoutView
 
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data,
-                                           context={"request": request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data["user"]
-        # update last login
-        user.last_login = timezone.now()
-        user.save(update_fields=["last_login"])
 
-        Token.objects.filter(user=user).delete()
-        token = Token.objects.create(user=user)
-        roles = [gp.name for gp in user.groups.all()]
-        fio = user.first_name +" "+ user.last_name
-        if user.organization:
-            return Response({
-                "token": token.key,
-                "email": user.email,
-                "fio": fio,
-                "user_id": user.pk,
-                "organization": user.organization.code,
-                "organization_id": user.organization.id,
-                "organization_name": user.organization.short_name,  # Временно так сделал потом надо будет переделать
-                "roles": roles,
-            })
-        else:
-            return Response({
-                "token": token.key,
-                "email": user.email,
-                "fio": fio,
-                "user_id": user.pk,
-                "roles": roles,
-            })
-
-class UserLogout(APIView):
+class ChangePasswordViewSet(APIView):
     permission_classes = (IsAuthenticated,)
-    """Logout ObtainAuthToken"""
-    def get(self, request, format=None):
-        if request.user.is_anonymous:
-            return Response({"message": "User not found"}, status=status.HTTP_400_BAD_REQUEST)
-        request.user.auth_token.delete()
-        return Response(status=status.HTTP_200_OK)
-
-
-class ChangePasswordViewSet(UpdateAPIView):
-    """Change password"""
-    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
 
     def put(self, request):
-        obj = get_object_or_404(User, pk=request.user.id)
-        serializer = ChangePasswordSerializer(obj, data=request.data)
-        if serializer.is_valid():
-            serializer.save(obj)
-            obj.save()
-            return Response({"message": "Пароль изменен успешно"}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = ChangePasswordSerializer(request.user, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(request.user)
+        return Response({'message': 'Password changed; sign in again.'})
 
 
-class SetPasswordViewSet(UpdateAPIView):
-    """Change password"""
-    permission_classes = (IsAdminUser,)
+class SetPasswordViewSet(APIView):
+    permission_classes = (IsAuthenticated, ManageAccountSecurity)
 
     def put(self, request, pk):
-        obj = get_object_or_404(User, pk=pk)
-        serializer = SetPasswordSerializer(obj, data=request.data)
-        if serializer.is_valid():
-            serializer.save(obj)
-            obj.save()
-            return Response({"message": "Пароль установлен успешно"}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user = get_object_or_404(User, pk=pk)
+        if user.is_superuser and not request.user.is_superuser:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only a superuser may reset a superuser password.')
+        serializer = SetPasswordSerializer(user, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user)
+        return Response({'message': 'Password set; previous sessions revoked.'})
 
 
-
-class PasswordResetView(APIView):
+class PasswordResetView(PublicSecurityView):
     def post(self, request):
         serializer = PasswordResetSerializer(data=request.data)
-        if serializer.is_valid():
-            user, token = serializer.save()
-            reset_url = request.build_absolute_uri(
-                reverse("password-reset-confirm", kwargs={"uid": user.id, "token": token})
-            )
-            user.email_user("Password Reset Request", f"Click the link to reset your password: {reset_url}",
-                            settings.EMAIL_HOST_USER)
-            return Response({"message": "Password reset link sent"}, status=status.HTTP_200_OK)
+        serializer.is_valid(raise_exception=True)
+        # Same public response for missing, ambiguous, inactive and active accounts.
+        with transaction.atomic():
+            users = list(User.objects.select_for_update().filter(
+                email__iexact=serializer.validated_data['email'], is_active=True).order_by('pk')[:2])
+            if len(users) == 1:
+                user = users[0]
+                if user.expires_at is None or user.expires_at > timezone.now():
+                    token = create_reset(user)
+                    path = reverse('password-reset-confirm', kwargs={'uid': user.pk, 'token': token})
+                    url = settings.PASSWORD_RESET_BASE_URL.rstrip('/') + path if settings.PASSWORD_RESET_BASE_URL else request.build_absolute_uri(path)
+                    transaction.on_commit(lambda: send_mail('Password reset',
+                        f'Use this one-time link to reset your password: {url}',
+                        settings.DEFAULT_FROM_EMAIL, [user.email]))
+        return Response({'message': 'If the account is eligible, a reset link has been sent.'})
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class PasswordResetConfirmView(PublicSecurityView):
+    parser_classes = (JSONParser, FormParser)
 
-class PasswordResetConfirmView(APIView, TemplateView):
-    parser_classes = [FormParser, JSONParser]
-    template_name = 'reset.html'
+    def get(self, request, uid, token):
+        response = render(request, 'resetForm.html', {'uid': uid, 'token': token})
+        response['Referrer-Policy'] = 'no-referrer'
+        return response
 
     def post(self, request, uid, token):
-        try:
-            user = User.objects.get(pk=uid)
-            token_generator = PasswordResetTokenGenerator()
-            if not token_generator.check_token(user, token):
-                return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
-        except User.DoesNotExist:
-            return Response({"error": "Invalid user."}, status=status.HTTP_400_BAD_REQUEST)
-
         serializer = PasswordResetConfirmSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(user)
-            return redirect("/login")
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        try:
+            reset_password(uid, token, serializer.validated_data['password'], request)
+        except DjangoValidationError as error:
+            raise serializers.ValidationError({'password': error.messages})
+        return Response({'message': 'Password reset; sign in again.'})

@@ -5,6 +5,7 @@ from .models.organization import Organization
 from .models.user import User
 from django.contrib.auth.admin import UserAdmin, GroupAdmin as BaseGroupAdmin
 from django.contrib import admin
+from .models.security import SecurityEvent
 
 
 # Admin for System
@@ -72,18 +73,69 @@ class CustomUserAdmin(UserAdmin):
         (
             "Other Section",
             {"fields": (("last_login", "date_joined"), "is_superuser", "is_staff", "is_active")}
+        ),
+        (
+            'Account security',
+            {'fields': ('expires_at', 'locked_until', 'block_reason', 'access_rules',
+                        'failed_login_attempts', 'password_changed_at')}
         )
     )
     exclude = ("password", )
     list_display = ('username', 'email', 'organization', 'id')
     list_filter = ("organization",)
     list_select_related = ("organization",)
+    readonly_fields = ('last_login', 'date_joined', 'failed_login_attempts', 'password_changed_at')
+
+    def has_add_permission(self, request):
+        return super().has_add_permission(request) and request.user.has_perm('pfbase.manage_account_security')
+
+    def has_change_permission(self, request, obj=None):
+        return (super().has_change_permission(request, obj)
+                and request.user.has_perm('pfbase.manage_account_security')
+                and (obj is None or not obj.is_superuser or request.user.is_superuser))
+
+    def has_delete_permission(self, request, obj=None):
+        return self.has_change_permission(request, obj) and super().has_delete_permission(request, obj)
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = super().get_readonly_fields(request, obj)
+        return fields if request.user.is_superuser else (*fields, 'is_superuser')
+
+    def save_model(self, request, obj, form, change):
+        from .security import audit
+        super().save_model(request, obj, form, change)
+        audit('account_admin_updated', obj, reason=','.join(form.changed_data), request=request)
 
 # admin.site.register(User, CustomUserAdmin)
 class GroupAdmin(BaseGroupAdmin):
     list_display = ("name", "id",)
     ordering = ("id",)
     search_fields = ("id", "name")
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+
+@admin.register(SecurityEvent)
+class SecurityEventAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'event', 'subject_id', 'actor_id', 'result', 'reason')
+    list_filter = ('event', 'result')
+    readonly_fields = ('created_at', 'user', 'subject_id', 'actor_id', 'event', 'result', 'reason', 'address')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 admin.site.unregister(Group)
 admin.site.register(Group, GroupAdmin)
@@ -116,7 +168,7 @@ def get_app_list(self, request, app_label=None):
 
     for app in app_list:
         if app['app_label'] in sort_apps:
-            app['models'].sort(key=lambda x: ordering[x['name']])
+            app['models'].sort(key=lambda x: ordering.get(x['name'], 100))
 
     # Sort so pfbase app always will be at the first place
     app_list.sort(key=lambda x: 0 if x['app_label'] == 'pfbase' else 1)

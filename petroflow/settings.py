@@ -20,8 +20,8 @@ from corsheaders.defaults import default_headers
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ["SECRET_KEY"]
 
-DEBUG = os.environ["DEBUG"]
-LOCAL = os.environ["LOCAL"]
+DEBUG = os.environ["DEBUG"].lower() in ('true', '1', 'yes')
+LOCAL = os.environ["LOCAL"].lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = os.environ["ALLOWED_HOSTS"].split(",")
 
@@ -59,6 +59,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'pfbase.system.authentication.AccountSessionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -103,6 +104,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': int(os.environ.get('PASSWORD_MIN_LENGTH', '12'))},
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -110,6 +112,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
+    {'NAME': 'pfbase.system.validators.PasswordComplexityValidator'},
 ]
 
 
@@ -170,11 +173,11 @@ MAILERS = {
         "BACKEND": _BACKEND_ALIASES["smtp"],
         "OPTIONS": {
             "host": os.environ['EMAIL_HOST'],
-            "port": os.environ['EMAIL_PORT'],
+            "port": int(os.environ['EMAIL_PORT']),
             "password": os.environ['EMAIL_HOST_PASSWORD'],
             "username": os.environ['EMAIL_HOST_USER'],
-            "use_tls": os.environ['EMAIL_USE_TLS'],
-            "use_ssl": os.environ['EMAIL_USE_SSL'],
+            "use_tls": os.environ['EMAIL_USE_TLS'].lower() in ('true', '1', 'yes'),
+            "use_ssl": os.environ['EMAIL_USE_SSL'].lower() in ('true', '1', 'yes'),
             "timeout": 10,
         },
     }
@@ -190,7 +193,7 @@ REST_FRAMEWORK = {
     # 'PAGE_SIZE': 10,
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'pfbase.system.authentication.SessionJWTAuthentication',
     ),
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
@@ -232,9 +235,27 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
 }
 
+AUTHENTICATION_BACKENDS = ['pfbase.system.authentication.AccountBackend']
+
+# Durations are in seconds; these defaults can be overridden by the account policy.
+ACCOUNT_SECURITY = {
+    'MAX_FAILED_ATTEMPTS': int(os.environ.get('AUTH_MAX_FAILED_ATTEMPTS', '5')),
+    'LOCK_SECONDS': int(os.environ.get('AUTH_LOCK_SECONDS', '900')),
+    'PASSWORD_MAX_AGE': int(os.environ.get('AUTH_PASSWORD_MAX_AGE', '7776000')),
+    'SESSION_MAX_AGE': int(os.environ.get('AUTH_SESSION_MAX_AGE', '28800')),
+    'IDLE_SECONDS': int(os.environ.get('AUTH_IDLE_SECONDS', '1800')),
+    'RESET_SECONDS': int(os.environ.get('AUTH_RESET_SECONDS', '1800')),
+}
+if any(value <= 0 for value in ACCOUNT_SECURITY.values()):
+    raise ValueError('ACCOUNT_SECURITY settings must be positive.')
+
+DEFAULT_FROM_EMAIL = MAILERS['default']['OPTIONS']['username']
+# Optional trusted frontend origin; otherwise use the validated request host.
+PASSWORD_RESET_BASE_URL = os.environ.get('PASSWORD_RESET_BASE_URL', '')
+
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=360),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
+    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=int(os.environ.get('AUTH_ACCESS_SECONDS', '900'))),
+    "REFRESH_TOKEN_LIFETIME": timedelta(seconds=ACCOUNT_SECURITY['SESSION_MAX_AGE']),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": False,
     "AUTH_HEADER_TYPES": ("Bearer",),
@@ -245,6 +266,9 @@ LOGGING_CONFIG = None
 LOGGING = {
     'version': 1,
     'disable_existing_logger': False,
+    'filters': {
+        'redact_auth_secrets': {'()': 'pfbase.system.security_logging.RedactAuthSecrets'},
+    },
 
     'formatters': {
         'default_formatter': {
@@ -253,12 +277,14 @@ LOGGING = {
     },
     'handlers': {
         'stream_handler': {
+            'filters': ['redact_auth_secrets'],
             'level': "INFO",
             'class': 'logging.StreamHandler',
             'formatter': 'default_formatter',
             'stream': 'ext://sys.stdout'
         },
         'file_handler': {
+            'filters': ['redact_auth_secrets'],
             'level': "WARNING",
             'filename': 'PF_LOG.log',
             'class': 'logging.FileHandler',
@@ -267,6 +293,8 @@ LOGGING = {
         }
     },
     'loggers': {
+        'django.request': {'filters': ['redact_auth_secrets']},
+        'django.server': {'filters': ['redact_auth_secrets']},
         'pf_logger': {
             'handlers': ['stream_handler', 'file_handler'],
             'level': 'DEBUG',
