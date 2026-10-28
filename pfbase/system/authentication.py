@@ -4,6 +4,7 @@ from django.http import HttpResponseForbidden
 from django.contrib.auth import logout
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from .audit_context import set_authenticated_audit_actor
 
 from .models.user import User
 from .security import check_credentials, current_request, validated_session
@@ -31,6 +32,7 @@ class SessionJWTAuthentication(JWTAuthentication):
         if result:
             user, token = result
             validated_session(user, token.get('sid'), request)
+            set_authenticated_audit_actor(request, user)
         return result
 
 

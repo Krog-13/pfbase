@@ -52,6 +52,10 @@ class SecurityEvent(models.Model):
     result = models.CharField(max_length=16, default='success')
     reason = models.CharField(max_length=255, blank=True)
     address = models.GenericIPAddressField(null=True, blank=True)
+    object_type = models.CharField(max_length=64, blank=True, db_index=True)
+    object_id = models.PositiveBigIntegerField(null=True, blank=True, db_index=True)
+    changed_fields = models.JSONField(default=list, blank=True)
+    object_context = models.JSONField(default=dict, blank=True)
 
     class Meta:
         db_table = '"stm"."security_event"'

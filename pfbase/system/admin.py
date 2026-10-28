@@ -165,9 +165,11 @@ class GroupAdmin(BaseGroupAdmin):
 
 @admin.register(SecurityEvent)
 class SecurityEventAdmin(admin.ModelAdmin):
-    list_display = ('created_at', 'event', 'subject_id', 'actor_id', 'result', 'reason')
-    list_filter = ('event', 'result')
-    readonly_fields = ('created_at', 'user', 'subject_id', 'actor_id', 'event', 'result', 'reason', 'address')
+    list_display = ('created_at', 'event', 'object_type', 'object_id', 'subject_id', 'actor_id', 'result', 'reason')
+    list_filter = ('event', 'object_type', 'result')
+    search_fields = ('=actor_id', '=subject_id', '=object_id', 'object_type')
+    readonly_fields = ('created_at', 'user', 'subject_id', 'actor_id', 'event', 'result', 'reason', 'address',
+                       'object_type', 'object_id', 'changed_fields', 'object_context')
 
     def has_add_permission(self, request):
         return False
