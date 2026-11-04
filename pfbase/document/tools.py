@@ -1,5 +1,9 @@
 from django.utils import timezone
-from .common import STOCK_FILTER_KEYS
+
+from pfbase.dictionary.models import Elements
+from pfbase.system.models import ListValues, Organization
+from .common import STOCK_FILTER_KEYS, STOCK_LABEL, STOCK_HEADER_KEYS
+from .models import Records
 
 from ..system import models as stm_models
 
@@ -17,6 +21,7 @@ class RecordService:
         self.document_code = filters.get("document_code")
         self.indicators_code = filters.get("indicators_code")
         self.stock_filters = {}
+        self.stock_headers = []
         self.indicator_filters = {}
         self.indicators_code_list = []
 
@@ -118,13 +123,16 @@ class RecordService:
         return value
 
     def resolve_indicator_codes(self):
-        """Return requested indicator codes, or all codes when none were supplied."""
-        indicator_codes = list(dict.fromkeys(
-            code.strip()
-            for raw_code in self.indicators_code
-            for code in raw_code.split(",") if code.strip()))
+        """Separate stock headers and return requested indicators, defaulting to all."""
+        out = []
+        indicator_codes = self.indicators_code[0].split(",")
         if indicator_codes:
-            return indicator_codes
+            for code in indicator_codes:
+                if code in STOCK_HEADER_KEYS:
+                    self.stock_headers.append(code)
+                else:
+                    out.append(code)
+            return out
         return list(
             DcmIndicators.objects.filter(document__code=self.document_code)
             .order_by("index_sort", "id")
@@ -171,7 +179,8 @@ class RecordService:
         try:
             ts = TableService(queryset)
             table = ts.construction_table(self.document_code,
-                                          self.indicators_code_list)
+                                          self.indicators_code_list,
+                                          self.stock_headers)
             return table
         except ValueError:
             return {"message": "Error by build table"}
@@ -190,8 +199,8 @@ class TableService:
         self.queryset = queryset
         self.lang = "ru"
 
-    def construction_table(self, dcm_code, idc_code):
-        header = self.set_header(dcm_code, idc_code)
+    def construction_table(self, dcm_code, idc_code, stock_headers):
+        header = self.set_header(dcm_code, idc_code, stock_headers)
         body = self.set_body(idc_code)
         return {"header": header, "body": body}
 
@@ -217,9 +226,6 @@ class TableService:
             "author_id": record.author_id,
             "organization": record.organization_id,
             "is_deleted": record.is_deleted,
-            "created_at": self._format_local_datetime(record.created_at),
-            "updated_at": self._format_local_datetime(record.updated_at),
-            "deleted_at": self._format_local_datetime(record.deleted_at),
             "indicator_value": [
                 self.serialize_indicator_value(value)
                 for value in record.record_values.all()
@@ -246,7 +252,9 @@ class TableService:
                 value.value_array_int if kind in reference_types else value.value_array_str
             )
         elif kind in reference_types:
-            serialized_value = value.value_reference
+            short_name = Elements.objects.values_list("short_name", flat=True).get(
+                id=value.value_reference)
+            serialized_value = short_name
         else:
             serialized_value = cls.serialize_value(value)
 
@@ -264,23 +272,28 @@ class TableService:
             "value": serialized_value,
         }
 
-    def set_header(self, dcm_code, idc_code):
-        indicators = list(
-            DcmIndicators.objects.filter(
-                document__code=dcm_code, code__in=idc_code))
-        indicators_by_code = {indicator.code: indicator for indicator in indicators}
-        missing_codes = [code for code in idc_code if code not in indicators_by_code]
-        if missing_codes:
-            raise ValueError(f"Unknown indicators for document: {', '.join(missing_codes)}")
-        header = [
-            {
-                "code": indicators_by_code[code].code,
-                "label": indicators_by_code[code].short_name or {},
-                "type": indicators_by_code[code].type_value,
-                "is_multiple": indicators_by_code[code].is_multiple,
+    def set_header(self, dcm_code, idc_code, stock_headers):
+        indicators_by_code = {
+            indicator["code"]: {
+                "code": indicator["code"],
+                "label": indicator["short_name"] or {},
+                "type": indicator["type_value"],
+                "is_multiple": indicator["is_multiple"],
             }
-            for code in idc_code
-        ]
+            for indicator in DcmIndicators.objects.filter(
+                document__code=dcm_code, code__in=idc_code
+            ).values("code", "short_name", "type_value", "is_multiple")
+        }
+        header = [indicators_by_code[code].copy() for code in idc_code]
+        header.extend(
+            {
+                "code": code.lower(),
+                "label": STOCK_LABEL[code],
+                "type": None,
+                "is_multiple": None,
+            }
+            for code in stock_headers
+        )
         return header
 
     def set_body(self, idc_code):
@@ -338,9 +351,22 @@ class TableService:
             if kind in ("dct", "dcm", "list", "user", "org", "list_integers", "list_string"):
                 return value.value_array_int
             return value.value_array_str
-
-        if kind in ("dct", "dcm", "user", "list", "org"):
-            return value.value_reference
+        if kind == "dct":
+            short_name = Elements.objects.values_list("short_name", flat=True).get(
+                id=value.value_reference)
+            return short_name
+        elif kind == "dcm":
+            short_name = Records.objects.values_list("number", flat=True).get(
+                id=value.value_reference)
+            return short_name
+        elif kind == "list":
+            short_name = ListValues.objects.values_list("short_name", flat=True).get(
+                id=value.value_reference)
+            return short_name
+        elif kind == "org":
+            short_name = Organization.objects.values_list("short_name", flat=True).filter(
+                id=value.value_reference).first()
+            return short_name
 
         if kind in ("datetime", "date", "time"):
             date_value = value.value_datetime

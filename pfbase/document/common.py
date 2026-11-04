@@ -6,6 +6,20 @@ STOCK_FILTER_KEYS = {
     "NUMBER", "CODE", "CREATED_AT", "DATE", "AUTHOR_ID", "ORGANIZATION_ID", "STATUS_ID",
 }
 
+STOCK_HEADER_KEYS = {
+    "NUMBER", "CODE", "CREATED_AT", "DATE", "AUTHOR", "ORGANIZATION", "STATUS",
+}
+
+STOCK_LABEL = {
+    "NUMBER": {"ru": "Номер", "kk": "Нөмір", "en": "Number"},
+    "CODE": {"ru": "Код", "kk": "Код", "en": "Code"},
+    "CREATED_AT": {"ru": "Дата создания", "kk": "Құрылған күні", "en": "Creation date"},
+    "DATE": {"ru": "Дата", "kk": "Күні", "en": "Date"},
+    "AUTHOR": {"ru": "Автор", "kk": "Автор", "en": "Author"},
+    "ORGANIZATION": {"ru": "Организация", "kk": "Ұйым", "en": "Organization"},
+    "STATUS": {"ru": "Статус", "kk": "Мәртебе", "en": "Status"},
+}
+
 record_type_mapping = {
     "str": "value_str",
     "text": "value_text",

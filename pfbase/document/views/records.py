@@ -72,13 +72,14 @@ class RIAPIView(views.APIView):
         rs = RecordService(filters, request.query_params)
         try:
             records = rs.register_records(self.queryset)
-        except ValueError as e:
+        except (ValueError, KeyError) as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(records, request, view=self)
-        output = rs.build_records_table(page)
-
+        try:
+            output = rs.build_records_table(page)
+        except (ValueError, KeyError) as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(
             {
                 "count": paginator.page.paginator.count,
@@ -169,7 +170,6 @@ class RIPLAPIView(views.APIView):
             partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-
         return Response(serializer.validated_data)
 
 

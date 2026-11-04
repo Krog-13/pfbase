@@ -1,7 +1,8 @@
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Max, Q
 from collections import namedtuple
 from pfbase.exception import WrongType
+from pfbase.config import START_STEP, STEP_SORT
 from datetime import datetime
 from ..system import models as stm_models
 from ..dictionary import models as dct_models
@@ -89,16 +90,26 @@ class RecordService:
                     raise WrongType("Invalid type value")
             Records.objects.get(id=value)
 
-    def create_riv(self, record, indicator_values):
-        indicator_ids = [item["id"] for item in indicator_values if item.get("id")]
-        indicator_codes = [item["code"] for item in indicator_values if item.get("code")]
+    @staticmethod
+    def _get_indicators(document_id, indicator_values):
+        indicator_ids = {item["id"] for item in indicator_values if item.get("id")}
+        indicator_codes = {item["code"] for item in indicator_values if item.get("code")}
         indicators = DcmIndicators.objects.filter(
-            document_id=record.document_id,
+            document_id=document_id,
         ).filter(
             Q(id__in=indicator_ids) | Q(code__in=indicator_codes)
         ).only("id", "code", "type_value", "is_multiple")
         indicators_by_id = {indicator.pk: indicator for indicator in indicators}
         indicators_by_code = {indicator.code: indicator for indicator in indicators}
+        return indicators_by_id, indicators_by_code
+
+    def create_riv(self, record, indicator_values, *, indicators=None):
+        if not indicator_values:
+            return True
+        if indicators is None:
+            indicators = self._get_indicators(record.document_id, indicator_values)
+        indicators_by_id, indicators_by_code = indicators
+        values = []
 
         for item in indicator_values:
             indicator = indicators_by_id.get(item.get("id")) or indicators_by_code.get(item.get("code"))
@@ -117,7 +128,9 @@ class RecordService:
                 result = self.separate_value(rv, type_value, value)
             if not result:
                 raise WrongType("Invalid type value")
-            rv.save()
+            rv.index_sort = 0
+            values.append(rv)
+        RecordIndicatorValues.objects.bulk_create(values, batch_size=1000)
         return True
 
     def create_any_riv(self, record, indicator_values):
@@ -157,6 +170,7 @@ class RecordService:
         """Create one main record and its child records atomically."""
         main = request_data.get("main") or {}
         main_document = self._get_document(main)
+        documents = {("id", main_document.pk): main_document, ("code", main_document.code): main_document}
         main_date = self._parse_record_date(main.get("date"))
         parent_id = main.get("parent_id")
         parent = Records.objects.get(pk=parent_id) if parent_id else None
@@ -174,15 +188,28 @@ class RecordService:
             self.create_history(main_record, main["status_id"], user)
 
         for sub in request_data.get("subs") or []:
-            for row in sub.get('indicators', []):
+            rows = sub.get("indicators", [])
+            if not rows:
+                continue
+            document_key = ("id", sub["document_id"]) if sub.get("document_id") else ("code", sub.get("code"))
+            if document_key not in documents:
+                document = self._get_document(sub)
+                documents[document_key] = document
+                documents[("id", document.pk)] = document
+                documents[("code", document.code)] = document
+            document = documents[document_key]
+            indicators = self._get_indicators(document.pk, [item for row in rows for item in row])
+            # Keep the per-row default timestamp, but parse an explicit date once.
+            date = self._parse_record_date(sub["date"]) if sub.get("date") is not None else None
+            for row in rows:
                 sub_record = Records.objects.create(
                     number=sub.get("number") or "0001",
-                    date=self._parse_record_date(sub.get("date")),
+                    date=date if date is not None else timezone.now(),
                     parent=main_record,
                     author=user,
                     organization_id=sub.get("organization_id", main_record.organization_id),
-                    document=self._get_document(sub))
-                self.create_riv(sub_record, row)
+                    document=document)
+                self.create_riv(sub_record, row, indicators=indicators)
                 if sub.get("status_id"):
                     self.create_history(sub_record, sub["status_id"], user)
         return main_record
