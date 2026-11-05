@@ -28,6 +28,20 @@ class RolesSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class GroupSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = ('id', 'name')
+
+
+class CurrentUserSerializer(serializers.ModelSerializer):
+    groups = GroupSummarySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'groups')
+
+
 class UserSerializer(serializers.ModelSerializer):
     account_status = serializers.SerializerMethodField()
 

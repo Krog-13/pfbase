@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.shortcuts import render
 from rest_framework import serializers, status
-from rest_framework.generics import CreateAPIView, get_object_or_404
+from rest_framework.generics import CreateAPIView, RetrieveAPIView, get_object_or_404
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import BasePermission, DjangoModelPermissions, IsAuthenticated, SAFE_METHODS
 from rest_framework.response import Response
@@ -16,7 +16,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from pfbase.pagination import CustomPagination
 from ..models.user import User
-from ..serializers.user import (UserSerializer, RegistrationUserSerializer, RolesSerializer,
+from ..serializers.user import (CurrentUserSerializer, UserSerializer, RegistrationUserSerializer, RolesSerializer,
     PermissionSerializer, ChangePasswordSerializer, SetPasswordSerializer,
     PasswordResetSerializer, PasswordResetConfirmSerializer)
 from ..security import audit, create_reset, reset_password
@@ -31,6 +31,14 @@ class AccountModelPermissions(DjangoModelPermissions):
 class ManageAccountSecurity(BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.has_perm('pfbase.manage_account_security')
+
+
+class CurrentUserAPIView(RetrieveAPIView):
+    serializer_class = CurrentUserSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self):
+        return self.request.user
 
 
 class UserAPIView(ModelViewSet):
