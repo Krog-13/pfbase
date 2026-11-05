@@ -134,5 +134,5 @@ class CommonManager(models.Manager):
     def get_id_by_code(self, id):
         return self.get(id=id).code
 
-    def get_by_list_and_code(self, list_id, code):
-        return self.get(list_id=list_id, code=code).id
+    def get_by_list_and_code(self, list, code):
+        return self.get(list=list, code=code).id
