@@ -28,19 +28,17 @@ class RolesSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class GroupSummarySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Group
-        fields = ('id', 'name')
-
-
 class CurrentUserSerializer(serializers.ModelSerializer):
-    full_name = serializers.CharField(source='get_full_name', read_only=True)
-    groups = GroupSummarySerializer(many=True, read_only=True)
+    fio = serializers.CharField(source='get_full_name', read_only=True)
+    user_id = serializers.IntegerField(source='pk', read_only=True)
+    organization = serializers.CharField(source='organization.code', read_only=True, allow_null=True)
+    organization_id = serializers.IntegerField(read_only=True, allow_null=True)
+    organization_name = serializers.JSONField(source='organization.full_name', read_only=True, allow_null=True)
+    roles = serializers.SlugRelatedField(source='groups', slug_field='name', many=True, read_only=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'full_name', 'email', 'groups')
+        fields = ('email', 'fio', 'user_id', 'organization', 'organization_id', 'organization_name', 'roles')
         read_only_fields = ('email',)
 
 
