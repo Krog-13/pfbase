@@ -7,9 +7,11 @@ from .system.models.user import User
 
 
 class CurrentUserTests(TestCase):
-    def test_jwt_returns_only_the_signed_in_users_groups(self):
+    def test_jwt_returns_the_signed_in_users_profile_and_groups(self):
         password = 'Current-user-test!9'
-        user = User.objects.create_user('member', 'member@example.test', password)
+        user = User.objects.create_user(
+            'member', 'member@example.test', password, first_name='Ivan', last_name='Petrov',
+        )
         assigned_group = Group.objects.create(name='Editors')
         user.groups.add(assigned_group)
         Group.objects.create(name='Viewers')
@@ -28,6 +30,8 @@ class CurrentUserTests(TestCase):
         self.assertEqual(response.json(), {
             'id': user.pk,
             'username': user.username,
+            'full_name': 'Ivan Petrov',
+            'email': 'member@example.test',
             'groups': [{'id': assigned_group.pk, 'name': assigned_group.name}],
         })
 

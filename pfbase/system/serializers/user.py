@@ -35,11 +35,13 @@ class GroupSummarySerializer(serializers.ModelSerializer):
 
 
 class CurrentUserSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(source='get_full_name', read_only=True)
     groups = GroupSummarySerializer(many=True, read_only=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'groups')
+        fields = ('id', 'username', 'full_name', 'email', 'groups')
+        read_only_fields = ('email',)
 
 
 class UserSerializer(serializers.ModelSerializer):
