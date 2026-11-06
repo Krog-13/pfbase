@@ -31,6 +31,7 @@ class CurrentUserTests(TestCase):
             'username': user.username, 'password': password,
         }, format='json')
         self.assertEqual(login.status_code, 200)
+        self.assertTrue(login.data['refresh'])
         api.credentials(HTTP_AUTHORIZATION='Bearer ' + login.data['access'])
 
         response = api.get(url)
@@ -43,6 +44,9 @@ class CurrentUserTests(TestCase):
             'organization_id': organization.pk,
             'organization_name': organization_name,
             'roles': ['lead'],
+        })
+        self.assertEqual(login.json(), {
+            'access': login.data['access'], 'refresh': login.data['refresh'], **response.json(),
         })
 
         user.groups.clear()

@@ -10,6 +10,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from ..models.user import User
 from ..models.security import AuthSession
+from ..serializers.user import CurrentUserSerializer
 from ..security import (account_denial, audit, check_credentials,
                         issue_pair, new_session, refresh_pair, revoke_sessions, validated_session)
 
@@ -60,7 +61,8 @@ class SecurityTokenObtainView(PublicSecurityView):
             if account_denial(user, request) or user.password != checked.password:
                 raise AuthenticationFailed('Account state changed. Please sign in again.')
             session = new_session(user)
-            return Response(issue_pair(user, session))
+            tokens = issue_pair(user, session)
+            return Response({**tokens, **CurrentUserSerializer(user).data})
 
 
 class SecurityTokenRefreshView(PublicSecurityView):
