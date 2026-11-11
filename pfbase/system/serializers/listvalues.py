@@ -6,4 +6,4 @@ class LValuesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ListValues
-        fields = "list", "code", "short_name", "full_name"
+        fields = "id", "list", "code", "short_name", "full_name"
