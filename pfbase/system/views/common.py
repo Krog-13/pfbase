@@ -9,6 +9,7 @@ from email.message import EmailMessage
 
 
 from ..throttles import FileUploadThrottle
+from ..services.excel_account import ExcelAccount
 
 
 # from pfbase.system.kalkan_adapter import KalkanAdapter
@@ -138,3 +139,15 @@ class MailCheckAPI(views.APIView):
 #             except Exception as e:
 #                 raise exc.ValidationError({"message": str(e)})
 #         raise exc.ValidationError(serializer.errors)
+
+class AccountUpload(views.APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        excel_file = request.FILES.get('file')
+        if excel_file is None:
+            raise exc.ValidationError({'file': 'This field is required.'})
+        instance = ExcelAccount(excel_file)
+        accounts = instance.read_accounts()
+        return Response({'count': len(accounts), 'accounts': accounts})
