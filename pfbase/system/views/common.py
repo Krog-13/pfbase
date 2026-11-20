@@ -10,6 +10,9 @@ from email.message import EmailMessage
 
 from ..throttles import FileUploadThrottle
 from ..services.excel_account import ExcelAccount
+from ..models.user import User
+from ..views.user import AccountModelPermissions, ManageAccountSecurity
+from ..serializers.user import UserSerializer
 
 
 # from pfbase.system.kalkan_adapter import KalkanAdapter
@@ -141,13 +144,18 @@ class MailCheckAPI(views.APIView):
 #         raise exc.ValidationError(serializer.errors)
 
 class AccountUpload(views.APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, AccountModelPermissions, ManageAccountSecurity]
     parser_classes = [MultiPartParser, FormParser]
+
+    def get_queryset(self):
+        return User.objects.all()
 
     def post(self, request):
         excel_file = request.FILES.get('file')
         if excel_file is None:
             raise exc.ValidationError({'file': 'This field is required.'})
-        instance = ExcelAccount(excel_file)
+        instance = ExcelAccount(excel_file, request)
         accounts = instance.read_accounts()
-        return Response({'count': len(accounts), 'accounts': accounts})
+        users = instance.create_account(accounts)
+        return Response({'count': len(users), 'accounts': UserSerializer(users, many=True).data},
+                        status=status.HTTP_201_CREATED)
