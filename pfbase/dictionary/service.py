@@ -77,7 +77,8 @@ class ElementService:
         else:
             parent_e = None
 
-        org = Organization.objects.get(id=self.organization_id) if self.organization_id else Organization.objects.get(code=self.organization_code)
+        org = (Organization.objects.get(id=self.organization_id) if self.organization_id else
+               Organization.objects.get(code=self.organization_code) if self.organization_code else None)
 
         element = Elements.objects.create(
             short_name=self.short_name,

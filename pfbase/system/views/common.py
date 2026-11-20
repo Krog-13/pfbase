@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from ..serializers.common import FileSaveSerializer, FileGetSerializer, FilesSaveSerializer
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework import views
+from django.db import transaction
 import smtplib
 from email.message import EmailMessage
 
@@ -150,6 +151,7 @@ class AccountUpload(views.APIView):
     def get_queryset(self):
         return User.objects.all()
 
+    @transaction.atomic
     def post(self, request):
         excel_file = request.FILES.get('file')
         if excel_file is None:
@@ -157,5 +159,6 @@ class AccountUpload(views.APIView):
         instance = ExcelAccount(excel_file, request)
         accounts = instance.read_accounts()
         users = instance.create_account(accounts)
+        # instance.create_profile(users)
         return Response({'count': len(users), 'accounts': UserSerializer(users, many=True).data},
                         status=status.HTTP_201_CREATED)
