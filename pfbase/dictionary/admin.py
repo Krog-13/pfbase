@@ -31,7 +31,7 @@ class IndicatorAdmin(admin.ModelAdmin):
     Indicators in admin panel
     """
     fields = ("dictionary", ("short_name", "full_name", "description"), "code", ("type_value", "type_extend"), "index_sort", "is_multiple", "is_required", "active")
-    list_display = ("get_name", "code", "type_value", "dictionary", "index_sort", "id")
+    list_display = ("get_name", "code", "type_value", "dictionary", "is_multiple", "index_sort", "id")
     list_filter = ("dictionary",)
     search_fields = ('=dictionary__id', 'dictionary__name',)
     list_per_page = 50
@@ -54,7 +54,7 @@ class ElementAdmin(admin.ModelAdmin):
     list_display = ('get_short_name', 'dictionary', "code", "parent", "index_sort", "id")
     list_filter = ("dictionary",)
     list_select_related = ("dictionary",)
-    search_fields = ('=id', '=dictionary__id', "short_name",)
+    search_fields = ('=id', '=dictionary__id', "=code", "short_name",)
     autocomplete_fields = ("parent",)
     list_per_page = 50
 
