@@ -3,7 +3,7 @@ Abstract base models
 """
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
-from .config import default_name, START_STEP, STEP_SORT
+from .config import default_name
 import json
 
 
@@ -67,20 +67,12 @@ class SoftDelete(models.Model):
 
 class AutoSortModel(models.Model):
     """
-    Abstract model that automatically increments index_sort on first save.
+    Abstract model with an explicitly assigned sort index.
     """
-    index_sort = models.PositiveBigIntegerField(blank=True, verbose_name='Sort index')
+    index_sort = models.PositiveBigIntegerField(default=0, blank=True, verbose_name='Sort index')
 
     class Meta:
         abstract = True
-
-    def save(self, *args, **kwargs):
-        if not self.pk and self.index_sort is None:
-            max_sort = self.__class__.objects.aggregate(models.Max('index_sort'))['index_sort__max']
-            if max_sort is None:
-                max_sort = START_STEP
-            self.index_sort = max_sort + STEP_SORT
-        super().save(*args, **kwargs)
 
 
 class IndicatorBase(TimeStampedModel, AutoSortModel):

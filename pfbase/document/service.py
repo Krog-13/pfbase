@@ -519,7 +519,6 @@ class RecordService:
             record.date = date
         if organization_id:
             record.organization_id = organization_id
-        record.author = user
         record.save()
 
         if not indicators:

@@ -4,11 +4,18 @@ from rest_framework.response import Response
 from ..serializers.common import FileSaveSerializer, FileGetSerializer, FilesSaveSerializer
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework import views
+from django.db import transaction
+from django.conf import settings
+from django.http import FileResponse, Http404
 import smtplib
 from email.message import EmailMessage
 
 
 from ..throttles import FileUploadThrottle
+from ..services.excel_account import ExcelAccount
+from ..models.user import User
+from ..views.user import AccountModelPermissions, ManageAccountSecurity
+from ..serializers.user import UserSerializer
 
 
 # from pfbase.system.kalkan_adapter import KalkanAdapter
@@ -138,3 +145,33 @@ class MailCheckAPI(views.APIView):
 #             except Exception as e:
 #                 raise exc.ValidationError({"message": str(e)})
 #         raise exc.ValidationError(serializer.errors)
+
+class AccountUpload(views.APIView):
+    permission_classes = [IsAuthenticated, AccountModelPermissions, ManageAccountSecurity]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_queryset(self):
+        return User.objects.all()
+
+    def get(self, request):
+        template_path = settings.BASE_DIR / 'pfbase' / 'templates' / 'account_template.xlsx'
+        try:
+            template_file = template_path.open('rb')
+        except FileNotFoundError as error:
+            raise Http404('Account template file not found.') from error
+        return FileResponse(
+            template_file,
+            as_attachment=True,
+            filename='account_template.xlsx',
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+
+    @transaction.atomic
+    def post(self, request):
+        excel_file = request.FILES.get('file')
+        if excel_file is None:
+            raise exc.ValidationError({'file': 'This field is required.'})
+        instance = ExcelAccount(excel_file, request)
+        accounts = instance.read_accounts()
+        instance.create_account(accounts)
+        return Response("Account created" ,status=status.HTTP_201_CREATED)
