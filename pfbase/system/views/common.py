@@ -158,7 +158,5 @@ class AccountUpload(views.APIView):
             raise exc.ValidationError({'file': 'This field is required.'})
         instance = ExcelAccount(excel_file, request)
         accounts = instance.read_accounts()
-        users = instance.create_account(accounts)
-        # instance.create_profile(users)
-        return Response({'count': len(users), 'accounts': UserSerializer(users, many=True).data},
-                        status=status.HTTP_201_CREATED)
+        instance.create_account(accounts)
+        return Response("Account created" ,status=status.HTTP_201_CREATED)

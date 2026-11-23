@@ -1,17 +1,18 @@
 from zipfile import BadZipFile
 from datetime import date, datetime, time
 import json
+from functools import cached_property
 
 from openpyxl import load_workbook
 from openpyxl.utils.exceptions import InvalidFileException
 from django.db import IntegrityError, transaction
+from django.db.models.functions import Lower
 from rest_framework.exceptions import ValidationError
 
 from ..serializers.user import RegistrationUserSerializer
-from ...dictionary.models import Dictionaries, DctIndicators
+from ..models.user import User
+from ...dictionary.models import Dictionaries, DctIndicators, Elements, ElementIndicatorValues
 from ...dictionary.service import ElementService
-from ...exception import WrongType
-from django.core.exceptions import ObjectDoesNotExist
 
 
 class ExcelAccount:
@@ -20,6 +21,7 @@ class ExcelAccount:
         self.excel_file = excel_file
         self.request = request
         self.profile_data = {}
+        self.skipped_count = 0
 
     def make_workbook(self):
         try:
@@ -48,54 +50,125 @@ class ExcelAccount:
     @transaction.atomic
     def create_account(self, accounts):
         users = []
+        profile_rows = []
+        self.skipped_count = 0
+        emails = {str(account.get('email') or '').strip().lower() for account in accounts}
+        emails.discard('')
+        existing_emails = set(User.objects.annotate(import_email=Lower('email')).filter(
+            import_email__in=emails).values_list('import_email', flat=True)) if emails else set()
         for row_number, account in enumerate(accounts, start=2):
             if all(value is None or value == '' for value in account.values()):
                 continue
-            value = account['groups']
-            account['groups'] = value.split(',')
-            serializer = RegistrationUserSerializer(data=account, context={'request': self.request})
+            email = str(account.get('email') or '').strip().lower()
+            if email and email in existing_emails:
+                self.skipped_count += 1
+                continue
+            data = {key: value for key, value in account.items() if value is not None}
+            if isinstance(data.get('email'), str):
+                data['email'] = data['email'].strip()
+            value = data.get('groups')
+            if isinstance(value, str):
+                data['groups'] = [group.strip() for group in value.split(',') if group.strip()]
+            elif value is not None and not isinstance(value, (list, tuple)):
+                data['groups'] = [value]
+            if 'organization_id' in data:
+                organization_id = data.pop('organization_id')
+                if 'organization' in data and data['organization'] != organization_id:
+                    raise ValidationError({'row': row_number, 'organization_id': 'Conflicting organizations.'})
+                data['organization'] = organization_id
+            serializer = RegistrationUserSerializer(data=data, context={'request': self.request})
             try:
                 serializer.is_valid(raise_exception=True)
                 user = serializer.save()
             except ValidationError as error:
+                # The email may have been registered since the initial query.
+                if (email and isinstance(error.detail, dict) and 'email' in error.detail
+                        and User.objects.filter(email__iexact=email).exists()):
+                    existing_emails.add(email)
+                    self.skipped_count += 1
+                    continue
                 raise ValidationError({'row': row_number, 'errors': error.detail}) from error
             except IntegrityError as error:
                 raise ValidationError({'row': row_number, 'errors': 'An account with these attributes already exists.'}) from error
             users.append(user)
-            self.create_profile(user, account)
+            if email:
+                existing_emails.add(email)
+            profile_rows.append((row_number, user, account))
+        self.create_profiles(profile_rows)
         return users
 
-    def create_profile(self, user, account):
+    @cached_property
+    def profile_dictionary(self):
         try:
-            dictionary = Dictionaries.objects.get(code='HSE_PRF')
+            return Dictionaries.objects.get(code='HSE_PRF')
         except Dictionaries.DoesNotExist as error:
             raise ValidationError({'profile': 'HSE_PRF dictionary is not configured.'}) from error
+
+    @cached_property
+    def profile_indicators(self):
+        return {indicator.code: indicator for indicator in
+                DctIndicators.objects.filter(dictionary_id=self.profile_dictionary.pk)}
+
+    def create_profile(self, user, account):
+        return self.create_profiles([(1, user, account)])
+
+    @transaction.atomic
+    def create_profiles(self, rows):
+        """Insert profiles and their values in batches after ordinary registration."""
+        if not rows:
+            return []
+        dictionary = self.profile_dictionary
+        indicators = self.profile_indicators
         profiles = []
-        account['HSE_PRF_UID'] = user.pk
+        prepared_rows = []
+        for row_number, user, account in rows:
+            profile_data = {**account, 'HSE_PRF_UID': user.pk}
+            try:
+                prepared = self.prepare_data(profile_data)
+            except ValidationError as error:
+                raise ValidationError({'row': row_number, 'errors': error.detail}) from error
+            profiles.append(Elements(
+                short_name={'ru': f'Профиль {user.username}',
+                            'kk': f'Профиль {user.username}',
+                            'en': f'Profile {user.username}'},
+                code=str(user.pk), dictionary_id=dictionary.pk,
+                organization_id=user.organization_id, author=self.request.user,
+            ))
+            prepared_rows.append((row_number, prepared))
+
+        # Reuse the service's type-to-column mapping without its per-value queries.
+        service = ElementService()
+        values = []
+        for profile, (row_number, prepared) in zip(profiles, prepared_rows):
+            for item in prepared:
+                indicator = indicators[item['code']]
+                value = ElementIndicatorValues(element=profile, indicator=indicator)
+                setter = service.separate_multiple_value if indicator.is_multiple else service.separate_value
+                try:
+                    valid = setter(value, indicator.type_value, item['value'])
+                except (ValueError, TypeError) as error:
+                    raise ValidationError({'row': row_number, indicator.code: 'Invalid indicator value.'}) from error
+                if not valid:
+                    raise ValidationError({'row': row_number, indicator.code: 'Unsupported indicator value.'})
+                values.append(value)
         try:
-            body = {
-                'short_name': {'ru': f'Профиль {user.username}',
-                               'kk': f'Профиль {user.username}',
-                               'en': f'Profile {user.username}'},
-                'code': str(user.pk),
-                'dictionary_id': dictionary.pk,
-                'organization_id': user.organization_id,
-                'indicators': self.prepare_data(account),
-            }
-            profiles.append(ElementService().create_element_iv(self.request.user, body))
-        except ValidationError as error:
-            raise ValidationError({'row': 1, 'errors': error.detail}) from error
-        except (ObjectDoesNotExist, WrongType, ValueError, TypeError, IntegrityError) as error:
-            raise ValidationError({'row': 1, 'profile': 'Invalid profile data.'}) from error
+            Elements.objects.bulk_create(profiles, batch_size=500)
+            # PostgreSQL fills profile PKs; update the FK on the unsaved values.
+            for value in values:
+                value.element_id = value.element.pk
+            ElementIndicatorValues.objects.bulk_create(values, batch_size=1000)
+        except IntegrityError as error:
+            raise ValidationError({'profile': 'Invalid profile data; import rolled back.'}) from error
         return profiles
 
     def prepare_data(self, account):
-        indicators = DctIndicators.objects.filter(
-            dictionary__code='HSE_PRF',
-            code__in=account.keys())
         result = []
-        for indicator in indicators:
+        for indicator in self.profile_indicators.values():
+            if indicator.code not in account:
+                continue
             value = account[indicator.code]
+            if value is None or value == '':
+                continue
             try:
                 if indicator.is_multiple:
                     if isinstance(value, str):
