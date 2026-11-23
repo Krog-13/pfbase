@@ -62,7 +62,6 @@ class ExcelAccount:
             except IntegrityError as error:
                 raise ValidationError({'row': row_number, 'errors': 'An account with these attributes already exists.'}) from error
             users.append(user)
-            print(account)
             self.create_profile(user, account)
         return users
 
@@ -91,4 +90,46 @@ class ExcelAccount:
         return profiles
 
     def prepare_data(self, account):
-        return []
+        indicators = DctIndicators.objects.filter(
+            dictionary__code='HSE_PRF',
+            code__in=account.keys())
+        result = []
+        for indicator in indicators:
+            value = account[indicator.code]
+            try:
+                if indicator.is_multiple:
+                    if isinstance(value, str):
+                        value = (json.loads(value) if value.strip().startswith('[') else
+                                 [item.strip() for item in value.split(',') if item.strip()])
+                    if not isinstance(value, (list, tuple)):
+                        value = [value]
+                    value = [self.cast_indicator_value(item, indicator.type_value) for item in value]
+                else:
+                    value = self.cast_indicator_value(value, indicator.type_value)
+            except (ValueError, TypeError) as error:
+                raise ValidationError({indicator.code: 'Invalid indicator value.'}) from error
+            result.append({'code': indicator.code, 'value': value, 'type': indicator.type_value})
+        return result
+
+    @staticmethod
+    def cast_indicator_value(value, type_value):
+        if type_value in {'str', 'text', 'file'}:
+            return str(value)
+        if type_value in {'int', 'dct', 'dcm', 'list', 'user', 'org'}:
+            if isinstance(value, float) and not value.is_integer():
+                raise ValueError('Expected an integer.')
+            return int(value)
+        if type_value == 'float':
+            return float(value)
+        if type_value == 'bool':
+            if str(value).strip().lower() in {'true', '1', 'yes'}:
+                return True
+            if str(value).strip().lower() in {'false', '0', 'no'}:
+                return False
+            raise ValueError('Expected a boolean.')
+        if type_value == 'json' and isinstance(value, str):
+            return json.loads(value)
+        if type_value in {'date', 'datetime', 'time'} and isinstance(value, (date, datetime, time)):
+            return value.strftime({'date': '%Y-%m-%d', 'datetime': '%Y-%m-%d %H:%M',
+                                   'time': '%H:%M'}[type_value])
+        return value
